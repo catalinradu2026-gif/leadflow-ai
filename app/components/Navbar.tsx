@@ -14,7 +14,7 @@ export default function Navbar() {
     <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${scrolled ? 'bg-black/90 backdrop-blur-md border-b border-white/5' : 'bg-transparent'}`}>
       <div className="max-w-6xl mx-auto px-6 py-5 flex items-center justify-between">
         <span className="font-serif text-xl font-semibold tracking-wide text-white">
-          LeadFlow <span className="text-gold">AI</span>
+          AI <span className="text-gold">Craiova</span>
         </span>
         <div className="hidden md:flex items-center gap-8 text-sm text-white/60">
           <a href="#servicii" className="hover:text-white transition-colors">Servicii</a>

@@ -11,7 +11,7 @@ export default function Despre() {
         </div>
         <div className="space-y-6">
           <p className="text-white/60 text-lg leading-relaxed">
-            LeadFlow AI este o agenție specializată în implementarea sistemelor de automatizare bazate pe inteligență artificială. Lucrăm cu antreprenori și companii care vor să scaleze fără să angajeze mai mulți oameni.
+            AI Craiova este o agenție specializată în implementarea sistemelor de automatizare bazate pe inteligență artificială. Lucrăm cu antreprenori și companii care vor să scaleze fără să angajeze mai mulți oameni.
           </p>
           <p className="text-white/40 leading-relaxed">
             Fiecare client primește un sistem personalizat — nu șabloane, nu soluții generice. Analizăm procesele tale, identificăm oportunitățile și construim infrastructura care lucrează pentru tine 24/7.
