@@ -1,6 +1,6 @@
 export default function Portofoliu() {
   return (
-    <section id="portofoliu" className="py-32 bg-black border-t border-white/5">
+    <section id="portofoliu" className="py-32 bg-zinc-950 border-t border-white/5">
       <div className="max-w-6xl mx-auto px-6">
 
         {/* Header */}
