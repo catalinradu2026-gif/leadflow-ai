@@ -12,7 +12,7 @@ export default function CTA() {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     const text = `Buna ziua! Sunt ${form.nume} de la ${form.business}. Telefon: ${form.telefon}. ${form.mesaj}`
-    window.open(`https://wa.me/40785023085?text=${encodeURIComponent(text)}`, '_blank')
+    window.open(`https://wa.me/40787813485?text=${encodeURIComponent(text)}`, '_blank')
     setTrimis(true)
   }
 
@@ -41,7 +41,7 @@ export default function CTA() {
             ))}
           </div>
           <a
-            href="https://wa.me/40785023085?text=Buna%20ziua%2C%20vreau%20sa%20programez%20o%20discutie%20despre%20AI%20Craiova%20-%20automatizari%20AI"
+            href="https://wa.me/40787813485?text=Buna%20ziua%2C%20vreau%20sa%20programez%20o%20discutie%20despre%20AI%20Craiova%20-%20automatizari%20AI"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-3 mt-8 px-8 py-4 bg-[#25D366] text-white font-semibold text-sm tracking-wide hover:bg-[#20b857] transition-all duration-300"
