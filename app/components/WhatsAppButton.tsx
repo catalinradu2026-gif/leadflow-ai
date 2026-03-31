@@ -1,7 +1,7 @@
 export default function WhatsAppButton() {
   return (
     <a
-      href="https://wa.me/40787813485?text=Buna%20ziua%2C%20am%20vazut%20site-ul%20AI%20Craiova%20si%20vreau%20mai%20multe%20informatii"
+      href="https://wa.me/40785023085?text=Buna%20ziua%2C%20vreau%20sa%20programez%20o%20discutie%20despre%20AI%20Craiova%20-%20automatizari%20AI"
       target="_blank"
       rel="noopener noreferrer"
       className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-[#25D366] rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform duration-300"
