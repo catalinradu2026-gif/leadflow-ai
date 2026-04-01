@@ -20,7 +20,7 @@ const planuri = [
     nume: 'Growth',
     pret: '1.500€',
     mentinere: '250€ / lună',
-    mentinerePerioda: 'după primele 90 de zile',
+    mentinerePerioda: 'după primele 30 de zile',
     descriere: 'Sistemul complet pentru afaceri care vor să crească fără să angajeze — automatizare end-to-end.',
     features: [
       'Tot ce include Essential',
@@ -85,7 +85,7 @@ export default function Preturi() {
               <div className="mb-8">
                 <h3 className="font-serif text-2xl font-semibold text-white mb-2">{plan.nume}</h3>
                 <div className="text-gold font-serif text-4xl font-bold mb-4">
-                  de la {plan.pret}
+                  {plan.pret}
                 </div>
                 <p className="text-white/40 text-sm leading-relaxed">{plan.descriere}</p>
               </div>
@@ -98,13 +98,21 @@ export default function Preturi() {
                 ))}
               </ul>
 
-              {/* Mentenanță */}
-              <div className={`px-4 py-3 mb-6 border ${
+              {/* Prețuri clare */}
+              <div className={`px-4 py-4 mb-6 border ${
                 plan.highlight ? 'border-gold/30 bg-gold/8' : 'border-white/8 bg-white/3'
               }`}>
-                <p className="text-white/30 text-xs uppercase tracking-widest mb-1">Mentenanță lunară</p>
-                <p className="text-gold font-semibold text-sm">{plan.mentinere}</p>
-                <p className="text-white/25 text-xs mt-0.5">{plan.mentinerePerioda}</p>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-white/30 text-xs uppercase tracking-widest">Implementare</p>
+                  <p className="text-white font-bold text-sm">{plan.pret} <span className="text-white/30 font-normal text-xs">o singură dată</span></p>
+                </div>
+                <div className="flex items-center justify-between border-t border-white/5 pt-2">
+                  <p className="text-white/30 text-xs uppercase tracking-widest">Mentenanță</p>
+                  <div className="text-right">
+                    <p className="text-gold font-semibold text-sm">{plan.mentinere}</p>
+                    <p className="text-white/25 text-xs">{plan.mentinerePerioda}</p>
+                  </div>
+                </div>
               </div>
 
               <a
