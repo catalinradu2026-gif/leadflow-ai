@@ -6,7 +6,7 @@ interface Message {
   content: string
 }
 
-const WELCOME = 'Bună! Sunt asistentul AI al firmei AI Craiova. Poți să îmi vorbești direct — apasă microfonul de pe tastatură și spune ce te interesează!'
+const WELCOME = 'Bună! Sunt asistentul AI al firmei AI Craiova. Apasă butonul de mai jos și vorbește cu mine!'
 
 const QUICK_REPLIES = [
   'Ce servicii oferiți?',
@@ -44,6 +44,7 @@ export default function ChatBot() {
   const [voiceOn, setVoiceOn] = useState(true)
   const [speaking, setSpeaking] = useState(false)
   const [listening, setListening] = useState(false)
+  const [userInteracted, setUserInteracted] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const recognitionRef = useRef<any>(null)
@@ -66,26 +67,33 @@ export default function ChatBot() {
     if (open) {
       setBubble(false)
       setTimeout(() => inputRef.current?.focus(), 100)
-      // Citeste mesajul de bun venit dupa 800ms
-      if (voiceOn) {
-        setTimeout(() => {
-          setSpeaking(true)
-          const trySpeak = () => {
-            speak(WELCOME)
-            const interval = setInterval(() => {
-              if (!window.speechSynthesis.speaking) { setSpeaking(false); clearInterval(interval) }
-            }, 200)
-            setTimeout(() => { setSpeaking(false); clearInterval(interval) }, 15000)
-          }
-          if (window.speechSynthesis.getVoices().length > 0) {
-            trySpeak()
-          } else {
-            window.speechSynthesis.onvoiceschanged = () => { trySpeak(); window.speechSynthesis.onvoiceschanged = null }
-          }
-        }, 800)
-      }
     }
   }, [open])
+
+  function speakText(text: string) {
+    if (!voiceOn) return
+    setSpeaking(true)
+    const trySpeak = () => {
+      speak(text)
+      const interval = setInterval(() => {
+        if (!window.speechSynthesis.speaking) { setSpeaking(false); clearInterval(interval) }
+      }, 200)
+      setTimeout(() => { setSpeaking(false); clearInterval(interval) }, 15000)
+    }
+    if (window.speechSynthesis.getVoices().length > 0) {
+      trySpeak()
+    } else {
+      window.speechSynthesis.onvoiceschanged = () => { trySpeak(); window.speechSynthesis.onvoiceschanged = null }
+    }
+  }
+
+  // Cand userul interactioneaza prima data → citeste bun venit
+  function handleFirstInteraction() {
+    if (!userInteracted) {
+      setUserInteracted(true)
+      speakText(WELCOME)
+    }
+  }
 
   useEffect(() => {
     if (open) bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -114,25 +122,7 @@ export default function ChatBot() {
       const data = await res.json()
       const reply = data.text || 'A apărut o eroare. Scrie-ne pe WhatsApp: 0787 813 485'
       setMessages(prev => [...prev, { role: 'assistant', content: reply }])
-      if (voiceOn) {
-        setSpeaking(true)
-        // Asteapta vocile sa se incarce
-        const trySpeak = () => {
-          speak(reply)
-          const interval = setInterval(() => {
-            if (!window.speechSynthesis.speaking) {
-              setSpeaking(false)
-              clearInterval(interval)
-            }
-          }, 200)
-          setTimeout(() => { setSpeaking(false); clearInterval(interval) }, 15000)
-        }
-        if (window.speechSynthesis.getVoices().length > 0) {
-          trySpeak()
-        } else {
-          window.speechSynthesis.onvoiceschanged = () => { trySpeak(); window.speechSynthesis.onvoiceschanged = null }
-        }
-      }
+      speakText(reply)
     } catch {
       setMessages(prev => [...prev, { role: 'assistant', content: 'Eroare de conexiune. Scrie-ne pe WhatsApp la 0787 813 485!' }])
     } finally {
@@ -264,13 +254,42 @@ export default function ChatBot() {
             )}
 
             {showQuick && messages.length === 1 && (
-              <div className="flex flex-wrap gap-1.5 pt-1">
-                {QUICK_REPLIES.map(q => (
-                  <button key={q} onClick={() => send(q)}
-                    className="px-3 py-1.5 text-xs font-medium border border-violet-200 text-violet-600 bg-white hover:bg-violet-50 rounded-full transition-colors shadow-sm">
-                    {q}
-                  </button>
-                ))}
+              <div className="flex flex-col items-center gap-3 pt-2">
+                {/* Buton mare microfon */}
+                <button
+                  onClick={() => { handleFirstInteraction(); toggleMic() }}
+                  className="flex flex-col items-center gap-2 group"
+                >
+                  <div className={`w-16 h-16 rounded-full flex items-center justify-center shadow-lg transition-all group-hover:scale-105 ${listening ? 'bg-red-500' : 'bg-gradient-to-br from-violet-600 to-blue-600'}`}>
+                    {listening ? (
+                      <span className="flex gap-1">
+                        <span className="w-1 h-5 bg-white rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                        <span className="w-1 h-5 bg-white rounded-full animate-bounce" style={{ animationDelay: '100ms' }} />
+                        <span className="w-1 h-5 bg-white rounded-full animate-bounce" style={{ animationDelay: '200ms' }} />
+                      </span>
+                    ) : (
+                      <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                      </svg>
+                    )}
+                  </div>
+                  <span className="text-xs text-violet-600 font-semibold">{listening ? 'Ascult...' : '🎤 Apasă și vorbește'}</span>
+                </button>
+                {/* Separator */}
+                <div className="flex items-center gap-2 w-full">
+                  <div className="flex-1 h-px bg-gray-200" />
+                  <span className="text-gray-400 text-xs">sau scrie</span>
+                  <div className="flex-1 h-px bg-gray-200" />
+                </div>
+                {/* Quick replies */}
+                <div className="flex flex-wrap gap-1.5 justify-center">
+                  {QUICK_REPLIES.map(q => (
+                    <button key={q} onClick={() => { handleFirstInteraction(); send(q) }}
+                      className="px-3 py-1.5 text-xs font-medium border border-violet-200 text-violet-600 bg-white hover:bg-violet-50 rounded-full transition-colors shadow-sm">
+                      {q}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
             <div ref={bottomRef} />
@@ -285,6 +304,7 @@ export default function ChatBot() {
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && send()}
+                onFocus={handleFirstInteraction}
                 placeholder="Scrie un mesaj..."
                 className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-violet-300 focus:border-violet-400 placeholder-gray-400"
                 style={{ fontSize: '16px' }}
