@@ -66,7 +66,7 @@ export const metadata: Metadata = {
     },
   },
   verification: {
-    // google: 'CODUL_TĂU_DE_VERIFICARE', // adăugat după înregistrare Search Console
+    google: 'cb4b164dc90cf9ca',
   },
 }
 
