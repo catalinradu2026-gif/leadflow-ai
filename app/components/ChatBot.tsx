@@ -9,11 +9,29 @@ interface Message {
 const WELCOME = 'Bună! Sunt asistentul AI al firmei AI Craiova. Apasă butonul de mai jos și vorbește cu mine!'
 
 
+function prepareForSpeech(text: string): string {
+  return text
+    .replace(/AI Craiova/gi, 'A I Craiova')
+    .replace(/\bAI\b/g, 'A I')
+    .replace(/n8n/gi, 'en opt en')
+    .replace(/WhatsApp/gi, 'uotsap')
+    .replace(/CRM/gi, 'C R M')
+    .replace(/ERP/gi, 'E R P')
+    .replace(/SLA/gi, 'S L A')
+    .replace(/Wi-Fi/gi, 'uai fai')
+    .replace(/check-in/gi, 'cek in')
+    .replace(/check-out/gi, 'cek aut')
+    .replace(/(\d+)€/g, '$1 euro')
+    .replace(/(\d+)%/g, '$1 procente')
+    .replace(/[\u{1F300}-\u{1FFFF}]/gu, '')
+    .replace(/[*_~`#]/g, '')
+    .trim()
+}
+
 function speak(text: string) {
   if (typeof window === 'undefined' || !window.speechSynthesis) return
   window.speechSynthesis.cancel()
-  // Curata emojis si caractere speciale
-  const clean = text.replace(/[\u{1F300}-\u{1FFFF}]/gu, '').replace(/[*_~`]/g, '').trim()
+  const clean = prepareForSpeech(text)
   const utt = new SpeechSynthesisUtterance(clean)
   utt.lang = 'ro-RO'
   utt.rate = 1.05
