@@ -7,8 +7,8 @@ const testimoniale = [
     tag: null,
   },
   {
-    nume: 'Client — Firmă internațională de recrutare, Germania',
-    rol: 'Director operațional — sezon 2026',
+    nume: 'Client — Firmă internațională de recrutare',
+    rol: 'Director operațional',
     text: 'Am implementat botul WhatsApp AI pentru gestionarea a sute de candidați simultan, în perioada de recrutare intensă. Botul colectează automat datele (nume, dată naștere, telefon, buletin), filtrează candidații după criterii precise și trimite dosarele direct recrutorilor responsabili — fără nicio intervenție manuală. Volumul de muncă s-a redus drastic. Clientul a fost impresionat de viteza de implementare și de cât de bine a înțeles botul contextul specific al afacerii lor.',
     initiale: 'DE',
     tag: '🌍 Internațional',
