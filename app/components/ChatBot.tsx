@@ -156,10 +156,8 @@ export default function ChatBot() {
     <>
       {/* Fereastra chat */}
       {open && (
-        <div className="fixed z-50 flex flex-col bg-white shadow-2xl overflow-hidden
-          bottom-0 left-0 right-0 rounded-t-2xl
-          md:bottom-24 md:left-4 md:right-auto md:w-[320px] md:rounded-2xl md:h-[440px]"
-          style={{ height: 'calc(100dvh - 0px)' }}>
+        <div className="fixed bottom-24 left-4 z-50 w-[320px] max-w-[calc(100vw-32px)] flex flex-col bg-white rounded-2xl shadow-2xl overflow-hidden"
+          style={{ height: '440px', boxShadow: '0 8px 40px rgba(0,0,0,0.18)' }}>
 
           {/* Header */}
           <div className="flex items-center gap-3 px-4 py-3 shrink-0" style={{ background: 'linear-gradient(135deg, #6d28d9 0%, #2563eb 100%)' }}>
@@ -264,7 +262,7 @@ export default function ChatBot() {
             />
             {/* Buton microfon */}
             <button onClick={toggleMic} disabled={loading}
-              className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all shrink-0 disabled:opacity-40 ${listening ? 'bg-red-500 hover:bg-red-600' : 'bg-gray-100 hover:bg-gray-200'}`}
+              className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all shrink-0 disabled:opacity-40 ${listening ? 'bg-red-500 hover:bg-red-600' : 'bg-violet-100 hover:bg-violet-200'}`}
               title={listening ? 'Oprește microfonul' : 'Vorbește'}>
               {listening ? (
                 <span className="flex gap-0.5">
@@ -273,7 +271,7 @@ export default function ChatBot() {
                   <span className="w-0.5 h-4 bg-white rounded-full animate-bounce" style={{ animationDelay: '200ms' }} />
                 </span>
               ) : (
-                <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
                 </svg>
               )}
