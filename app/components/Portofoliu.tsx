@@ -31,6 +31,23 @@ const cazuri = [
     rezultat: 'Clientul economisește minim 3 ore pe zi și nu mai pierde nicio rezervare.',
     recenzie: 'Nu mai pierd rezervări noaptea... am câștigat minim 3 ore pe zi.',
   },
+  {
+    client: 'Bot Recrutare Internațională',
+    categorie: 'Recrutare & HR Automatizat',
+    tag: 'Realizat',
+    link: null,
+    descriere: 'Bot AI pe WhatsApp care gestionează complet procesul de recrutare pentru muncă sezonieră în străinătate. Colectează datele candidaților, îi califică automat în funcție de criterii specifice, îi redirecționează către recrutorul potrivit și trimite documentele necesare — totul fără intervenție umană.',
+    features: [
+      'Colectare automată date (nume, vârstă, telefon, acte)',
+      'Calificare și redirecționare pe criterii specifice',
+      'Meniu interactiv cu opțiuni de posturi disponibile',
+      'Ore silențioase cu coadă automată de mesaje',
+      'AI conversațional pentru întrebări suplimentare',
+      'Notificări instant pentru recrutori pe WhatsApp',
+    ],
+    rezultat: 'Sute de candidați procesați automat lunar. Recrutorul primește doar dosarele complete, gata de analizat — economisind ore întregi de comunicare repetitivă.',
+    recenzie: null,
+  },
 ]
 
 export default function Portofoliu() {
@@ -50,7 +67,7 @@ export default function Portofoliu() {
         </div>
 
         {/* Cazuri */}
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {cazuri.map((caz) => (
             <div key={caz.client}
               className="relative border border-white/8 bg-black/50 overflow-hidden flex flex-col hover:border-gold/20 transition-colors duration-300">
