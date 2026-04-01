@@ -255,30 +255,16 @@ export default function ChatBot() {
 
             {showQuick && messages.length === 1 && (
               <div className="flex flex-col items-center gap-3 pt-2">
-                {/* Buton mare microfon */}
-                <button
-                  onClick={() => { handleFirstInteraction(); toggleMic() }}
-                  className="flex flex-col items-center gap-2 group"
-                >
-                  <div className={`w-16 h-16 rounded-full flex items-center justify-center shadow-lg transition-all group-hover:scale-105 ${listening ? 'bg-red-500' : 'bg-gradient-to-br from-violet-600 to-blue-600'}`}>
-                    {listening ? (
-                      <span className="flex gap-1">
-                        <span className="w-1 h-5 bg-white rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                        <span className="w-1 h-5 bg-white rounded-full animate-bounce" style={{ animationDelay: '100ms' }} />
-                        <span className="w-1 h-5 bg-white rounded-full animate-bounce" style={{ animationDelay: '200ms' }} />
-                      </span>
-                    ) : (
-                      <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                      </svg>
-                    )}
-                  </div>
-                  <span className="text-xs text-violet-600 font-semibold">{listening ? 'Ascult...' : '🎤 Apasă și vorbește'}</span>
-                </button>
+                {/* Ghid microfon tastatura */}
+                <div className="bg-violet-50 border border-violet-200 rounded-2xl px-4 py-3 w-full text-center cursor-pointer"
+                  onClick={handleFirstInteraction}>
+                  <p className="text-violet-700 font-semibold text-sm mb-1">🎤 Vorbește cu mine!</p>
+                  <p className="text-violet-500 text-xs leading-relaxed">Apasă pe câmpul de text de jos,<br/>apoi apasă <strong>🎤</strong> de pe tastatură</p>
+                </div>
                 {/* Separator */}
                 <div className="flex items-center gap-2 w-full">
                   <div className="flex-1 h-px bg-gray-200" />
-                  <span className="text-gray-400 text-xs">sau scrie</span>
+                  <span className="text-gray-400 text-xs">sau alege</span>
                   <div className="flex-1 h-px bg-gray-200" />
                 </div>
                 {/* Quick replies */}
