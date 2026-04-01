@@ -102,16 +102,14 @@ export default function Preturi() {
               <div className={`px-4 py-4 mb-6 border ${
                 plan.highlight ? 'border-gold/30 bg-gold/8' : 'border-white/8 bg-white/3'
               }`}>
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-white/30 text-xs uppercase tracking-widest">Implementare</p>
-                  <p className="text-white font-bold text-sm">{plan.pret} <span className="text-white/30 font-normal text-xs">o singură dată</span></p>
+                <div className="mb-3">
+                  <p className="text-white/30 text-xs uppercase tracking-widest mb-1">Investiție</p>
+                  <p className="font-serif text-2xl font-bold text-white">{plan.pret} <span className="text-white/30 text-sm font-normal">o singură dată</span></p>
                 </div>
-                <div className="flex items-center justify-between border-t border-white/5 pt-2">
-                  <p className="text-white/30 text-xs uppercase tracking-widest">Mentenanță</p>
-                  <div className="text-right">
-                    <p className="text-gold font-semibold text-sm">{plan.mentinere}</p>
-                    <p className="text-white/25 text-xs">{plan.mentinerePerioda}</p>
-                  </div>
+                <div className="border-t border-white/5 pt-3">
+                  <p className="text-white/30 text-xs uppercase tracking-widest mb-1">Mentenanță lunară</p>
+                  <p className="font-serif text-xl font-bold text-gold">+ {plan.mentinere}</p>
+                  <p className="text-white/25 text-xs mt-0.5">{plan.mentinerePerioda}</p>
                 </div>
               </div>
 
