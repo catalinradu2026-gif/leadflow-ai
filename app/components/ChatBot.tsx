@@ -68,13 +68,6 @@ export default function ChatBot() {
 
   useEffect(() => {
     const t = setTimeout(() => {
-      if (!open) { setOpen(true); setBubble(false) }
-    }, 7000)
-    return () => clearTimeout(t)
-  }, [])
-
-  useEffect(() => {
-    const t = setTimeout(() => {
       if (!open) setBubble(true)
     }, 2000)
     return () => clearTimeout(t)
@@ -312,7 +305,7 @@ export default function ChatBot() {
       {/* Bubble */}
       {bubble && !open && (
         <div className="fixed bottom-24 left-20 z-50 bg-white rounded-2xl rounded-bl-sm shadow-xl border border-gray-100 px-4 py-3 max-w-[200px] cursor-pointer"
-          onClick={() => { setOpen(true); setBubble(false) }}>
+          onClick={() => { setOpen(true); setBubble(false); handleFirstInteraction() }}>
           <button className="absolute -top-2 -right-2 bg-gray-100 hover:bg-gray-200 rounded-full w-5 h-5 text-xs flex items-center justify-center text-gray-500 transition-colors"
             onClick={e => { e.stopPropagation(); setBubble(false) }}>×</button>
           <p className="text-sm text-gray-700 leading-snug">👋 Bună! Cu ce te pot ajuta azi?</p>
