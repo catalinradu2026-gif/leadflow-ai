@@ -15,6 +15,23 @@ const QUICK_REPLIES = [
   'Vreau o ofertă',
 ]
 
+function speak(text: string) {
+  if (typeof window === 'undefined' || !window.speechSynthesis) return
+  window.speechSynthesis.cancel()
+  // Curata emojis si caractere speciale
+  const clean = text.replace(/[\u{1F300}-\u{1FFFF}]/gu, '').replace(/[*_~`]/g, '').trim()
+  const utt = new SpeechSynthesisUtterance(clean)
+  utt.lang = 'ro-RO'
+  utt.rate = 1.05
+  utt.pitch = 1
+  utt.volume = 1
+  // Incearca voce romaneasca, altfel prima disponibila
+  const voices = window.speechSynthesis.getVoices()
+  const roVoice = voices.find(v => v.lang.startsWith('ro')) || voices.find(v => v.lang.startsWith('en')) || voices[0]
+  if (roVoice) utt.voice = roVoice
+  window.speechSynthesis.speak(utt)
+}
+
 export default function ChatBot() {
   const [open, setOpen] = useState(false)
   const [bubble, setBubble] = useState(false)
@@ -24,6 +41,8 @@ export default function ChatBot() {
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [showQuick, setShowQuick] = useState(true)
+  const [voiceOn, setVoiceOn] = useState(true)
+  const [speaking, setSpeaking] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -49,6 +68,11 @@ export default function ChatBot() {
     if (open) bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, loading, open])
 
+  // Opreste vocea cand se inchide chat-ul
+  useEffect(() => {
+    if (!open && typeof window !== 'undefined') window.speechSynthesis?.cancel()
+  }, [open])
+
   async function send(text?: string) {
     const msg = (text || input).trim()
     if (!msg || loading) return
@@ -65,12 +89,38 @@ export default function ChatBot() {
         body: JSON.stringify({ messages: newMessages.map(m => ({ role: m.role, content: m.content })) }),
       })
       const data = await res.json()
-      setMessages(prev => [...prev, { role: 'assistant', content: data.text || 'A apărut o eroare. Scrie-ne pe WhatsApp: 0787 813 485' }])
+      const reply = data.text || 'A apărut o eroare. Scrie-ne pe WhatsApp: 0787 813 485'
+      setMessages(prev => [...prev, { role: 'assistant', content: reply }])
+      if (voiceOn) {
+        setSpeaking(true)
+        // Asteapta vocile sa se incarce
+        const trySpeak = () => {
+          speak(reply)
+          const interval = setInterval(() => {
+            if (!window.speechSynthesis.speaking) {
+              setSpeaking(false)
+              clearInterval(interval)
+            }
+          }, 200)
+          setTimeout(() => { setSpeaking(false); clearInterval(interval) }, 15000)
+        }
+        if (window.speechSynthesis.getVoices().length > 0) {
+          trySpeak()
+        } else {
+          window.speechSynthesis.onvoiceschanged = () => { trySpeak(); window.speechSynthesis.onvoiceschanged = null }
+        }
+      }
     } catch {
       setMessages(prev => [...prev, { role: 'assistant', content: 'Eroare de conexiune. Scrie-ne pe WhatsApp la 0787 813 485!' }])
     } finally {
       setLoading(false)
     }
+  }
+
+  function toggleVoice() {
+    if (voiceOn) window.speechSynthesis?.cancel()
+    setVoiceOn(v => !v)
+    setSpeaking(false)
   }
 
   return (
@@ -86,10 +136,39 @@ export default function ChatBot() {
             <div className="flex-1">
               <p className="text-white font-semibold text-sm leading-tight">AI Craiova</p>
               <div className="flex items-center gap-1.5 mt-0.5">
-                <span className="w-1.5 h-1.5 bg-emerald-300 rounded-full animate-pulse" />
-                <p className="text-white/65 text-xs">Online acum</p>
+                {speaking ? (
+                  <>
+                    <span className="flex gap-0.5">
+                      <span className="w-0.5 h-3 bg-emerald-300 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                      <span className="w-0.5 h-3 bg-emerald-300 rounded-full animate-bounce" style={{ animationDelay: '100ms' }} />
+                      <span className="w-0.5 h-3 bg-emerald-300 rounded-full animate-bounce" style={{ animationDelay: '200ms' }} />
+                    </span>
+                    <p className="text-emerald-300 text-xs">Vorbesc...</p>
+                  </>
+                ) : (
+                  <>
+                    <span className="w-1.5 h-1.5 bg-emerald-300 rounded-full animate-pulse" />
+                    <p className="text-white/65 text-xs">Online acum</p>
+                  </>
+                )}
               </div>
             </div>
+
+            {/* Buton voce */}
+            <button onClick={toggleVoice} title={voiceOn ? 'Oprește vocea' : 'Pornește vocea'}
+              className={`p-1.5 rounded-full transition-colors ${voiceOn ? 'text-white hover:bg-white/15' : 'text-white/30 hover:bg-white/10'}`}>
+              {voiceOn ? (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072M12 6v12m-3.536-9.536a5 5 0 000 7.072M9 12H3m18 0h-6" />
+                </svg>
+              ) : (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+                </svg>
+              )}
+            </button>
+
             <a href="https://wa.me/40787813485" target="_blank" rel="noopener noreferrer"
               className="text-white/50 hover:text-green-300 transition-colors p-1" title="WhatsApp">
               <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current">
@@ -163,7 +242,7 @@ export default function ChatBot() {
         </div>
       )}
 
-      {/* Bubble notificare */}
+      {/* Bubble */}
       {bubble && !open && (
         <div className="fixed bottom-24 left-20 z-50 bg-white rounded-2xl rounded-bl-sm shadow-xl border border-gray-100 px-4 py-3 max-w-[200px] cursor-pointer"
           onClick={() => { setOpen(true); setBubble(false) }}>
