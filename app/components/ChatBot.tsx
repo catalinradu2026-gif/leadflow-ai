@@ -43,8 +43,10 @@ export default function ChatBot() {
   const [showQuick, setShowQuick] = useState(true)
   const [voiceOn, setVoiceOn] = useState(true)
   const [speaking, setSpeaking] = useState(false)
+  const [listening, setListening] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const recognitionRef = useRef<any>(null)
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -121,6 +123,33 @@ export default function ChatBot() {
     if (voiceOn) window.speechSynthesis?.cancel()
     setVoiceOn(v => !v)
     setSpeaking(false)
+  }
+
+  function toggleMic() {
+    if (listening) {
+      recognitionRef.current?.stop()
+      setListening(false)
+      return
+    }
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    if (!SpeechRecognition) {
+      alert('Browserul tău nu suportă recunoaștere vocală. Încearcă Chrome.')
+      return
+    }
+    const rec = new SpeechRecognition()
+    rec.lang = 'ro-RO'
+    rec.continuous = false
+    rec.interimResults = false
+    rec.onstart = () => setListening(true)
+    rec.onresult = (e: any) => {
+      const transcript = e.results[0][0].transcript
+      setListening(false)
+      send(transcript)
+    }
+    rec.onerror = () => setListening(false)
+    rec.onend = () => setListening(false)
+    recognitionRef.current = rec
+    rec.start()
   }
 
   return (
@@ -227,10 +256,27 @@ export default function ChatBot() {
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && send()}
-              placeholder="Scrie un mesaj..."
+              placeholder={listening ? '🎤 Ascult...' : 'Scrie sau vorbește...'}
               className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-violet-300 focus:border-violet-400 placeholder-gray-400"
               style={{ fontSize: '16px' }}
             />
+            {/* Buton microfon */}
+            <button onClick={toggleMic} disabled={loading}
+              className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all shrink-0 disabled:opacity-40 ${listening ? 'bg-red-500 hover:bg-red-600' : 'bg-gray-100 hover:bg-gray-200'}`}
+              title={listening ? 'Oprește microfonul' : 'Vorbește'}>
+              {listening ? (
+                <span className="flex gap-0.5">
+                  <span className="w-0.5 h-4 bg-white rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <span className="w-0.5 h-4 bg-white rounded-full animate-bounce" style={{ animationDelay: '100ms' }} />
+                  <span className="w-0.5 h-4 bg-white rounded-full animate-bounce" style={{ animationDelay: '200ms' }} />
+                </span>
+              ) : (
+                <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                </svg>
+              )}
+            </button>
+            {/* Buton trimite */}
             <button onClick={() => send()} disabled={!input.trim() || loading}
               className="w-9 h-9 rounded-xl flex items-center justify-center transition-all disabled:opacity-40 shrink-0 hover:opacity-90"
               style={{ background: 'linear-gradient(135deg, #6d28d9 0%, #2563eb 100%)' }}>
