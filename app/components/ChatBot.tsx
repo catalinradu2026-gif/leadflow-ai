@@ -133,7 +133,7 @@ export default function ChatBot() {
     }
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
     if (!SpeechRecognition) {
-      alert('Browserul tău nu suportă recunoaștere vocală. Încearcă Chrome.')
+      setMessages(prev => [...prev, { role: 'assistant', content: '🎤 Microfonul funcționează doar în Chrome. Te rog deschide aicraiova.ro în Chrome pe telefon.' }])
       return
     }
     const rec = new SpeechRecognition()
@@ -146,7 +146,14 @@ export default function ChatBot() {
       setListening(false)
       send(transcript)
     }
-    rec.onerror = () => setListening(false)
+    rec.onerror = (e: any) => {
+      setListening(false)
+      if (e.error === 'not-allowed') {
+        setMessages(prev => [...prev, { role: 'assistant', content: '🎤 Accesul la microfon a fost blocat. În Chrome, apasă pe 🔒 din bara de adresă → Microfon → Permite.' }])
+      } else if (e.error === 'no-speech') {
+        setMessages(prev => [...prev, { role: 'assistant', content: '🎤 Nu am auzit nimic. Încearcă din nou.' }])
+      }
+    }
     rec.onend = () => setListening(false)
     recognitionRef.current = rec
     rec.start()
