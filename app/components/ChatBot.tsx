@@ -38,11 +38,11 @@ export default function ChatBot() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, loading])
 
-  // Notify dupa 8 secunde daca nu a deschis chat-ul
+  // Deschide automat chat-ul dupa 7 secunde
   useEffect(() => {
     const t = setTimeout(() => {
-      if (!open) setUnread(1)
-    }, 8000)
+      if (!open) setOpen(true)
+    }, 7000)
     return () => clearTimeout(t)
   }, [])
 
