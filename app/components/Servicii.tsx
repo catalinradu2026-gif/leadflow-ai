@@ -4,36 +4,49 @@ const servicii = [
     titlu: 'Bot WhatsApp AI',
     descriere: 'Bot inteligent care preia rezervări, califică lead-uri și răspunde clienților 24/7. Perfect pentru clinici, restaurante, hoteluri, saloane.',
     features: ['Rezervări automate', 'Calificare lead-uri', 'Răspunsuri instant 24/7'],
+    preturi: null,
   },
   {
     icon: '⚡',
     titlu: 'Automatizări Complete',
     descriere: 'Conectăm toate aplicațiile tale — WhatsApp, email, calendar, facturare. Fluxuri automate cu n8n + AI care elimină munca repetitivă.',
     features: ['Integrare n8n', 'Conectare Groq/Claude AI', 'Zero intervenție manuală'],
+    preturi: null,
   },
   {
     icon: '🤖',
     titlu: 'Agenți AI cu Memorie',
     descriere: 'Agenți AI care știu istoricul fiecărui client, urmăresc conversații și iau decizii inteligente. Nu simple chatboturi — sisteme cu adevărat inteligente.',
     features: ['Memorie conversații', 'Decizii contextuale', 'Personalizare avansată'],
+    preturi: null,
   },
   {
     icon: '🔗',
     titlu: 'Integrări Complete',
     descriere: 'Site + WhatsApp + Calendar + Plăți + CRM — totul conectat într-un singur ecosistem. Clientul intră, sistemul lucrează automat.',
     features: ['Integrare site web', 'Calendar & plăți', 'CRM automatizat'],
+    preturi: null,
   },
   {
     icon: '📊',
     titlu: 'Audit & Optimizare',
     descriere: 'Analizăm procesele tale actuale, identificăm unde pierzi timp și bani, și implementăm soluții AI cu ROI măsurabil.',
     features: ['Analiză procese', 'Raport ROI', 'Plan implementare'],
+    preturi: null,
+  },
+  {
+    icon: '🌐',
+    titlu: 'Site-uri Automatizate + AI',
+    descriere: 'Site modern cu bot AI integrat care atrage clienți noi, răspunde automat la întrebări și convertește vizitatorii în rezervări sau comenzi — non-stop.',
+    features: ['Design premium Next.js', 'Bot AI integrat pe site', 'SEO + conversii automate'],
+    preturi: { implementare: 'de la 800€', mentinere: '100–200€ / lună' },
   },
   {
     icon: '🛡️',
     titlu: 'Mentenanță Lunară',
     descriere: 'Nu te lăsăm singur după implementare. Monitorizăm, optimizăm și îmbunătățim continuu sistemele tale AI.',
     features: ['Monitorizare 24/7', 'Update-uri lunare', 'Support prioritar'],
+    preturi: null,
   },
 ]
 
@@ -52,13 +65,25 @@ export default function Servicii() {
               <div className="text-3xl mb-6">{s.icon}</div>
               <h3 className="font-serif text-xl font-semibold text-white mb-4">{s.titlu}</h3>
               <p className="text-white/40 text-sm leading-relaxed mb-6">{s.descriere}</p>
-              <ul className="space-y-2">
+              <ul className="space-y-2 mb-4">
                 {s.features.map((f) => (
                   <li key={f} className="text-white/30 text-xs flex items-center gap-2">
                     <span className="text-gold">✓</span> {f}
                   </li>
                 ))}
               </ul>
+              {s.preturi && (
+                <div className="mt-auto pt-4 border-t border-white/5 flex flex-col gap-1">
+                  <p className="text-white/50 text-xs">
+                    <span className="text-gold font-semibold">{s.preturi.implementare}</span>
+                    <span className="text-white/30"> implementare</span>
+                  </p>
+                  <p className="text-white/50 text-xs">
+                    <span className="text-gold font-semibold">{s.preturi.mentinere}</span>
+                    <span className="text-white/30"> mentenanță</span>
+                  </p>
+                </div>
+              )}
             </div>
           ))}
         </div>

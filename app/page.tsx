@@ -3,6 +3,7 @@ import Hero from './components/Hero'
 import Despre from './components/Despre'
 import Probleme from './components/Probleme'
 import Servicii from './components/Servicii'
+import Proces from './components/Proces'
 import Portofoliu from './components/Portofoliu'
 import DeceNoi from './components/DeceNoi'
 import Comparatie from './components/Comparatie'
@@ -20,6 +21,7 @@ export default function Home() {
       <Despre />
       <Probleme />
       <Servicii />
+      <Proces />
       <Portofoliu />
       <DeceNoi />
       <Comparatie />

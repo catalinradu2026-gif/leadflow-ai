@@ -77,27 +77,27 @@ export default function Comparatie() {
 
               <div className="grid grid-cols-2 gap-4 mb-4">
                 <div className="p-4 bg-emerald-900/10 border border-emerald-900/20">
-                  <p className="text-emerald-400/60 text-xs uppercase tracking-widest mb-1">Cost lunar</p>
-                  <p className="font-serif text-2xl font-bold text-emerald-400">100–350 €</p>
-                  <p className="text-white/30 text-xs">mentenanță / lună</p>
+                  <p className="text-emerald-400/60 text-xs uppercase tracking-widest mb-1">Implementare</p>
+                  <p className="font-serif text-2xl font-bold text-emerald-400">500–4.900 €</p>
+                  <p className="text-white/30 text-xs">o singură dată</p>
                 </div>
                 <div className="p-4 bg-emerald-900/10 border border-emerald-900/20">
-                  <p className="text-emerald-400/60 text-xs uppercase tracking-widest mb-1">Cost anual</p>
-                  <p className="font-serif text-2xl font-bold text-emerald-400">1.200–4.200 €</p>
-                  <p className="text-white/30 text-xs">/ an total</p>
+                  <p className="text-emerald-400/60 text-xs uppercase tracking-widest mb-1">Mentenanță</p>
+                  <p className="font-serif text-2xl font-bold text-emerald-400">100–400 €</p>
+                  <p className="text-white/30 text-xs">/ lună</p>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4 mb-8">
                 <div className="p-4 bg-gold/8 border border-gold/15">
                   <p className="text-gold/60 text-xs uppercase tracking-widest mb-1">Economie lunară</p>
-                  <p className="font-serif text-xl font-bold text-gold">14.500–17.000</p>
-                  <p className="text-white/30 text-xs">lei economisiți</p>
+                  <p className="font-serif text-xl font-bold text-gold">15.600–17.900</p>
+                  <p className="text-white/30 text-xs">lei față de 3 angajați</p>
                 </div>
                 <div className="p-4 bg-gold/8 border border-gold/15">
-                  <p className="text-gold/60 text-xs uppercase tracking-widest mb-1">Economie anuală</p>
-                  <p className="font-serif text-xl font-bold text-gold">174K–204K</p>
-                  <p className="text-white/30 text-xs">lei economisiți</p>
+                  <p className="text-gold/60 text-xs uppercase tracking-widest mb-1">Recuperare investiție</p>
+                  <p className="font-serif text-xl font-bold text-gold">2–4 luni</p>
+                  <p className="text-white/30 text-xs">din economii lunare</p>
                 </div>
               </div>
 
