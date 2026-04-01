@@ -34,13 +34,18 @@ function speak(text: string) {
   const clean = prepareForSpeech(text)
   const utt = new SpeechSynthesisUtterance(clean)
   utt.lang = 'ro-RO'
-  utt.rate = 1.05
-  utt.pitch = 1
+  utt.rate = 0.9
+  utt.pitch = 0.85
   utt.volume = 1
-  // Incearca voce romaneasca, altfel prima disponibila
   const voices = window.speechSynthesis.getVoices()
-  const roVoice = voices.find(v => v.lang.startsWith('ro')) || voices.find(v => v.lang.startsWith('en')) || voices[0]
-  if (roVoice) utt.voice = roVoice
+  const roFem = voices.find(v => v.lang.startsWith('ro') && v.name.toLowerCase().includes('female'))
+    || voices.find(v => v.lang.startsWith('ro') && (v.name.includes('Ioana') || v.name.includes('Carmen') || v.name.includes('Maria')))
+    || voices.find(v => v.lang.startsWith('ro'))
+    || voices.find(v => v.lang.startsWith('en') && v.name.toLowerCase().includes('female'))
+    || voices.find(v => v.lang.startsWith('en-GB'))
+    || voices.find(v => ['Samantha', 'Karen', 'Moira', 'Tessa', 'Fiona', 'Victoria'].some(n => v.name.includes(n)))
+    || voices[0]
+  if (roFem) utt.voice = roFem
   window.speechSynthesis.speak(utt)
 }
 
