@@ -83,8 +83,8 @@ export default function ChatBot() {
     <>
       {/* Fereastra chat */}
       {open && (
-        <div className="fixed top-20 left-3 right-3 md:top-20 md:left-6 md:right-auto z-50 md:w-[350px] bg-white rounded-2xl shadow-2xl border border-gray-100 flex flex-col overflow-hidden"
-          style={{ height: '500px', maxHeight: '75dvh' }}>
+        <div className="fixed top-20 left-3 right-3 md:top-20 md:left-6 md:right-auto z-50 md:w-[300px] bg-white rounded-2xl shadow-2xl border border-gray-100 flex flex-col overflow-hidden"
+          style={{ height: '420px', maxHeight: '70dvh' }}>
 
           {/* Header */}
           <div className="px-4 py-3 flex items-center gap-3 shrink-0" style={{ background: 'linear-gradient(135deg, #1a0533 0%, #0a0a2e 100%)' }}>
