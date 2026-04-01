@@ -6,7 +6,7 @@ interface Message {
   content: string
 }
 
-const WELCOME = 'Bună! 👋 Sunt asistentul AI al firmei AI Craiova.\n\nCe întrebări ai despre serviciile sau prețurile noastre?'
+const WELCOME = 'Bună! Sunt asistentul AI al firmei AI Craiova. Poți să îmi vorbești direct — apasă microfonul de pe tastatură și spune ce te interesează!'
 
 const QUICK_REPLIES = [
   'Ce servicii oferiți?',
@@ -63,7 +63,28 @@ export default function ChatBot() {
   }, [])
 
   useEffect(() => {
-    if (open) { setBubble(false); setTimeout(() => inputRef.current?.focus(), 100) }
+    if (open) {
+      setBubble(false)
+      setTimeout(() => inputRef.current?.focus(), 100)
+      // Citeste mesajul de bun venit dupa 800ms
+      if (voiceOn) {
+        setTimeout(() => {
+          setSpeaking(true)
+          const trySpeak = () => {
+            speak(WELCOME)
+            const interval = setInterval(() => {
+              if (!window.speechSynthesis.speaking) { setSpeaking(false); clearInterval(interval) }
+            }, 200)
+            setTimeout(() => { setSpeaking(false); clearInterval(interval) }, 15000)
+          }
+          if (window.speechSynthesis.getVoices().length > 0) {
+            trySpeak()
+          } else {
+            window.speechSynthesis.onvoiceschanged = () => { trySpeak(); window.speechSynthesis.onvoiceschanged = null }
+          }
+        }, 800)
+      }
+    }
   }, [open])
 
   useEffect(() => {
