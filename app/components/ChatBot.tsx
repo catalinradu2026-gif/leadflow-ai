@@ -256,41 +256,29 @@ export default function ChatBot() {
           </div>
 
           {/* Input */}
-          <div className="bg-white border-t border-gray-100 px-3 py-3 flex gap-2 shrink-0">
-            <input
-              ref={inputRef}
-              type="text"
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && send()}
-              placeholder={listening ? '🎤 Ascult...' : 'Scrie sau vorbește...'}
-              className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-violet-300 focus:border-violet-400 placeholder-gray-400"
-              style={{ fontSize: '16px' }}
-            />
-            {/* Buton microfon */}
-            <button onClick={toggleMic} disabled={loading}
-              className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all shrink-0 disabled:opacity-40 ${listening ? 'bg-red-500 hover:bg-red-600' : 'bg-violet-100 hover:bg-violet-200'}`}
-              title={listening ? 'Oprește microfonul' : 'Vorbește'}>
-              {listening ? (
-                <span className="flex gap-0.5">
-                  <span className="w-0.5 h-4 bg-white rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <span className="w-0.5 h-4 bg-white rounded-full animate-bounce" style={{ animationDelay: '100ms' }} />
-                  <span className="w-0.5 h-4 bg-white rounded-full animate-bounce" style={{ animationDelay: '200ms' }} />
-                </span>
-              ) : (
-                <svg className="w-5 h-5 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+          <div className="bg-white border-t border-gray-100 px-3 pt-2 pb-3 shrink-0">
+            <div className="flex gap-2">
+              <input
+                ref={inputRef}
+                type="text"
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && send()}
+                placeholder="Scrie un mesaj..."
+                className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-violet-300 focus:border-violet-400 placeholder-gray-400"
+                style={{ fontSize: '16px' }}
+              />
+              <button onClick={() => send()} disabled={!input.trim() || loading}
+                className="w-9 h-9 rounded-xl flex items-center justify-center transition-all disabled:opacity-40 shrink-0 hover:opacity-90"
+                style={{ background: 'linear-gradient(135deg, #6d28d9 0%, #2563eb 100%)' }}>
+                <svg className="w-4 h-4 text-white rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                 </svg>
-              )}
-            </button>
-            {/* Buton trimite */}
-            <button onClick={() => send()} disabled={!input.trim() || loading}
-              className="w-9 h-9 rounded-xl flex items-center justify-center transition-all disabled:opacity-40 shrink-0 hover:opacity-90"
-              style={{ background: 'linear-gradient(135deg, #6d28d9 0%, #2563eb 100%)' }}>
-              <svg className="w-4 h-4 text-white rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-              </svg>
-            </button>
+              </button>
+            </div>
+            <p className="text-gray-400 text-[11px] mt-1.5 text-center">
+              🎤 Pe mobil folosește microfonul de pe tastatură
+            </p>
           </div>
         </div>
       )}
