@@ -8,12 +8,6 @@ interface Message {
 
 const WELCOME = 'Bună! Sunt asistentul AI al firmei AI Craiova. Apasă butonul de mai jos și vorbește cu mine!'
 
-const QUICK_REPLIES = [
-  'Ce servicii oferiți?',
-  'Care sunt prețurile?',
-  'Cât durează implementarea?',
-  'Vreau o ofertă',
-]
 
 function speak(text: string) {
   if (typeof window === 'undefined' || !window.speechSynthesis) return
@@ -254,28 +248,10 @@ export default function ChatBot() {
             )}
 
             {showQuick && messages.length === 1 && (
-              <div className="flex flex-col items-center gap-3 pt-2">
-                {/* Ghid microfon tastatura */}
-                <div className="bg-violet-50 border border-violet-200 rounded-2xl px-4 py-3 w-full text-center cursor-pointer"
-                  onClick={handleFirstInteraction}>
-                  <p className="text-violet-700 font-semibold text-sm mb-1">🎤 Vorbește cu mine!</p>
-                  <p className="text-violet-500 text-xs leading-relaxed">Apasă pe câmpul de text de jos,<br/>apoi apasă <strong>🎤</strong> de pe tastatură</p>
-                </div>
-                {/* Separator */}
-                <div className="flex items-center gap-2 w-full">
-                  <div className="flex-1 h-px bg-gray-200" />
-                  <span className="text-gray-400 text-xs">sau alege</span>
-                  <div className="flex-1 h-px bg-gray-200" />
-                </div>
-                {/* Quick replies */}
-                <div className="flex flex-wrap gap-1.5 justify-center">
-                  {QUICK_REPLIES.map(q => (
-                    <button key={q} onClick={() => { handleFirstInteraction(); send(q) }}
-                      className="px-3 py-1.5 text-xs font-medium border border-violet-200 text-violet-600 bg-white hover:bg-violet-50 rounded-full transition-colors shadow-sm">
-                      {q}
-                    </button>
-                  ))}
-                </div>
+              <div className="bg-violet-50 border border-violet-200 rounded-2xl px-4 py-3 w-full text-center cursor-pointer mt-1"
+                onClick={handleFirstInteraction}>
+                <p className="text-violet-700 font-semibold text-sm mb-1">🎤 Vorbește cu mine!</p>
+                <p className="text-violet-500 text-xs leading-relaxed">Apasă pe câmpul de text de jos,<br/>apoi apasă <strong>🎤</strong> de pe tastatură</p>
               </div>
             )}
             <div ref={bottomRef} />
