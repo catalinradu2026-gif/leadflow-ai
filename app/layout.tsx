@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
+import { LangProvider } from './LangContext'
 
 export const metadata: Metadata = {
   icons: {
@@ -71,7 +72,7 @@ export const metadata: Metadata = {
     },
   },
   verification: {
-    google: 'cb4b164dc90cf9ca',
+    google: 'wAxZ8y7dHQNY7YtaEKDZpnq1hTYegzErEQM__BQrSlw',
   },
 }
 
@@ -198,7 +199,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaWebSite) }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaFAQ) }} />
       </head>
-      <body>{children}</body>
+      <body><LangProvider>{children}</LangProvider></body>
     </html>
   )
 }
