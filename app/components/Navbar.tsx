@@ -51,10 +51,10 @@ export default function Navbar() {
             ))}
           </div>
 
-          {/* Lang toggle desktop */}
+          {/* Lang toggle — vizibil pe toate dispozitivele */}
           <button
             onClick={toggleLang}
-            className="hidden md:inline-flex items-center gap-2 px-3 py-1.5 border border-white/20 text-white/80 text-xs font-semibold hover:border-white/50 hover:text-white transition-all duration-200 shrink-0 rounded"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-white/20 text-white/80 text-xs font-semibold hover:border-white/50 hover:text-white transition-all duration-200 shrink-0 rounded"
           >
             <span className="text-base leading-none">{lang === 'ro' ? '🇬🇧' : '🇷🇴'}</span>
             <span className="tracking-widest uppercase">{lang === 'ro' ? 'EN' : 'RO'}</span>
