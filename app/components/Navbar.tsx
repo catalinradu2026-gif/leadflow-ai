@@ -54,9 +54,10 @@ export default function Navbar() {
           {/* Lang toggle desktop */}
           <button
             onClick={toggleLang}
-            className="hidden md:inline-flex items-center px-3 py-1.5 border border-white/15 text-white/50 text-xs font-semibold tracking-widest uppercase hover:border-white/40 hover:text-white transition-all duration-200 shrink-0"
+            className="hidden md:inline-flex items-center gap-2 px-3 py-1.5 border border-white/20 text-white/80 text-xs font-semibold hover:border-white/50 hover:text-white transition-all duration-200 shrink-0 rounded"
           >
-            {lang === 'ro' ? 'EN' : 'RO'}
+            <span className="text-base leading-none">{lang === 'ro' ? '🇬🇧' : '🇷🇴'}</span>
+            <span className="tracking-widest uppercase">{lang === 'ro' ? 'EN' : 'RO'}</span>
           </button>
 
           {/* CTA desktop */}
