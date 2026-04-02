@@ -1,4 +1,11 @@
+'use client'
+import { useLang } from '../LangContext'
+import { t } from '../translations'
+
 export default function Footer() {
+  const { lang } = useLang()
+  const tr = t[lang].footer
+
   return (
     <footer className="py-12 bg-zinc-950 border-t border-white/5">
       <div className="max-w-6xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
@@ -6,13 +13,13 @@ export default function Footer() {
           <span className="font-serif text-lg text-white">
             AI <span className="text-gold">Craiova</span>
           </span>
-          <p className="text-white/20 text-xs mt-1">Craiova, județul Dolj • 0787 813 485</p>
+          <p className="text-white/20 text-xs mt-1">{tr.address}</p>
         </div>
-        <p className="text-white/20 text-sm">© 2026 AI Craiova. Toate drepturile rezervate.</p>
+        <p className="text-white/20 text-sm">{tr.copy}</p>
         <div className="flex gap-6 text-white/30 text-xs">
-          <a href="#servicii" className="hover:text-white/60 transition-colors">Servicii</a>
-          <a href="#portofoliu" className="hover:text-white/60 transition-colors">Portofoliu</a>
-          <a href="#contact" className="hover:text-white/60 transition-colors">Contact</a>
+          {tr.links.map((l) => (
+            <a key={l.label} href={l.href} className="hover:text-white/60 transition-colors">{l.label}</a>
+          ))}
         </div>
       </div>
     </footer>

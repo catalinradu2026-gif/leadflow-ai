@@ -1,66 +1,21 @@
-const servicii = [
-  {
-    icon: '💬',
-    titlu: 'Bot WhatsApp AI',
-    descriere: 'Bot inteligent care preia rezervări, califică lead-uri și răspunde clienților 24/7. Perfect pentru clinici, restaurante, hoteluri, saloane.',
-    features: ['Rezervări automate', 'Calificare lead-uri', 'Răspunsuri instant 24/7'],
-    preturi: null,
-  },
-  {
-    icon: '⚡',
-    titlu: 'Automatizări Complete',
-    descriere: 'Conectăm toate aplicațiile tale — WhatsApp, email, calendar, facturare. Fluxuri automate cu n8n + AI care elimină munca repetitivă.',
-    features: ['Integrare n8n', 'Conectare Groq/Claude AI', 'Zero intervenție manuală'],
-    preturi: null,
-  },
-  {
-    icon: '🤖',
-    titlu: 'Agenți AI cu Memorie',
-    descriere: 'Agenți AI care știu istoricul fiecărui client, urmăresc conversații și iau decizii inteligente. Nu simple chatboturi — sisteme cu adevărat inteligente.',
-    features: ['Memorie conversații', 'Decizii contextuale', 'Personalizare avansată'],
-    preturi: null,
-  },
-  {
-    icon: '🔗',
-    titlu: 'Integrări Complete',
-    descriere: 'Site + WhatsApp + Calendar + Plăți + CRM — totul conectat într-un singur ecosistem. Clientul intră, sistemul lucrează automat.',
-    features: ['Integrare site web', 'Calendar & plăți', 'CRM automatizat'],
-    preturi: null,
-  },
-  {
-    icon: '📊',
-    titlu: 'Audit & Optimizare',
-    descriere: 'Analizăm procesele tale actuale, identificăm unde pierzi timp și bani, și implementăm soluții AI cu ROI măsurabil.',
-    features: ['Analiză procese', 'Raport ROI', 'Plan implementare'],
-    preturi: null,
-  },
-  {
-    icon: '🌐',
-    titlu: 'Site-uri Automatizate + AI',
-    descriere: 'Site modern cu bot AI integrat care atrage clienți noi, răspunde automat la întrebări și convertește vizitatorii în rezervări sau comenzi — non-stop.',
-    features: ['Design premium Next.js', 'Bot AI integrat pe site', 'SEO + conversii automate'],
-    preturi: { implementare: 'de la 800€', mentinere: '100–200€ / lună' },
-  },
-  {
-    icon: '🛡️',
-    titlu: 'Mentenanță Lunară',
-    descriere: 'Nu te lăsăm singur după implementare. Monitorizăm, optimizăm și îmbunătățim continuu sistemele tale AI.',
-    features: ['Monitorizare 24/7', 'Update-uri lunare', 'Support prioritar'],
-    preturi: null,
-  },
-]
+'use client'
+import { useLang } from '../LangContext'
+import { t } from '../translations'
 
 export default function Servicii() {
+  const { lang } = useLang()
+  const tr = t[lang].servicii
+
   return (
     <section id="servicii" className="py-32 bg-zinc-950 border-t border-white/5">
       <div className="max-w-6xl mx-auto px-6">
         <div className="text-center mb-20">
-          <p className="text-gold text-xs tracking-[0.3em] uppercase mb-6">Ce construim</p>
-          <h2 className="font-serif text-4xl md:text-5xl font-bold text-white mb-4">Servicii AI pentru afaceri locale</h2>
-          <p className="text-white/40 max-w-xl mx-auto">Soluții adaptate pentru clinici, restaurante, hoteluri, saloane, magazine și service-uri din Craiova și Dolj</p>
+          <p className="text-gold text-xs tracking-[0.3em] uppercase mb-6">{tr.label}</p>
+          <h2 className="font-serif text-4xl md:text-5xl font-bold text-white mb-4">{tr.title}</h2>
+          <p className="text-white/40 max-w-xl mx-auto">{tr.sub}</p>
         </div>
         <div className="grid md:grid-cols-3 gap-6">
-          {servicii.map((s) => (
+          {tr.items.map((s) => (
             <div key={s.titlu} className="group p-8 border border-white/5 hover:border-gold/30 bg-black/40 transition-all duration-500 hover:bg-black/60">
               <div className="text-3xl mb-6">{s.icon}</div>
               <h3 className="font-serif text-xl font-semibold text-white mb-4">{s.titlu}</h3>
@@ -76,11 +31,11 @@ export default function Servicii() {
                 <div className="mt-auto pt-4 border-t border-white/5 flex flex-col gap-1">
                   <p className="text-white/50 text-xs">
                     <span className="text-gold font-semibold">{s.preturi.implementare}</span>
-                    <span className="text-white/30"> implementare</span>
+                    <span className="text-white/30"> {tr.implementare}</span>
                   </p>
                   <p className="text-white/50 text-xs">
                     <span className="text-gold font-semibold">{s.preturi.mentinere}</span>
-                    <span className="text-white/30"> mentenanță</span>
+                    <span className="text-white/30"> {tr.mentinere}</span>
                   </p>
                 </div>
               )}
