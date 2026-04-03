@@ -160,7 +160,7 @@ export const t = {
         sub: 'Asistent vocal + bot WhatsApp + notificări urgențe — totul funcționând 24/7 fără personal administrativ suplimentar.',
         investitieLabel: 'Investiție',
         oSingurataData: 'o singură dată',
-        mentinere: '+ 400€ / lună mentenanță',
+        mentinere: '+ de la 400€ / lună mentenanță',
         includeLabel: 'Ce include',
         solicitaOferta: 'Solicită ofertă pentru clinică',
         waText: 'Buna ziua, vreau sa programez o discutie despre sistemul AI pentru clinica mea',
@@ -183,17 +183,17 @@ export const t = {
       },
       planuri: [
         {
-          nume: 'Essential', pret: '500€', mentinere: '100€ / lună', mentinerePerioda: 'după primele 30 de zile', highlight: false,
+          nume: 'Essential', pret: 'de la 500€', mentinere: 'de la 100€ / lună', mentinerePerioda: 'după primele 30 de zile', highlight: false,
           descriere: 'Ideal pentru afaceri care vor să automatizeze primul proces — răspuns rapid, implementare în 7 zile.',
           features: ['Bot WhatsApp AI personalizat', 'Răspunsuri automate 24/7', 'Integrare cu numărul tău WhatsApp', 'Mesaje personalizate pe tonul brandului', 'Notificări instant la tine pe telefon', 'Setup complet + training', 'Suport 30 de zile inclus'],
         },
         {
-          nume: 'Growth', pret: '1.500€', mentinere: '250€ / lună', mentinerePerioda: 'după primele 30 de zile', highlight: true,
+          nume: 'Growth', pret: 'de la 1.500€', mentinere: 'de la 250€ / lună', mentinerePerioda: 'după primele 30 de zile', highlight: true,
           descriere: 'Sistemul complet pentru afaceri care vor să crească fără să angajeze — automatizare end-to-end.',
           features: ['Tot ce include Essential', 'Automatizări complete de procese (n8n)', 'Agent AI cu memorie (ține minte clienții)', 'Integrare CRM / Google Sheets / Notion', 'Generare automată oferte & follow-up', 'Notificări email + WhatsApp automate', 'Raportare lunară cu rezultate', 'Suport 90 de zile + optimizare lunară'],
         },
         {
-          nume: 'Elite', pret: '3.000€', mentinere: '350€ / lună', mentinerePerioda: 'inclusă — 350€ valoare', highlight: false,
+          nume: 'Elite', pret: 'de la 3.000€', mentinere: 'de la 350€ / lună', mentinerePerioda: 'inclusă — 350€ valoare', highlight: false,
           descriere: 'Infrastructură AI completă pentru companii cu procese complexe și volum mare de clienți.',
           features: ['Tot ce include Growth', 'Sisteme AI multiple integrate', 'Agenți AI cu memorie avansată', 'Integrări complexe (ERP, POS, rezervări)', 'Audit & optimizare continuă', 'Mentenanță lunară inclusă pe termen lung', 'Strategie AI personalizată pentru business', 'Account manager dedicat', 'SLA garantat — răspuns în 4 ore'],
         },
@@ -397,7 +397,7 @@ export const t = {
         sub: 'Voice assistant + WhatsApp bot + emergency notifications — all running 24/7 without extra administrative staff.',
         investitieLabel: 'Investment',
         oSingurataData: 'one-time',
-        mentinere: '+ 400€ / month maintenance',
+        mentinere: '+ from 400€ / month maintenance',
         includeLabel: "What's included",
         solicitaOferta: 'Request clinic offer',
         waText: 'Hello, I would like to schedule a call about the AI system for my clinic',
@@ -420,17 +420,17 @@ export const t = {
       },
       planuri: [
         {
-          nume: 'Essential', pret: '500€', mentinere: '100€ / month', mentinerePerioda: 'after the first 30 days', highlight: false,
+          nume: 'Essential', pret: 'from 500€', mentinere: 'from 100€ / month', mentinerePerioda: 'after the first 30 days', highlight: false,
           descriere: 'Ideal for businesses that want to automate their first process — fast response, implementation in 7 days.',
           features: ['Custom WhatsApp AI bot', 'Automatic replies 24/7', 'Integration with your WhatsApp number', 'Messages in your brand tone', 'Instant notifications on your phone', 'Full setup + training', '30 days support included'],
         },
         {
-          nume: 'Growth', pret: '1,500€', mentinere: '250€ / month', mentinerePerioda: 'after the first 30 days', highlight: true,
+          nume: 'Growth', pret: 'from 1,500€', mentinere: 'from 250€ / month', mentinerePerioda: 'after the first 30 days', highlight: true,
           descriere: 'The complete system for businesses that want to grow without hiring — end-to-end automation.',
           features: ['Everything in Essential', 'Complete process automations (n8n)', 'AI agent with memory (remembers clients)', 'CRM / Google Sheets / Notion integration', 'Automatic offer generation & follow-up', 'Automatic email + WhatsApp notifications', 'Monthly reporting with results', '90 days support + monthly optimization'],
         },
         {
-          nume: 'Elite', pret: '3,000€', mentinere: '350€ / month', mentinerePerioda: 'included — 350€ value', highlight: false,
+          nume: 'Elite', pret: 'from 3,000€', mentinere: 'from 350€ / month', mentinerePerioda: 'included — 350€ value', highlight: false,
           descriere: 'Complete AI infrastructure for companies with complex processes and high client volume.',
           features: ['Everything in Growth', 'Multiple integrated AI systems', 'AI agents with advanced memory', 'Complex integrations (ERP, POS, bookings)', 'Continuous audit & optimization', 'Monthly maintenance included long-term', 'Custom AI strategy for business', 'Dedicated account manager', 'Guaranteed SLA — 4-hour response'],
         },

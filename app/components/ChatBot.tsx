@@ -308,7 +308,7 @@ export default function ChatBot() {
           onClick={() => { setOpen(true); setBubble(false); handleFirstInteraction() }}>
           <button className="absolute -top-2 -right-2 bg-gray-100 hover:bg-gray-200 rounded-full w-5 h-5 text-xs flex items-center justify-center text-gray-500 transition-colors"
             onClick={e => { e.stopPropagation(); setBubble(false) }}>×</button>
-          <p className="text-sm text-gray-700 leading-snug">👋 Bună! Cu ce te pot ajuta azi?</p>
+          <p className="text-sm text-gray-700 leading-snug">👋 Bună! Spune-mi afacerea ta și hai să o automatizăm.</p>
         </div>
       )}
 
