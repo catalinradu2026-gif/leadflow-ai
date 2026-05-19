@@ -12,7 +12,7 @@ const CATEGORII = [
   { id: 'termene', label: 'Termene & Taxe' },
 ]
 
-const FAQ = [
+const INTREBARI = [
   // AUTORIZARE
   {
     id: 1, categorie: 'autorizare',
@@ -156,7 +156,7 @@ export default function FAQ() {
   const [cautare, setCautare] = useState('')
   const [deschis, setDeschis] = useState<number | null>(null)
 
-  const intrebari = FAQ.filter(f => {
+  const intrebari = INTREBARI.filter(f => {
     const matchCat = categorie === 'toate' || f.categorie === categorie
     const matchSearch = f.intrebare.toLowerCase().includes(cautare.toLowerCase()) || f.raspuns.toLowerCase().includes(cautare.toLowerCase())
     return matchCat && matchSearch
