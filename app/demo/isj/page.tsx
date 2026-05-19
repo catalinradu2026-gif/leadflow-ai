@@ -26,11 +26,11 @@ const SCOLI_DOLJ = [
 ]
 
 const DOCUMENTE = [
-  { id: 1, titlu: 'Metodologie Evaluare Națională 2026', data: '19 mai 2026', citite: 0, total: 240, tip: 'Metodologie', sursa: 'Inspector Național', nou: true },
-  { id: 2, titlu: 'Circular nr. 1247/2026 — Raportare absențe mai 2026', data: '17 mai 2026', citite: 198, total: 240, tip: 'Circular', sursa: 'ISJ Dolj', nou: false },
-  { id: 3, titlu: 'Procedura nr. 892/2026 — Examene naționale 2026', data: '14 mai 2026', citite: 236, total: 240, tip: 'Procedură', sursa: 'ISJ Dolj', nou: false },
-  { id: 4, titlu: 'Adresa nr. 2103/2026 — Dotări informatice PNRR', data: '10 mai 2026', citite: 240, total: 240, tip: 'Adresă', sursa: 'Inspector Național', nou: false },
-  { id: 5, titlu: 'Circular nr. 1198/2026 — Situație statistică an școlar', data: '5 mai 2026', citite: 240, total: 240, tip: 'Circular', sursa: 'ISJ Dolj', nou: false },
+  { id: 1, titlu: 'Metodologie Evaluare Națională 2026', data: '19 mai 2026', citite: 0, total: 240, tip: 'Metodologie', sursa: 'Inspector Național', nou: true, citit: false },
+  { id: 2, titlu: 'Circular nr. 1247/2026 — Raportare absențe mai 2026', data: '17 mai 2026', citite: 198, total: 240, tip: 'Circular', sursa: 'ISJ Dolj', nou: false, citit: true },
+  { id: 3, titlu: 'Procedura nr. 892/2026 — Examene naționale 2026', data: '14 mai 2026', citite: 236, total: 240, tip: 'Procedură', sursa: 'ISJ Dolj', nou: false, citit: true },
+  { id: 4, titlu: 'Adresa nr. 2103/2026 — Dotări informatice PNRR', data: '10 mai 2026', citite: 240, total: 240, tip: 'Adresă', sursa: 'Inspector Național', nou: false, citit: true },
+  { id: 5, titlu: 'Circular nr. 1198/2026 — Situație statistică an școlar', data: '5 mai 2026', citite: 240, total: 240, tip: 'Circular', sursa: 'ISJ Dolj', nou: false, citit: true },
 ]
 
 export default function ISJDolj() {
@@ -53,6 +53,10 @@ export default function ISJDolj() {
 
   const TIP_RATII: Record<string, number> = { 'Toate': 1, 'Liceu': 0.18, 'Colegiu': 0.12, 'Școală': 0.45, 'Grădiniță': 0.25 }
 
+  function markDocRead(id: number) {
+    setDocs(prev => prev.map(d => d.id === id ? { ...d, citit: true, nou: false } : d))
+  }
+
   async function handleUpload() {
     if (!uploadTitle.trim()) return
     setUploading(true)
@@ -67,6 +71,7 @@ export default function ISJDolj() {
       tip: uploadTipDoc,
       sursa: 'ISJ Dolj',
       nou: true,
+      citit: true,
     }, ...prev])
     setUploading(false)
     setUploadDone(true)
@@ -94,10 +99,12 @@ export default function ISJDolj() {
           <span style={{ background: '#164e63', color: '#67e8f9', fontSize: '11px', fontWeight: 700, padding: '2px 10px', borderRadius: '20px' }}>INSPECTOR ȘEF</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#92400e', border: '1px solid #f59e0b', borderRadius: '8px', padding: '6px 12px' }}>
-            <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#f59e0b', display: 'inline-block', boxShadow: '0 0 6px #f59e0b' }} />
-            <span style={{ fontSize: '12px', color: '#fcd34d', fontWeight: 700 }}>🔔 1 document nou de la Inspector Național</span>
-          </div>
+          {docs.some(d => !d.citit && d.sursa === 'Inspector Național') && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#92400e', border: '1px solid #f59e0b', borderRadius: '8px', padding: '6px 12px' }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#f59e0b', display: 'inline-block', boxShadow: '0 0 6px #f59e0b' }} />
+              <span style={{ fontSize: '12px', color: '#fcd34d', fontWeight: 700 }}>🔔 {docs.filter(d => !d.citit && d.sursa === 'Inspector Național').length} document{docs.filter(d => !d.citit && d.sursa === 'Inspector Național').length > 1 ? 'e' : ''} nou{docs.filter(d => !d.citit && d.sursa === 'Inspector Național').length > 1 ? 'ă' : ''} de la Inspector Național</span>
+            </div>
+          )}
           <span style={{ fontSize: '12px', color: '#64748b' }}>Inspector: <strong style={{ color: '#e2e8f0' }}>Popescu Dumitru</strong></span>
           <button
             onClick={() => setShowUpload(true)}
@@ -160,32 +167,59 @@ export default function ISJDolj() {
         {tab === 'docs' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {docs.map(doc => (
-              <div key={doc.id} style={{ background: '#1e293b', border: `1px solid ${doc.nou ? '#f59e0b' : '#334155'}`, borderRadius: '10px', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div
+                key={doc.id}
+                onClick={() => !doc.citit && markDocRead(doc.id)}
+                style={{
+                  background: '#1e293b',
+                  border: `1px solid ${!doc.citit ? (doc.sursa === 'Inspector Național' ? '#3b82f6' : '#f59e0b') : '#334155'}`,
+                  borderRadius: '10px',
+                  padding: '16px 20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '16px',
+                  cursor: !doc.citit ? 'pointer' : 'default',
+                  transition: 'border-color 0.2s',
+                }}
+              >
                 <div style={{ position: 'relative', flexShrink: 0 }}>
-                  <div style={{ width: 40, height: 40, background: doc.sursa === 'Inspector Național' ? '#1d4ed8' : '#1e293b', border: '1px solid #334155', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>📄</div>
-                  {doc.nou && <div style={{ position: 'absolute', top: -4, right: -4, width: 12, height: 12, background: '#ef4444', borderRadius: '50%', border: '2px solid #0f172a' }} />}
+                  <div style={{ width: 44, height: 44, background: !doc.citit ? (doc.sursa === 'Inspector Național' ? '#1d4ed8' : '#92400e') : '#0f172a', border: `1px solid ${!doc.citit ? '#f59e0b' : '#334155'}`, borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px' }}>📄</div>
+                  {!doc.citit && <div style={{ position: 'absolute', top: -4, right: -4, width: 12, height: 12, background: '#ef4444', borderRadius: '50%', border: '2px solid #0f172a' }} />}
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginBottom: '6px', flexWrap: 'wrap' }}>
-                    {doc.nou && <span style={{ background: '#92400e', color: '#fcd34d', fontSize: '10px', fontWeight: 700, padding: '1px 8px', borderRadius: '20px' }}>NOU</span>}
+                    {!doc.citit && <span style={{ background: '#92400e', color: '#fcd34d', fontSize: '10px', fontWeight: 700, padding: '1px 8px', borderRadius: '20px' }}>NOU</span>}
+                    {!doc.citit && doc.sursa === 'Inspector Național' && <span style={{ background: '#7f1d1d', color: '#fca5a5', fontSize: '10px', fontWeight: 700, padding: '1px 8px', borderRadius: '20px' }}>URGENT</span>}
                     <span style={{ background: '#1e40af', color: '#93c5fd', fontSize: '10px', fontWeight: 600, padding: '1px 8px', borderRadius: '20px' }}>{doc.tip}</span>
                     <span style={{ background: doc.sursa === 'Inspector Național' ? '#1d4ed8' : '#064e3b', color: doc.sursa === 'Inspector Național' ? '#93c5fd' : '#6ee7b7', fontSize: '10px', fontWeight: 700, padding: '1px 8px', borderRadius: '20px' }}>
-                      {doc.sursa === 'Inspector Național' ? '🇷🇴 Inspector Național' : '🏛️ ISJ Dolj'}
+                      {doc.sursa === 'Inspector Național' ? '🇾🇴 Inspector Național' : '🏛️ ISJ Dolj'}
                     </span>
                   </div>
-                  <div style={{ fontSize: '14px', fontWeight: doc.nou ? 700 : 600, color: '#f1f5f9', marginBottom: '4px' }}>{doc.titlu}</div>
-                  <div style={{ fontSize: '12px', color: '#64748b' }}>{doc.data} · AI indexat ✓</div>
+                  <div style={{ fontSize: '14px', fontWeight: !doc.citit ? 700 : 500, color: !doc.citit ? '#f1f5f9' : '#94a3b8', marginBottom: '4px' }}>{doc.titlu}</div>
+                  <div style={{ fontSize: '12px', color: '#475569' }}>{doc.sursa} · {doc.data} · AI indexat ✓</div>
                 </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '13px', fontWeight: 700, color: doc.citite === doc.total ? '#22c55e' : '#f59e0b' }}>
-                    {doc.citite}/{doc.total} citit
-                  </div>
-                  <div style={{ width: 120, height: 4, background: '#334155', borderRadius: '2px', marginTop: '6px' }}>
-                    <div style={{ width: `${(doc.citite / doc.total) * 100}%`, height: '100%', background: doc.citite === doc.total ? '#22c55e' : '#f59e0b', borderRadius: '2px' }} />
-                  </div>
+                <div style={{ textAlign: 'right', flexShrink: 0, minWidth: '140px' }}>
+                  {!doc.citit ? (
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: '#f59e0b' }}>Apasă pentru citire →</span>
+                  ) : (
+                    <>
+                      <div style={{ fontSize: '13px', fontWeight: 700, color: doc.citite === doc.total ? '#22c55e' : '#f59e0b', marginBottom: '4px' }}>
+                        {doc.citite}/{doc.total} directori
+                      </div>
+                      <div style={{ width: 120, height: 4, background: '#334155', borderRadius: '2px' }}>
+                        <div style={{ width: `${(doc.citite / doc.total) * 100}%`, height: '100%', background: doc.citite === doc.total ? '#22c55e' : '#f59e0b', borderRadius: '2px' }} />
+                      </div>
+                      <div style={{ fontSize: '11px', color: '#22c55e', marginTop: '4px' }}>✓ Citit de ISJ</div>
+                    </>
+                  )}
                 </div>
               </div>
             ))}
+            {docs.every(d => d.citit) && (
+              <div style={{ textAlign: 'center', padding: '16px', color: '#22c55e', fontSize: '14px' }}>
+                ✅ Toate documentele au fost citite!
+              </div>
+            )}
           </div>
         )}
 
