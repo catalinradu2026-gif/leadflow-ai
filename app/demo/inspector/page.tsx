@@ -47,24 +47,121 @@ const JUDETE = [
   { name: 'Municipiul București', scoli: 512, active: 512, doc: 24, alert: 0 },
 ]
 
+const SCOLI_DEMO = [
+  'Liceul Teoretic "Amărăștii de Jos" — Dolj',
+  'Colegiul Național "Elena Cuza" — Craiova',
+  'Liceul Teoretic "Henri Coandă" — Craiova',
+  'Colegiul Național "Mihai Eminescu" — Iași',
+  'Liceul Teoretic "George Coșbuc" — Cluj',
+  'Colegiul Național "Gheorghe Lazăr" — București',
+]
+
 const totalScoli = JUDETE.reduce((s, j) => s + j.scoli, 0)
 const totalActive = JUDETE.reduce((s, j) => s + j.active, 0)
 const totalAlerte = JUDETE.reduce((s, j) => s + j.alert, 0)
+
+type Doc = {
+  id: number
+  titlu: string
+  data: string
+  target: 'national' | 'judet' | 'scoala'
+  targetName: string
+  destinatari: number
+  citite: number
+  tip: string
+}
+
+const DOCS_INITIALE: Doc[] = [
+  { id: 1, titlu: 'Metodologie Evaluare Națională 2026', data: '15 mai 2026', target: 'national', targetName: 'Toate județele', destinatari: 11500, citite: 9847, tip: 'Metodologie' },
+  { id: 2, titlu: 'Circular privind raportarea statistică trimestrială', data: '10 mai 2026', target: 'national', targetName: 'Toate județele', destinatari: 11500, citite: 11500, tip: 'Circular' },
+  { id: 3, titlu: 'Procedură dotări PNRR — județe pilot', data: '5 mai 2026', target: 'judet', targetName: 'ISJ Dolj, ISJ Cluj, ISJ Iași', destinatari: 850, citite: 820, tip: 'Procedură' },
+  { id: 4, titlu: 'Adresă verificare conformitate — licee teoretice', data: '28 apr 2026', target: 'scoala', targetName: 'Liceul Teoretic "Amărăștii de Jos"', destinatari: 1, citite: 1, tip: 'Adresă' },
+]
 
 export default function InspectorNational() {
   const router = useRouter()
   const [showBroadcast, setShowBroadcast] = useState(false)
   const [broadcastMsg, setBroadcastMsg] = useState('')
-  const [sent, setSent] = useState(false)
+  const [broadcastSent, setBroadcastSent] = useState(false)
   const [search, setSearch] = useState('')
+  const [showUpload, setShowUpload] = useState(false)
+  const [docs, setDocs] = useState<Doc[]>(DOCS_INITIALE)
+  const [tab, setTab] = useState<'judete' | 'documente'>('judete')
+
+  // Upload form state
+  const [uploadTitle, setUploadTitle] = useState('')
+  const [uploadTip, setUploadTip] = useState('Circular')
+  const [uploadTarget, setUploadTarget] = useState<'national' | 'judet' | 'scoala'>('national')
+  const [uploadJudete, setUploadJudete] = useState<string[]>([])
+  const [uploadScoala, setUploadScoala] = useState(SCOLI_DEMO[0])
+  const [uploading, setUploading] = useState(false)
+  const [uploadDone, setUploadDone] = useState(false)
 
   const filtered = JUDETE.filter(j => j.name.toLowerCase().includes(search.toLowerCase()))
 
+  function targetLabel(d: Doc) {
+    if (d.target === 'national') return { text: '🇷🇴 Național', color: '#1d4ed8', bg: '#1e3a5f' }
+    if (d.target === 'judet') return { text: '🏛️ Județean', color: '#0891b2', bg: '#0c4a6e' }
+    return { text: '🏫 Școală', color: '#059669', bg: '#064e3b' }
+  }
+
+  function destinatariLabel(d: Doc) {
+    if (d.target === 'national') return '42 ISJ-uri · 11.500 directori'
+    if (d.target === 'judet') return d.targetName
+    return d.targetName
+  }
+
+  async function handleUpload() {
+    if (!uploadTitle.trim()) return
+    setUploading(true)
+    await new Promise(r => setTimeout(r, 1800))
+
+    let targetName = 'Toate județele'
+    let destinatari = 11500
+    if (uploadTarget === 'judet') {
+      targetName = uploadJudete.length ? uploadJudete.join(', ') : 'ISJ selectate'
+      destinatari = uploadJudete.reduce((s, j) => {
+        const found = JUDETE.find(x => x.name === j)
+        return s + (found ? found.scoli : 0)
+      }, 0) || 240
+    } else if (uploadTarget === 'scoala') {
+      targetName = uploadScoala
+      destinatari = 1
+    }
+
+    setDocs(prev => [{
+      id: prev.length + 1,
+      titlu: uploadTitle,
+      data: '19 mai 2026',
+      target: uploadTarget,
+      targetName,
+      destinatari,
+      citite: 0,
+      tip: uploadTip,
+    }, ...prev])
+
+    setUploading(false)
+    setUploadDone(true)
+    setTimeout(() => {
+      setShowUpload(false)
+      setUploadDone(false)
+      setUploadTitle('')
+      setUploadTarget('national')
+      setUploadJudete([])
+    }, 2200)
+  }
+
   function handleBroadcast() {
     if (!broadcastMsg.trim()) return
-    setSent(true)
-    setTimeout(() => { setShowBroadcast(false); setSent(false); setBroadcastMsg('') }, 2000)
+    setBroadcastSent(true)
+    setTimeout(() => { setShowBroadcast(false); setBroadcastSent(false); setBroadcastMsg('') }, 2000)
   }
+
+  function toggleJudet(name: string) {
+    setUploadJudete(prev => prev.includes(name) ? prev.filter(x => x !== name) : [...prev, name])
+  }
+
+  const newDocsCount = docs.filter(d => d.citite === 0).length
 
   return (
     <div style={{ minHeight: '100vh', background: '#0f172a', fontFamily: "'Segoe UI', Arial, sans-serif", color: '#e2e8f0' }}>
@@ -77,13 +174,19 @@ export default function InspectorNational() {
           <span style={{ fontSize: '13px', color: '#fff', fontWeight: 600 }}>🇷🇴 Inspector Național</span>
           <span style={{ background: '#1d4ed8', color: '#93c5fd', fontSize: '11px', fontWeight: 700, padding: '2px 10px', borderRadius: '20px' }}>NIVEL NAȚIONAL</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <span style={{ fontSize: '12px', color: '#64748b' }}>19 mai 2026 · 09:42</span>
+          <button
+            onClick={() => setShowUpload(true)}
+            style={{ background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '8px', padding: '8px 16px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+          >
+            📄 Încarcă Document
+          </button>
           <button
             onClick={() => setShowBroadcast(true)}
             style={{ background: '#dc2626', color: '#fff', border: 'none', borderRadius: '8px', padding: '8px 16px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
           >
-            📢 Broadcast Național
+            📢 Broadcast
           </button>
         </div>
       </div>
@@ -94,7 +197,7 @@ export default function InspectorNational() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
           {[
             { label: 'Total Unități Școlare', val: totalScoli.toLocaleString('ro'), icon: '🏫', color: '#3b82f6', sub: 'școli + grădinițe' },
-            { label: 'Județe Active', val: '42 / 42', icon: '✅', color: '#10b981', sub: 'toate conectate' },
+            { label: 'Județe Conectate', val: '42 / 42', icon: '✅', color: '#10b981', sub: 'toate active' },
             { label: 'Conectate Azi', val: totalActive.toLocaleString('ro'), icon: '🟢', color: '#22c55e', sub: `din ${totalScoli.toLocaleString('ro')} total` },
             { label: 'Alerte Nerezolvate', val: totalAlerte, icon: '⚠️', color: '#f59e0b', sub: 'directori inactivi' },
           ].map(s => (
@@ -111,108 +214,321 @@ export default function InspectorNational() {
           ))}
         </div>
 
-        {/* Activitate recentă + Tabel județe */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '20px' }}>
-
-          {/* Tabel judete */}
-          <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '12px', overflow: 'hidden' }}>
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid #334155', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ fontSize: '15px', fontWeight: 700, color: '#f1f5f9' }}>Situație pe județe</h2>
-              <input
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                placeholder="Caută județ..."
-                style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: '8px', padding: '6px 12px', fontSize: '13px', color: '#e2e8f0', outline: 'none', width: '160px' }}
-              />
-            </div>
-            <div style={{ overflowY: 'auto', maxHeight: '520px' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ background: '#0f172a', position: 'sticky', top: 0 }}>
-                    {['Județ', 'Unități', 'Conectate', 'Documente', 'Status'].map(h => (
-                      <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: '11px', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((j, i) => (
-                    <tr key={j.name} style={{ borderBottom: '1px solid #1e293b', background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)' }}>
-                      <td style={{ padding: '10px 16px', fontSize: '13px', fontWeight: 600, color: '#f1f5f9' }}>{j.name}</td>
-                      <td style={{ padding: '10px 16px', fontSize: '13px', color: '#94a3b8' }}>{j.scoli}</td>
-                      <td style={{ padding: '10px 16px', fontSize: '13px' }}>
-                        <span style={{ color: j.active === j.scoli ? '#22c55e' : '#f59e0b' }}>
-                          {j.active}/{j.scoli}
-                        </span>
-                      </td>
-                      <td style={{ padding: '10px 16px', fontSize: '13px', color: '#60a5fa' }}>{j.doc}</td>
-                      <td style={{ padding: '10px 16px' }}>
-                        {j.alert > 0
-                          ? <span style={{ background: '#7f1d1d', color: '#fca5a5', fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '20px' }}>⚠️ {j.alert} alerte</span>
-                          : <span style={{ background: '#052e16', color: '#86efac', fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '20px' }}>✓ OK</span>
-                        }
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Sidebar */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-
-            {/* Activitate recenta */}
-            <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '12px', padding: '16px' }}>
-              <h3 style={{ fontSize: '13px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '14px' }}>Activitate Recentă</h3>
-              {[
-                { time: '09:38', text: 'ISJ Cluj a încărcat Circular 1247/2026', color: '#3b82f6' },
-                { time: '09:21', text: 'ISJ Iași — 412 directori au confirmat lectura', color: '#22c55e' },
-                { time: '08:55', text: '⚠️ ISJ Bacău — 2 directori inactivi 48h', color: '#f59e0b' },
-                { time: '08:30', text: 'ISJ Timiș a trimis broadcast județean', color: '#3b82f6' },
-                { time: '07:44', text: 'ISJ Dolj — document nou procesat de AI', color: '#a78bfa' },
-                { time: 'Ieri', text: '38 ISJ-uri au raportat situația lunară', color: '#22c55e' },
-              ].map((a, i) => (
-                <div key={i} style={{ display: 'flex', gap: '10px', marginBottom: '12px', alignItems: 'flex-start' }}>
-                  <span style={{ fontSize: '11px', color: '#475569', whiteSpace: 'nowrap', marginTop: '1px', minWidth: '36px' }}>{a.time}</span>
-                  <span style={{ width: 3, minWidth: 3, height: '100%', background: a.color, borderRadius: '2px', alignSelf: 'stretch', minHeight: '16px' }} />
-                  <span style={{ fontSize: '12px', color: '#94a3b8', lineHeight: 1.5 }}>{a.text}</span>
-                </div>
-              ))}
-            </div>
-
-            {/* Statistici documente */}
-            <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '12px', padding: '16px' }}>
-              <h3 style={{ fontSize: '13px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '14px' }}>Documente Naționale</h3>
-              {[
-                { label: 'Total documente urcate', val: '387', color: '#3b82f6' },
-                { label: 'Indexate de AI', val: '387', color: '#22c55e' },
-                { label: 'Întrebări chatbot azi', val: '1.243', color: '#a78bfa' },
-                { label: 'Confirmări citire', val: '98.7%', color: '#10b981' },
-              ].map(s => (
-                <div key={s.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                  <span style={{ fontSize: '12px', color: '#64748b' }}>{s.label}</span>
-                  <span style={{ fontSize: '14px', fontWeight: 700, color: s.color }}>{s.val}</span>
-                </div>
-              ))}
-            </div>
-          </div>
+        {/* Tabs */}
+        <div style={{ display: 'flex', gap: '4px', background: '#1e293b', padding: '4px', borderRadius: '10px', width: 'fit-content', marginBottom: '16px' }}>
+          {[
+            { key: 'judete', label: '🗺️ Situație Județe' },
+            { key: 'documente', label: `📄 Documente Publicate${newDocsCount > 0 ? ` (${newDocsCount} nou)` : ''}` },
+          ].map(t => (
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key as 'judete' | 'documente')}
+              style={{
+                background: tab === t.key ? '#1d4ed8' : 'none',
+                color: tab === t.key ? '#fff' : '#64748b',
+                border: 'none', borderRadius: '8px', padding: '8px 18px',
+                fontSize: '13px', fontWeight: tab === t.key ? 600 : 400, cursor: 'pointer',
+              }}
+            >
+              {t.label}
+            </button>
+          ))}
         </div>
+
+        {/* JUDETE TAB */}
+        {tab === 'judete' && (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: '20px' }}>
+            <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '12px', overflow: 'hidden' }}>
+              <div style={{ padding: '16px 20px', borderBottom: '1px solid #334155', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h2 style={{ fontSize: '15px', fontWeight: 700, color: '#f1f5f9' }}>Situație pe județe</h2>
+                <input
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder="Caută județ..."
+                  style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: '8px', padding: '6px 12px', fontSize: '13px', color: '#e2e8f0', outline: 'none', width: '160px' }}
+                />
+              </div>
+              <div style={{ overflowY: 'auto', maxHeight: '520px' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ background: '#0f172a', position: 'sticky', top: 0 }}>
+                      {['Județ', 'Unități', 'Conectate', 'Documente', 'Status'].map(h => (
+                        <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: '11px', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.map((j, i) => (
+                      <tr key={j.name} style={{ borderBottom: '1px solid #1e293b', background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)' }}>
+                        <td style={{ padding: '10px 16px', fontSize: '13px', fontWeight: 600, color: '#f1f5f9' }}>{j.name}</td>
+                        <td style={{ padding: '10px 16px', fontSize: '13px', color: '#94a3b8' }}>{j.scoli}</td>
+                        <td style={{ padding: '10px 16px', fontSize: '13px' }}>
+                          <span style={{ color: j.active === j.scoli ? '#22c55e' : '#f59e0b' }}>{j.active}/{j.scoli}</span>
+                        </td>
+                        <td style={{ padding: '10px 16px', fontSize: '13px', color: '#60a5fa' }}>{j.doc}</td>
+                        <td style={{ padding: '10px 16px' }}>
+                          {j.alert > 0
+                            ? <span style={{ background: '#7f1d1d', color: '#fca5a5', fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '20px' }}>⚠️ {j.alert} alerte</span>
+                            : <span style={{ background: '#052e16', color: '#86efac', fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '20px' }}>✓ OK</span>
+                          }
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Sidebar activitate */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '12px', padding: '16px' }}>
+                <h3 style={{ fontSize: '13px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '14px' }}>Activitate Recentă</h3>
+                {[
+                  { time: '09:38', text: 'ISJ Cluj a confirmat lectura Metodologiei EN 2026', color: '#22c55e' },
+                  { time: '09:21', text: 'ISJ Iași — 412 directori notificați de noul document', color: '#3b82f6' },
+                  { time: '08:55', text: '⚠️ ISJ Bacău — 2 ISJ-uri inactivi 48h', color: '#f59e0b' },
+                  { time: '08:30', text: 'Document PNRR trimis la ISJ Dolj, Cluj, Iași', color: '#a78bfa' },
+                  { time: '07:44', text: 'Adresă trimisă direct Liceul Amărăștii de Jos', color: '#67e8f9' },
+                  { time: 'Ieri', text: '38 ISJ-uri au confirmat lectura circularului', color: '#22c55e' },
+                ].map((a, i) => (
+                  <div key={i} style={{ display: 'flex', gap: '10px', marginBottom: '12px', alignItems: 'flex-start' }}>
+                    <span style={{ fontSize: '11px', color: '#475569', whiteSpace: 'nowrap', marginTop: '1px', minWidth: '36px' }}>{a.time}</span>
+                    <span style={{ width: 3, minWidth: 3, background: a.color, borderRadius: '2px', alignSelf: 'stretch', minHeight: '16px' }} />
+                    <span style={{ fontSize: '12px', color: '#94a3b8', lineHeight: 1.5 }}>{a.text}</span>
+                  </div>
+                ))}
+              </div>
+              <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '12px', padding: '16px' }}>
+                <h3 style={{ fontSize: '13px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '14px' }}>Documente Naționale</h3>
+                {[
+                  { label: 'Total publicate', val: docs.length.toString(), color: '#3b82f6' },
+                  { label: 'Naționale', val: docs.filter(d => d.target === 'national').length.toString(), color: '#60a5fa' },
+                  { label: 'Județene', val: docs.filter(d => d.target === 'judet').length.toString(), color: '#67e8f9' },
+                  { label: 'Per școală', val: docs.filter(d => d.target === 'scoala').length.toString(), color: '#6ee7b7' },
+                  { label: 'Confirmare citire medie', val: '98.2%', color: '#10b981' },
+                ].map(s => (
+                  <div key={s.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                    <span style={{ fontSize: '12px', color: '#64748b' }}>{s.label}</span>
+                    <span style={{ fontSize: '14px', fontWeight: 700, color: s.color }}>{s.val}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* DOCUMENTE TAB */}
+        {tab === 'documente' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {docs.map(doc => {
+              const tl = targetLabel(doc)
+              const pct = Math.round((doc.citite / Math.max(doc.destinatari, 1)) * 100)
+              return (
+                <div key={doc.id} style={{
+                  background: '#1e293b',
+                  border: `1px solid ${doc.citite === 0 ? '#f59e0b' : '#334155'}`,
+                  borderRadius: '10px',
+                  padding: '16px 20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '16px',
+                }}>
+                  <div style={{ width: 44, height: 44, background: '#0f172a', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', flexShrink: 0 }}>📄</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', flexWrap: 'wrap' }}>
+                      {doc.citite === 0 && <span style={{ background: '#92400e', color: '#fcd34d', fontSize: '10px', fontWeight: 700, padding: '1px 8px', borderRadius: '20px' }}>NOU</span>}
+                      <span style={{ background: '#1e40af', color: '#93c5fd', fontSize: '10px', fontWeight: 600, padding: '1px 8px', borderRadius: '20px' }}>{doc.tip}</span>
+                      <span style={{ background: tl.bg, color: tl.color, fontSize: '10px', fontWeight: 700, padding: '1px 8px', borderRadius: '20px' }}>{tl.text}</span>
+                    </div>
+                    <div style={{ fontSize: '14px', fontWeight: 600, color: '#f1f5f9', marginBottom: '4px' }}>{doc.titlu}</div>
+                    <div style={{ fontSize: '12px', color: '#64748b' }}>
+                      {doc.data} · <span style={{ color: '#94a3b8' }}>{destinatariLabel(doc)}</span>
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right', minWidth: '120px' }}>
+                    <div style={{ fontSize: '13px', fontWeight: 700, color: pct === 100 ? '#22c55e' : '#f59e0b' }}>
+                      {doc.citite === 0 ? 'Se trimit notificări...' : `${pct}% confirmați`}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
+                      {doc.citite}/{doc.destinatari} destinatari
+                    </div>
+                    {doc.citite > 0 && (
+                      <div style={{ width: '120px', height: 4, background: '#334155', borderRadius: '2px', marginTop: '6px' }}>
+                        <div style={{ width: `${pct}%`, height: '100%', background: pct === 100 ? '#22c55e' : '#f59e0b', borderRadius: '2px' }} />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
       </div>
 
-      {/* Broadcast Modal */}
+      {/* ===== UPLOAD MODAL ===== */}
+      {showUpload && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '20px' }}>
+          <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '16px', padding: '28px', width: '580px', maxHeight: '90vh', overflowY: 'auto' }}>
+            {uploadDone ? (
+              <div style={{ textAlign: 'center', padding: '32px 20px' }}>
+                <div style={{ fontSize: '52px', marginBottom: '16px' }}>✅</div>
+                <h3 style={{ color: '#22c55e', fontSize: '20px', fontWeight: 700, marginBottom: '8px' }}>Document publicat!</h3>
+                <p style={{ color: '#64748b', fontSize: '13px', lineHeight: 1.7 }}>
+                  {uploadTarget === 'national' && 'Toți cei 11.500+ directori și 42 ISJ-uri au primit notificare instant.'}
+                  {uploadTarget === 'judet' && `ISJ-urile selectate și directorii lor au primit notificare instant.`}
+                  {uploadTarget === 'scoala' && 'Directorul școlii selectate a primit notificare instant.'}
+                </p>
+              </div>
+            ) : (
+              <>
+                <h3 style={{ fontSize: '17px', fontWeight: 700, color: '#f1f5f9', marginBottom: '20px' }}>📄 Publicare Document Oficial</h3>
+
+                {/* Titlu */}
+                <div style={{ marginBottom: '14px' }}>
+                  <label style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '6px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Titlu document</label>
+                  <input
+                    value={uploadTitle}
+                    onChange={e => setUploadTitle(e.target.value)}
+                    placeholder="ex: Circular nr. 1250/2026 — ..."
+                    style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', borderRadius: '8px', padding: '10px 14px', fontSize: '14px', color: '#e2e8f0', outline: 'none', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                {/* Tip */}
+                <div style={{ marginBottom: '20px' }}>
+                  <label style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '6px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Tip document</label>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    {['Circular', 'Procedură', 'Adresă', 'Metodologie', 'Decizie'].map(t => (
+                      <button
+                        key={t}
+                        onClick={() => setUploadTip(t)}
+                        style={{
+                          background: uploadTip === t ? '#1d4ed8' : '#0f172a',
+                          border: `1px solid ${uploadTip === t ? '#3b82f6' : '#334155'}`,
+                          color: uploadTip === t ? '#fff' : '#94a3b8',
+                          borderRadius: '20px', padding: '5px 14px', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+                        }}
+                      >
+                        {t}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* TARGET SELECTOR */}
+                <div style={{ marginBottom: '20px' }}>
+                  <label style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Destinatari</label>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                    {[
+                      { key: 'national', icon: '🇷🇴', label: 'Național', sub: '42 ISJ-uri\n11.500+ directori', color: '#1d4ed8', border: '#3b82f6' },
+                      { key: 'judet', icon: '🏛️', label: 'Per Județ', sub: 'ISJ selectate\n+ directorii lor', color: '#0e7490', border: '#0891b2' },
+                      { key: 'scoala', icon: '🏫', label: 'Per Școală', sub: 'O singură unitate\nșcolară', color: '#065f46', border: '#059669' },
+                    ].map(opt => (
+                      <button
+                        key={opt.key}
+                        onClick={() => setUploadTarget(opt.key as 'national' | 'judet' | 'scoala')}
+                        style={{
+                          background: uploadTarget === opt.key ? opt.color : '#0f172a',
+                          border: `2px solid ${uploadTarget === opt.key ? opt.border : '#334155'}`,
+                          borderRadius: '10px', padding: '14px 10px', cursor: 'pointer', textAlign: 'center',
+                        }}
+                      >
+                        <div style={{ fontSize: '24px', marginBottom: '6px' }}>{opt.icon}</div>
+                        <div style={{ fontSize: '13px', fontWeight: 700, color: '#f1f5f9', marginBottom: '4px' }}>{opt.label}</div>
+                        <div style={{ fontSize: '11px', color: '#94a3b8', whiteSpace: 'pre-line', lineHeight: 1.4 }}>{opt.sub}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* JUDETE SELECTOR */}
+                {uploadTarget === 'judet' && (
+                  <div style={{ marginBottom: '20px' }}>
+                    <label style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '8px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      Selectează județele ({uploadJudete.length} selectate)
+                    </label>
+                    <div style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: '10px', padding: '10px', maxHeight: '180px', overflowY: 'auto', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                      {JUDETE.map(j => (
+                        <button
+                          key={j.name}
+                          onClick={() => toggleJudet(j.name)}
+                          style={{
+                            background: uploadJudete.includes(j.name) ? '#0e7490' : '#1e293b',
+                            border: `1px solid ${uploadJudete.includes(j.name) ? '#0891b2' : '#334155'}`,
+                            color: uploadJudete.includes(j.name) ? '#fff' : '#94a3b8',
+                            borderRadius: '20px', padding: '3px 10px', fontSize: '11px', cursor: 'pointer',
+                          }}
+                        >
+                          {j.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* SCOALA SELECTOR */}
+                {uploadTarget === 'scoala' && (
+                  <div style={{ marginBottom: '20px' }}>
+                    <label style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '8px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Selectează școala</label>
+                    <select
+                      value={uploadScoala}
+                      onChange={e => setUploadScoala(e.target.value)}
+                      style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', color: '#e2e8f0', outline: 'none' }}
+                    >
+                      {SCOLI_DEMO.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </div>
+                )}
+
+                {/* Sumar trimitere */}
+                <div style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: '8px', padding: '12px 14px', marginBottom: '20px', fontSize: '12px', color: '#94a3b8' }}>
+                  <strong style={{ color: '#60a5fa' }}>📊 Sumar:</strong>{' '}
+                  {uploadTarget === 'national' && 'Documentul va fi trimis tuturor celor 42 ISJ-uri și 11.500+ directori din România. Toți vor primi notificare instantanee.'}
+                  {uploadTarget === 'judet' && (uploadJudete.length === 0 ? 'Selectați cel puțin un județ.' : `Documentul va fi trimis la ${uploadJudete.length} ISJ${uploadJudete.length > 1 ? '-uri' : ''}: ${uploadJudete.join(', ')}.`)}
+                  {uploadTarget === 'scoala' && `Documentul va fi trimis direct directorului de la: ${uploadScoala}.`}
+                </div>
+
+                {uploading ? (
+                  <div style={{ textAlign: 'center', padding: '16px', color: '#3b82f6', fontSize: '14px' }}>
+                    🤖 Se publică documentul și se trimit notificări...
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <button onClick={() => setShowUpload(false)} style={{ flex: 1, background: '#334155', color: '#94a3b8', border: 'none', borderRadius: '8px', padding: '12px', fontSize: '14px', cursor: 'pointer' }}>Anulează</button>
+                    <button
+                      onClick={handleUpload}
+                      disabled={!uploadTitle.trim() || (uploadTarget === 'judet' && uploadJudete.length === 0)}
+                      style={{
+                        flex: 2,
+                        background: !uploadTitle.trim() || (uploadTarget === 'judet' && uploadJudete.length === 0) ? '#334155' : '#3b82f6',
+                        color: '#fff', border: 'none', borderRadius: '8px', padding: '12px', fontSize: '14px', fontWeight: 600,
+                        cursor: !uploadTitle.trim() || (uploadTarget === 'judet' && uploadJudete.length === 0) ? 'not-allowed' : 'pointer',
+                      }}
+                    >
+                      Publică & Notifică →
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* BROADCAST MODAL */}
       {showBroadcast && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
           <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '16px', padding: '32px', width: '480px' }}>
-            {sent ? (
+            {broadcastSent ? (
               <div style={{ textAlign: 'center', padding: '20px' }}>
                 <div style={{ fontSize: '48px', marginBottom: '16px' }}>✅</div>
-                <h3 style={{ color: '#22c55e', fontSize: '18px', fontWeight: 700 }}>Mesaj trimis cu succes!</h3>
-                <p style={{ color: '#64748b', fontSize: '13px', marginTop: '8px' }}>Toți directorii din România au fost notificați.</p>
+                <h3 style={{ color: '#22c55e', fontSize: '18px', fontWeight: 700 }}>Broadcast trimis!</h3>
+                <p style={{ color: '#64748b', fontSize: '13px', marginTop: '8px' }}>Toți directorii și ISJ-urile din România au primit mesajul.</p>
               </div>
             ) : (
               <>
                 <h3 style={{ fontSize: '17px', fontWeight: 700, color: '#f1f5f9', marginBottom: '8px' }}>📢 Broadcast Național</h3>
-                <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '20px' }}>Mesajul va fi trimis simultan tuturor celor <strong style={{ color: '#f1f5f9' }}>11.500+ directori</strong> din România.</p>
+                <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '20px' }}>Mesaj urgent către toți <strong style={{ color: '#f1f5f9' }}>11.500+ directori</strong> și <strong style={{ color: '#f1f5f9' }}>42 ISJ-uri</strong> din România.</p>
                 <textarea
                   value={broadcastMsg}
                   onChange={e => setBroadcastMsg(e.target.value)}

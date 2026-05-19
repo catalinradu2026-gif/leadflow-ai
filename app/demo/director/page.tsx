@@ -3,10 +3,11 @@ import { useRouter } from 'next/navigation'
 import { useState, useRef, useEffect } from 'react'
 
 const NOTIFICARI = [
-  { id: 1, titlu: 'Circular nr. 1247/2026 — Raportare absențe mai 2026', data: '17 mai 2026', citit: false, urgent: true, tip: 'Circular' },
-  { id: 2, titlu: 'Procedura nr. 892/2026 — Examene naționale 2026', data: '14 mai 2026', citit: true, urgent: false, tip: 'Procedură' },
-  { id: 3, titlu: 'Adresa nr. 2103/2026 — Dotări informatice PNRR', data: '10 mai 2026', citit: true, urgent: false, tip: 'Adresă' },
-  { id: 4, titlu: 'Circular nr. 1198/2026 — Situație statistică an școlar', data: '5 mai 2026', citit: true, urgent: false, tip: 'Circular' },
+  { id: 1, titlu: 'Metodologie Evaluare Națională 2026', data: '19 mai 2026', citit: false, urgent: true, tip: 'Metodologie', sursa: 'Inspector Național' },
+  { id: 2, titlu: 'Circular nr. 1247/2026 — Raportare absențe mai 2026', data: '17 mai 2026', citit: false, urgent: true, tip: 'Circular', sursa: 'ISJ Dolj' },
+  { id: 3, titlu: 'Procedura nr. 892/2026 — Examene naționale 2026', data: '14 mai 2026', citit: true, urgent: false, tip: 'Procedură', sursa: 'ISJ Dolj' },
+  { id: 4, titlu: 'Adresa nr. 2103/2026 — Dotări informatice PNRR', data: '10 mai 2026', citit: true, urgent: false, tip: 'Adresă', sursa: 'Inspector Național' },
+  { id: 5, titlu: 'Circular nr. 1198/2026 — Situație statistică an școlar', data: '5 mai 2026', citit: true, urgent: false, tip: 'Circular', sursa: 'ISJ Dolj' },
 ]
 
 type Msg = { role: 'user' | 'assistant'; content: string }
@@ -123,7 +124,7 @@ export default function DirectorPage() {
                 onClick={() => markRead(n.id)}
                 style={{
                   background: '#1e293b',
-                  border: `1px solid ${!n.citit ? '#f59e0b' : '#334155'}`,
+                  border: `1px solid ${!n.citit ? (n.sursa === 'Inspector Național' ? '#3b82f6' : '#f59e0b') : '#334155'}`,
                   borderRadius: '10px',
                   padding: '16px 20px',
                   display: 'flex',
@@ -134,19 +135,22 @@ export default function DirectorPage() {
                 }}
               >
                 <div style={{ position: 'relative', flexShrink: 0 }}>
-                  <div style={{ width: 44, height: 44, background: !n.citit ? '#92400e' : '#1e293b', border: `1px solid ${!n.citit ? '#f59e0b' : '#334155'}`, borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px' }}>📄</div>
+                  <div style={{ width: 44, height: 44, background: !n.citit ? (n.sursa === 'Inspector Național' ? '#1d4ed8' : '#92400e') : '#1e293b', border: `1px solid ${!n.citit ? '#f59e0b' : '#334155'}`, borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px' }}>📄</div>
                   {!n.citit && (
                     <div style={{ position: 'absolute', top: -4, right: -4, width: 12, height: 12, background: '#ef4444', borderRadius: '50%', border: '2px solid #0f172a' }} />
                   )}
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
                     {!n.citit && <span style={{ background: '#92400e', color: '#fcd34d', fontSize: '10px', fontWeight: 700, padding: '1px 8px', borderRadius: '20px' }}>NOU</span>}
                     {n.urgent && !n.citit && <span style={{ background: '#7f1d1d', color: '#fca5a5', fontSize: '10px', fontWeight: 700, padding: '1px 8px', borderRadius: '20px' }}>URGENT</span>}
                     <span style={{ background: '#1e40af', color: '#93c5fd', fontSize: '10px', fontWeight: 600, padding: '1px 8px', borderRadius: '20px' }}>{n.tip}</span>
+                    <span style={{ background: n.sursa === 'Inspector Național' ? '#1d4ed8' : '#064e3b', color: n.sursa === 'Inspector Național' ? '#93c5fd' : '#6ee7b7', fontSize: '10px', fontWeight: 700, padding: '1px 8px', borderRadius: '20px' }}>
+                      {n.sursa === 'Inspector Național' ? '🇾🇴 Inspector Național' : '🏛️ ISJ Dolj'}
+                    </span>
                   </div>
                   <div style={{ fontSize: '14px', fontWeight: !n.citit ? 700 : 500, color: !n.citit ? '#f1f5f9' : '#94a3b8' }}>{n.titlu}</div>
-                  <div style={{ fontSize: '12px', color: '#475569', marginTop: '4px' }}>ISJ Dolj · {n.data}</div>
+                  <div style={{ fontSize: '12px', color: '#475569', marginTop: '4px' }}>{n.sursa} · {n.data}</div>
                 </div>
                 <div style={{ textAlign: 'right', flexShrink: 0 }}>
                   {n.citit
