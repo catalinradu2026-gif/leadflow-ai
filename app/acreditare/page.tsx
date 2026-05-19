@@ -275,6 +275,57 @@ export default function AcreditareLanding() {
         </div>
       </div>
 
+      {/* Resurse */}
+      <div style={{ width: '100%', maxWidth: '1080px', marginBottom: '48px' }}>
+        <div style={{ fontSize: '11px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '16px' }}>
+          Resurse & Informații
+        </div>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)',
+          gap: '12px',
+        }}>
+          {[
+            { icon: '📋', label: 'Registre Naționale', desc: '7 registre cu toate unitățile', color: '#6366f1', route: '/acreditare/registre' },
+            { icon: '⚖️', label: 'Legislație', desc: 'Acte normative centralizate', color: '#a855f7', route: '/acreditare/legislatie' },
+            { icon: '❓', label: 'Întrebări Frecvente', desc: 'Ghid pas cu pas ARACIP', color: '#14b8a6', route: '/acreditare/faq' },
+            { icon: '📊', label: 'Statistici Naționale', desc: 'Date agregate pe județe', color: '#f59e0b', route: '/acreditare/dashboard' },
+          ].map(r => (
+            <div
+              key={r.label}
+              onClick={() => router.push(r.route)}
+              style={{
+                background: 'rgba(255,255,255,0.03)',
+                border: '1px solid rgba(255,255,255,0.07)',
+                borderRadius: '14px',
+                padding: '16px',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+              }}
+              onMouseEnter={e => {
+                (e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,0.06)'
+                ;(e.currentTarget as HTMLDivElement).style.borderColor = `${r.color}44`
+                ;(e.currentTarget as HTMLDivElement).style.transform = 'translateY(-2px)'
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,0.03)'
+                ;(e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(255,255,255,0.07)'
+                ;(e.currentTarget as HTMLDivElement).style.transform = 'translateY(0)'
+              }}
+            >
+              <div style={{ width: 40, height: 40, borderRadius: '10px', background: `${r.color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', flexShrink: 0 }}>{r.icon}</div>
+              <div>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: '#e2e8f0' }}>{r.label}</div>
+                <div style={{ fontSize: '11px', color: '#475569', marginTop: '2px' }}>{r.desc}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Stats */}
       <div style={{
         display: 'flex',
