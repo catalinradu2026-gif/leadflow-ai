@@ -2,19 +2,27 @@
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
+type TipUnitate = 'Liceu' | 'Colegiu' | 'Școală' | 'Grădiniță'
+const TIP_COLORS: Record<TipUnitate, { bg: string; color: string }> = {
+  'Liceu':     { bg: '#1e3a5f', color: '#93c5fd' },
+  'Colegiu':   { bg: '#4c1d95', color: '#c4b5fd' },
+  'Școală':    { bg: '#064e3b', color: '#6ee7b7' },
+  'Grădiniță': { bg: '#713f12', color: '#fde68a' },
+}
 const SCOLI_DOLJ = [
-  { name: 'Liceul Teoretic "Amărăștii de Jos"', loc: 'Amărăștii de Jos', director: 'Ion Marin', citit: true, activ: true },
-  { name: 'Colegiul Național "Elena Cuza"', loc: 'Craiova', director: 'Maria Ionescu', citit: true, activ: true },
-  { name: 'Liceul Teoretic "Henri Coandă"', loc: 'Craiova', director: 'Andrei Popescu', citit: true, activ: true },
-  { name: 'Școala Gimnazială Nr. 12', loc: 'Craiova', director: 'Elena Dumitrescu', citit: false, activ: true },
-  { name: 'Colegiul Tehnic "Costin D. Nenițescu"', loc: 'Craiova', director: 'Gheorghe Stan', citit: true, activ: true },
-  { name: 'Liceul cu Program Sportiv', loc: 'Craiova', director: 'Florin Popa', citit: false, activ: false },
-  { name: 'Grădinița Nr. 3', loc: 'Craiova', director: 'Ana Stoica', citit: true, activ: true },
-  { name: 'Școala Gimnazială "Nicolae Titulescu"', loc: 'Băilești', director: 'Mihai Tudorache', citit: true, activ: true },
-  { name: 'Liceul Teoretic "George Țărnea"', loc: 'Băilești', director: 'Rodica Nițu', citit: true, activ: true },
-  { name: 'Școala Primară Segarcea', loc: 'Segarcea', director: 'Vasile Constantin', citit: false, activ: true },
-  { name: 'Liceul Tehnologic Calafat', loc: 'Calafat', director: 'Cristina Barbu', citit: true, activ: true },
-  { name: 'Grădinița Nr. 8 Craiova', loc: 'Craiova', director: 'Ioana Vlad', citit: true, activ: true },
+  { name: 'Liceul Teoretic "Amărăștii de Jos"', loc: 'Amărăștii de Jos', director: 'Ion Marin', citit: true, activ: true, tip: 'Liceu' as TipUnitate },
+  { name: 'Colegiul Național "Elena Cuza"', loc: 'Craiova', director: 'Maria Ionescu', citit: true, activ: true, tip: 'Colegiu' as TipUnitate },
+  { name: 'Liceul Teoretic "Henri Coandă"', loc: 'Craiova', director: 'Andrei Popescu', citit: true, activ: true, tip: 'Liceu' as TipUnitate },
+  { name: 'Școala Gimnazială Nr. 12', loc: 'Craiova', director: 'Elena Dumitrescu', citit: false, activ: true, tip: 'Școală' as TipUnitate },
+  { name: 'Colegiul Tehnic "Costin D. Nenițescu"', loc: 'Craiova', director: 'Gheorghe Stan', citit: true, activ: true, tip: 'Colegiu' as TipUnitate },
+  { name: 'Liceul cu Program Sportiv', loc: 'Craiova', director: 'Florin Popa', citit: false, activ: false, tip: 'Liceu' as TipUnitate },
+  { name: 'Grădinița Nr. 3', loc: 'Craiova', director: 'Ana Stoica', citit: true, activ: true, tip: 'Grădiniță' as TipUnitate },
+  { name: 'Grădinița Nr. 8 Craiova', loc: 'Craiova', director: 'Ioana Vlad', citit: true, activ: true, tip: 'Grădiniță' as TipUnitate },
+  { name: 'Grădinița "Lumina" Craiova', loc: 'Craiova', director: 'Petra Ionescu', citit: true, activ: true, tip: 'Grădiniță' as TipUnitate },
+  { name: 'Școala Gimnazială "Nicolae Titulescu"', loc: 'Băilești', director: 'Mihai Tudorache', citit: true, activ: true, tip: 'Școală' as TipUnitate },
+  { name: 'Liceul Teoretic "George Țărnea"', loc: 'Băilești', director: 'Rodica Nițu', citit: true, activ: true, tip: 'Liceu' as TipUnitate },
+  { name: 'Școala Primară Segarcea', loc: 'Segarcea', director: 'Vasile Constantin', citit: false, activ: true, tip: 'Școală' as TipUnitate },
+  { name: 'Liceul Tehnologic Calafat', loc: 'Calafat', director: 'Cristina Barbu', citit: true, activ: true, tip: 'Liceu' as TipUnitate },
 ]
 
 const DOCUMENTE = [
@@ -39,6 +47,7 @@ export default function ISJDolj() {
     { role: 'system', text: 'Chat ISJ → Director deschis. Puteți trimite mesaje individuale sau broadcast.' }
   ])
   const [selectedSchool, setSelectedSchool] = useState(SCOLI_DOLJ[0].name)
+  const [tipFilter, setTipFilter] = useState<string>('Toate')
 
   async function handleUpload() {
     if (!uploadTitle.trim()) return
@@ -176,32 +185,56 @@ export default function ISJDolj() {
         {/* SCOLI TAB */}
         {tab === 'scoli' && (
           <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '12px', overflow: 'hidden' }}>
+            {/* Filtre tip */}
+            <div style={{ padding: '12px 16px', borderBottom: '1px solid #334155', display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Tip:</span>
+              {(['Toate', 'Liceu', 'Colegiu', 'Școală', 'Grădiniță'] as const).map(t => {
+                const count = t === 'Toate' ? SCOLI_DOLJ.length : SCOLI_DOLJ.filter(s => s.tip === t).length
+                if (count === 0) return null
+                const sel = tipFilter === t
+                const tc = t !== 'Toate' ? TIP_COLORS[t] : { bg: '#334155', color: '#94a3b8' }
+                return (
+                  <button key={t} onClick={() => setTipFilter(t)} style={{
+                    background: sel ? tc.bg : '#0f172a',
+                    border: `1px solid ${sel ? tc.color : '#334155'}`,
+                    color: sel ? tc.color : '#64748b',
+                    borderRadius: '20px', padding: '4px 12px', fontSize: '12px', fontWeight: sel ? 700 : 400, cursor: 'pointer',
+                  }}>
+                    {t} ({count})
+                  </button>
+                )
+              })}
+            </div>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ background: '#0f172a' }}>
-                  {['Unitate Școlară', 'Localitate', 'Director', 'Ultim doc citit', 'Status'].map(h => (
+                  {['Unitate Școlară', 'Tip', 'Localitate', 'Director', 'Doc citit', 'Status'].map(h => (
                     <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontSize: '11px', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {SCOLI_DOLJ.map((s, i) => (
-                  <tr key={i} style={{ borderBottom: '1px solid #334155' }}>
-                    <td style={{ padding: '12px 16px', fontSize: '13px', fontWeight: 600, color: '#f1f5f9' }}>{s.name}</td>
-                    <td style={{ padding: '12px 16px', fontSize: '13px', color: '#94a3b8' }}>{s.loc}</td>
-                    <td style={{ padding: '12px 16px', fontSize: '13px', color: '#94a3b8' }}>{s.director}</td>
-                    <td style={{ padding: '12px 16px', fontSize: '13px' }}>
-                      {s.citit
-                        ? <span style={{ color: '#22c55e' }}>✓ Da</span>
-                        : <span style={{ color: '#ef4444' }}>✗ Nu</span>}
-                    </td>
-                    <td style={{ padding: '12px 16px' }}>
-                      {s.activ
-                        ? <span style={{ background: '#052e16', color: '#86efac', fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '20px' }}>● Activ</span>
-                        : <span style={{ background: '#7f1d1d', color: '#fca5a5', fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '20px' }}>⚠ Inactiv 48h</span>}
-                    </td>
-                  </tr>
-                ))}
+                {SCOLI_DOLJ.filter(s => tipFilter === 'Toate' || s.tip === tipFilter).map((s, i) => {
+                  const tc = TIP_COLORS[s.tip]
+                  return (
+                    <tr key={i} style={{ borderBottom: '1px solid #334155' }}>
+                      <td style={{ padding: '12px 16px', fontSize: '13px', fontWeight: 600, color: '#f1f5f9' }}>{s.name}</td>
+                      <td style={{ padding: '12px 16px' }}>
+                        <span style={{ background: tc.bg, color: tc.color, fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '20px' }}>{s.tip}</span>
+                      </td>
+                      <td style={{ padding: '12px 16px', fontSize: '13px', color: '#94a3b8' }}>{s.loc}</td>
+                      <td style={{ padding: '12px 16px', fontSize: '13px', color: '#94a3b8' }}>{s.director}</td>
+                      <td style={{ padding: '12px 16px', fontSize: '13px' }}>
+                        {s.citit ? <span style={{ color: '#22c55e' }}>✓ Da</span> : <span style={{ color: '#ef4444' }}>✗ Nu</span>}
+                      </td>
+                      <td style={{ padding: '12px 16px' }}>
+                        {s.activ
+                          ? <span style={{ background: '#052e16', color: '#86efac', fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '20px' }}>● Activ</span>
+                          : <span style={{ background: '#7f1d1d', color: '#fca5a5', fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '20px' }}>⚠ Inactiv 48h</span>}
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>

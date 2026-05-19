@@ -60,38 +60,57 @@ const totalScoli = JUDETE.reduce((s, j) => s + j.scoli, 0)
 const totalActive = JUDETE.reduce((s, j) => s + j.active, 0)
 const totalAlerte = JUDETE.reduce((s, j) => s + j.alert, 0)
 
-type Scoala = { name: string; director: string; citit: boolean; activ: boolean }
+type TipUnitate = 'Liceu' | 'Colegiu' | 'Școală' | 'Grădiniță'
+type Scoala = { name: string; director: string; citit: boolean; activ: boolean; tip: TipUnitate }
+
+function detectTip(name: string): TipUnitate {
+  if (name.toLowerCase().startsWith('grădiniță') || name.toLowerCase().startsWith('gradinita')) return 'Grădiniță'
+  if (name.toLowerCase().startsWith('colegiu') || name.toLowerCase().startsWith('colegiul')) return 'Colegiu'
+  if (name.toLowerCase().startsWith('liceu') || name.toLowerCase().startsWith('liceul')) return 'Liceu'
+  return 'Școală'
+}
 
 const SCOLI_PER_JUDET: Record<string, Scoala[]> = {
   'Dolj': [
-    { name: 'Liceul Teoretic "Amărăștii de Jos"', director: 'Ion Marin', citit: true, activ: true },
-    { name: 'Colegiul Național "Elena Cuza"', director: 'Maria Ionescu', citit: true, activ: true },
-    { name: 'Liceul Teoretic "Henri Coandă"', director: 'Andrei Popescu', citit: true, activ: true },
-    { name: 'Școala Gimnazială Nr. 12 Craiova', director: 'Elena Dumitrescu', citit: false, activ: true },
-    { name: 'Colegiul Tehnic "Costin D. Nenițescu"', director: 'Gheorghe Stan', citit: true, activ: true },
-    { name: 'Liceul cu Program Sportiv', director: 'Florin Popa', citit: false, activ: false },
-    { name: 'Grădinița Nr. 3 Craiova', director: 'Ana Stoica', citit: true, activ: true },
-    { name: 'Școala Gimnazială "Nicolae Titulescu"', director: 'Mihai Tudorache', citit: true, activ: true },
+    { name: 'Liceul Teoretic "Amărăștii de Jos"', director: 'Ion Marin', citit: true, activ: true, tip: 'Liceu' },
+    { name: 'Colegiul Național "Elena Cuza"', director: 'Maria Ionescu', citit: true, activ: true, tip: 'Colegiu' },
+    { name: 'Liceul Teoretic "Henri Coandă"', director: 'Andrei Popescu', citit: true, activ: true, tip: 'Liceu' },
+    { name: 'Școala Gimnazială Nr. 12 Craiova', director: 'Elena Dumitrescu', citit: false, activ: true, tip: 'Școală' },
+    { name: 'Colegiul Tehnic "Costin D. Nenițescu"', director: 'Gheorghe Stan', citit: true, activ: true, tip: 'Colegiu' },
+    { name: 'Liceul cu Program Sportiv', director: 'Florin Popa', citit: false, activ: false, tip: 'Liceu' },
+    { name: 'Grădinița Nr. 3 Craiova', director: 'Ana Stoica', citit: true, activ: true, tip: 'Grădiniță' },
+    { name: 'Grădinița Nr. 11 Craiova', director: 'Ioana Vlad', citit: true, activ: true, tip: 'Grădiniță' },
+    { name: 'Școala Gimnazială "Nicolae Titulescu"', director: 'Mihai Tudorache', citit: true, activ: true, tip: 'Școală' },
   ],
   'Bacău': [
-    { name: 'Colegiul Național "Gheorghe Vrânceanu"', director: 'Ioana Toma', citit: true, activ: true },
-    { name: 'Liceul Teoretic "Henri Coandă" Bacău', director: 'Radu Dinu', citit: false, activ: true },
-    { name: 'Școala Gimnazială "Alexandru cel Bun"', director: 'Cristina Olaru', citit: false, activ: false },
-    { name: 'Colegiul Economic "Ion Ghica"', director: 'Vasile Lungu', citit: true, activ: true },
-    { name: 'Grădinița Nr. 7 Bacău', director: 'Mihaela Cojocaru', citit: true, activ: true },
+    { name: 'Colegiul Național "Gheorghe Vrânceanu"', director: 'Ioana Toma', citit: true, activ: true, tip: 'Colegiu' },
+    { name: 'Liceul Teoretic "Henri Coandă" Bacău', director: 'Radu Dinu', citit: false, activ: true, tip: 'Liceu' },
+    { name: 'Școala Gimnazială "Alexandru cel Bun"', director: 'Cristina Olaru', citit: false, activ: false, tip: 'Școală' },
+    { name: 'Colegiul Economic "Ion Ghica"', director: 'Vasile Lungu', citit: true, activ: true, tip: 'Colegiu' },
+    { name: 'Grădinița Nr. 7 Bacău', director: 'Mihaela Cojocaru', citit: true, activ: true, tip: 'Grădiniță' },
+    { name: 'Grădinița "Lumina" Bacău', director: 'Alina Rus', citit: true, activ: true, tip: 'Grădiniță' },
   ],
   'Arad': [
-    { name: 'Colegiul Național "Moise Nicoară"', director: 'Petru Buda', citit: false, activ: true },
-    { name: 'Liceul Teoretic "Adam Müller-Guttenbrunn"', director: 'Ileana Feier', citit: true, activ: true },
-    { name: 'Școala Gimnazială Nr. 1 Arad', director: 'Dorin Sabău', citit: false, activ: false },
-    { name: 'Colegiul Tehnic "Mihai Viteazul"', director: 'Lucia Popa', citit: true, activ: true },
+    { name: 'Colegiul Național "Moise Nicoară"', director: 'Petru Buda', citit: false, activ: true, tip: 'Colegiu' },
+    { name: 'Liceul Teoretic "Adam Müller-Guttenbrunn"', director: 'Ileana Feier', citit: true, activ: true, tip: 'Liceu' },
+    { name: 'Școala Gimnazială Nr. 1 Arad', director: 'Dorin Sabău', citit: false, activ: false, tip: 'Școală' },
+    { name: 'Colegiul Tehnic "Mihai Viteazul"', director: 'Lucia Popa', citit: true, activ: true, tip: 'Colegiu' },
+    { name: 'Grădinița Nr. 5 Arad', director: 'Elena Feier', citit: true, activ: true, tip: 'Grădiniță' },
   ],
   'Constanța': [
-    { name: 'Colegiul Național "Mircea cel Bătrân"', director: 'Nelu Pănescu', citit: false, activ: true },
-    { name: 'Liceul Teoretic "Ovidius"', director: 'Simona Grigore', citit: true, activ: true },
-    { name: 'Școala Gimnazială Nr. 3 Constanța', director: 'Adrian Neagu', citit: false, activ: false },
-    { name: 'Colegiul Economic "Virgil Madgearu"', director: 'Carmen Stan', citit: true, activ: true },
+    { name: 'Colegiul Național "Mircea cel Bătrân"', director: 'Nelu Pănescu', citit: false, activ: true, tip: 'Colegiu' },
+    { name: 'Liceul Teoretic "Ovidius"', director: 'Simona Grigore', citit: true, activ: true, tip: 'Liceu' },
+    { name: 'Școala Gimnazială Nr. 3 Constanța', director: 'Adrian Neagu', citit: false, activ: false, tip: 'Școală' },
+    { name: 'Colegiul Economic "Virgil Madgearu"', director: 'Carmen Stan', citit: true, activ: true, tip: 'Colegiu' },
+    { name: 'Grădinița Nr. 2 Constanța', director: 'Roxana Mihai', citit: true, activ: true, tip: 'Grădiniță' },
   ],
+}
+
+const TIP_COLORS: Record<TipUnitate, { bg: string; color: string }> = {
+  'Liceu':      { bg: '#1e3a5f', color: '#93c5fd' },
+  'Colegiu':    { bg: '#4c1d95', color: '#c4b5fd' },
+  'Școală':     { bg: '#064e3b', color: '#6ee7b7' },
+  'Grădiniță':  { bg: '#713f12', color: '#fde68a' },
 }
 
 function getScoliJudet(judet: string): Scoala[] {
@@ -99,15 +118,16 @@ function getScoliJudet(judet: string): Scoala[] {
   const j = JUDETE.find(x => x.name === judet)
   if (!j) return []
   const necitite = j.alert
+  const tipuriCyclice: TipUnitate[] = ['Liceu', 'Colegiu', 'Școală', 'Grădiniță', 'Liceu', 'Școală', 'Grădiniță', 'Colegiu']
   const result: Scoala[] = []
-  const tipuri = ['Liceul Teoretic', 'Colegiul Național', 'Școala Gimnazială', 'Colegiul Tehnic', 'Grădinița Nr.']
-  const localitati = [judet, judet, `${judet} 2`, `${judet} 3`]
   for (let i = 0; i < Math.min(j.scoli, 8); i++) {
+    const tip = tipuriCyclice[i % tipuriCyclice.length]
     result.push({
-      name: `${tipuri[i % tipuri.length]} "${['Mihai Eminescu', 'Ion Creangă', 'Vasile Alecsandri', 'George Enescu', 'Nicolae Bălcescu'][i % 5]}" ${localitati[i % localitati.length]}`,
+      name: `${tip === 'Grădiniță' ? 'Grădinița Nr.' : tip === 'Școală' ? 'Școala Gimnazială' : tip + 'l'} "${['Mihai Eminescu', 'Ion Creangă', 'Vasile Alecsandri', 'George Enescu', 'Nicolae Bălcescu'][i % 5]}" ${judet}`,
       director: `${['Ion', 'Maria', 'Andrei', 'Elena', 'Gheorghe', 'Florin', 'Ana', 'Mihai'][i % 8]} ${['Ionescu', 'Popescu', 'Stan', 'Dumitrescu', 'Marin', 'Popa', 'Stoica', 'Tudor'][i % 8]}`,
       citit: i >= necitite,
       activ: i >= (necitite > 0 ? necitite - 1 : 0),
+      tip,
     })
   }
   return result
@@ -145,6 +165,7 @@ export default function InspectorNational() {
   const [docs, setDocs] = useState<Doc[]>(DOCS_INITIALE)
   const [tab, setTab] = useState<'judete' | 'documente'>('judete')
   const [judetModal, setJudetModal] = useState<string | null>(null)
+  const [judetTipFilter, setJudetTipFilter] = useState<string>('Toate')
   const [showAlerte, setShowAlerte] = useState(false)
   const [now, setNow] = useState(new Date())
   useEffect(() => {
@@ -797,76 +818,105 @@ export default function InspectorNational() {
 
       {/* JUDET DRILL-DOWN MODAL */}
       {judetModal && (() => {
-        const scoli = getScoliJudet(judetModal)
+        const toateScoli = getScoliJudet(judetModal)
+        const scoli = judetTipFilter === 'Toate' ? toateScoli : toateScoli.filter(s => s.tip === judetTipFilter)
         const necitite = scoli.filter(s => !s.citit)
         const inactive = scoli.filter(s => !s.activ)
         const citite = scoli.filter(s => s.citit)
+        const tipCounts = ['Liceu','Colegiu','Școală','Grădiniță'].map(t => ({ tip: t, count: toateScoli.filter(s => s.tip === t).length })).filter(x => x.count > 0)
         return (
           <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '20px' }}>
-            <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '16px', width: '680px', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
-              {/* Header modal */}
+            <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '16px', width: '700px', maxHeight: '88vh', display: 'flex', flexDirection: 'column' }}>
+              {/* Header */}
               <div style={{ padding: '20px 24px', borderBottom: '1px solid #334155', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
-                  <h3 style={{ fontSize: '17px', fontWeight: 700, color: '#f1f5f9' }}>🏛️ ISJ {judetModal} — Situație școli</h3>
+                  <h3 style={{ fontSize: '17px', fontWeight: 700, color: '#f1f5f9' }}>🏛️ ISJ {judetModal} — Situație unități</h3>
                   <p style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>
                     {scoli.length} unități afișate · {necitite.length > 0 ? `${necitite.length} necitit` : 'toți au citit'} · {inactive.length > 0 ? `${inactive.length} inactivi` : 'toți activi'}
                   </p>
                 </div>
-                <button onClick={() => setJudetModal(null)} style={{ background: '#334155', border: 'none', color: '#94a3b8', borderRadius: '8px', padding: '8px 14px', fontSize: '13px', cursor: 'pointer' }}>✕ Închide</button>
+                <button onClick={() => { setJudetModal(null); setJudetTipFilter('Toate') }} style={{ background: '#334155', border: 'none', color: '#94a3b8', borderRadius: '8px', padding: '8px 14px', fontSize: '13px', cursor: 'pointer' }}>✕ Închide</button>
+              </div>
+
+              {/* Filtre tip */}
+              <div style={{ padding: '12px 24px', borderBottom: '1px solid #334155', display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Tip:</span>
+                {[{ tip: 'Toate', count: toateScoli.length }, ...tipCounts].map(({ tip, count }) => {
+                  const sel = judetTipFilter === tip
+                  const tc = tip !== 'Toate' ? TIP_COLORS[tip as TipUnitate] : { bg: '#1e293b', color: '#94a3b8' }
+                  return (
+                    <button key={tip} onClick={() => setJudetTipFilter(tip)} style={{
+                      background: sel ? (tip !== 'Toate' ? tc.bg : '#334155') : '#0f172a',
+                      border: `1px solid ${sel ? (tip !== 'Toate' ? tc.color : '#64748b') : '#334155'}`,
+                      color: sel ? (tip !== 'Toate' ? tc.color : '#fff') : '#64748b',
+                      borderRadius: '20px', padding: '4px 12px', fontSize: '12px', fontWeight: sel ? 700 : 400, cursor: 'pointer',
+                    }}>
+                      {tip} <span style={{ opacity: 0.7 }}>({count})</span>
+                    </button>
+                  )
+                })}
               </div>
 
               {/* Sumar rapid */}
-              <div style={{ padding: '14px 24px', borderBottom: '1px solid #334155', display: 'flex', gap: '12px' }}>
-                <div style={{ background: '#052e16', border: '1px solid #166534', borderRadius: '8px', padding: '10px 16px', flex: 1, textAlign: 'center' }}>
-                  <div style={{ fontSize: '20px', fontWeight: 800, color: '#22c55e' }}>{citite.length}</div>
-                  <div style={{ fontSize: '11px', color: '#86efac', marginTop: '2px' }}>Au citit</div>
-                </div>
-                <div style={{ background: '#7f1d1d', border: '1px solid #991b1b', borderRadius: '8px', padding: '10px 16px', flex: 1, textAlign: 'center' }}>
-                  <div style={{ fontSize: '20px', fontWeight: 800, color: '#fca5a5' }}>{necitite.length}</div>
-                  <div style={{ fontSize: '11px', color: '#fca5a5', marginTop: '2px' }}>Nu au citit</div>
-                </div>
-                <div style={{ background: '#451a03', border: '1px solid #92400e', borderRadius: '8px', padding: '10px 16px', flex: 1, textAlign: 'center' }}>
-                  <div style={{ fontSize: '20px', fontWeight: 800, color: '#fcd34d' }}>{inactive.length}</div>
-                  <div style={{ fontSize: '11px', color: '#fcd34d', marginTop: '2px' }}>Inactivi</div>
-                </div>
+              <div style={{ padding: '12px 24px', borderBottom: '1px solid #334155', display: 'flex', gap: '10px' }}>
+                {[
+                  { val: citite.length, label: 'Au citit', bg: '#052e16', border: '#166534', color: '#22c55e' },
+                  { val: necitite.length, label: 'Nu au citit', bg: '#7f1d1d', border: '#991b1b', color: '#fca5a5' },
+                  { val: inactive.length, label: 'Inactivi', bg: '#451a03', border: '#92400e', color: '#fcd34d' },
+                ].map(s => (
+                  <div key={s.label} style={{ background: s.bg, border: `1px solid ${s.border}`, borderRadius: '8px', padding: '8px 14px', flex: 1, textAlign: 'center' }}>
+                    <div style={{ fontSize: '20px', fontWeight: 800, color: s.color }}>{s.val}</div>
+                    <div style={{ fontSize: '11px', color: s.color, opacity: 0.8, marginTop: '2px' }}>{s.label}</div>
+                  </div>
+                ))}
               </div>
 
-              {/* Lista scoli */}
+              {/* Lista */}
               <div style={{ overflowY: 'auto', flex: 1 }}>
                 {necitite.length > 0 && (
-                  <div style={{ padding: '12px 24px 4px', fontSize: '11px', color: '#ef4444', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                    ⚠️ Nu au citit ultimul document
-                  </div>
+                  <div style={{ padding: '10px 24px 4px', fontSize: '11px', color: '#ef4444', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>⚠️ Nu au citit ultimul document</div>
                 )}
-                {necitite.map((s, i) => (
-                  <div key={`n${i}`} style={{ padding: '12px 24px', borderBottom: '1px solid #1e293b', display: 'flex', alignItems: 'center', gap: '12px', background: 'rgba(239,68,68,0.05)' }}>
-                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: s.activ ? '#f59e0b' : '#ef4444', flexShrink: 0 }} />
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: '13px', fontWeight: 600, color: '#f1f5f9' }}>{s.name}</div>
-                      <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>Director: {s.director}</div>
+                {necitite.map((s, i) => {
+                  const tc = TIP_COLORS[s.tip]
+                  return (
+                    <div key={`n${i}`} style={{ padding: '12px 24px', borderBottom: '1px solid #1e293b', display: 'flex', alignItems: 'center', gap: '12px', background: 'rgba(239,68,68,0.05)' }}>
+                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: s.activ ? '#f59e0b' : '#ef4444', flexShrink: 0 }} />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginBottom: '3px' }}>
+                          <span style={{ background: tc.bg, color: tc.color, fontSize: '10px', fontWeight: 700, padding: '1px 7px', borderRadius: '20px' }}>{s.tip}</span>
+                        </div>
+                        <div style={{ fontSize: '13px', fontWeight: 600, color: '#f1f5f9' }}>{s.name}</div>
+                        <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>Director: {s.director}</div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <span style={{ background: '#7f1d1d', color: '#fca5a5', fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '20px' }}>✗ Necitit</span>
+                        {!s.activ && <span style={{ background: '#451a03', color: '#fcd34d', fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '20px' }}>⚠ Inactiv</span>}
+                      </div>
                     </div>
-                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                      <span style={{ background: '#7f1d1d', color: '#fca5a5', fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '20px' }}>✗ Necitit</span>
-                      {!s.activ && <span style={{ background: '#451a03', color: '#fcd34d', fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '20px' }}>⚠ Inactiv</span>}
-                    </div>
-                  </div>
-                ))}
-
+                  )
+                })}
                 {citite.length > 0 && (
-                  <div style={{ padding: '12px 24px 4px', fontSize: '11px', color: '#22c55e', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                    ✓ Au confirmat lectura
-                  </div>
+                  <div style={{ padding: '10px 24px 4px', fontSize: '11px', color: '#22c55e', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>✓ Au confirmat lectura</div>
                 )}
-                {citite.map((s, i) => (
-                  <div key={`c${i}`} style={{ padding: '12px 24px', borderBottom: '1px solid #1e293b', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e', flexShrink: 0 }} />
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: '13px', fontWeight: 500, color: '#94a3b8' }}>{s.name}</div>
-                      <div style={{ fontSize: '12px', color: '#475569', marginTop: '2px' }}>Director: {s.director}</div>
+                {citite.map((s, i) => {
+                  const tc = TIP_COLORS[s.tip]
+                  return (
+                    <div key={`c${i}`} style={{ padding: '12px 24px', borderBottom: '1px solid #1e293b', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e', flexShrink: 0 }} />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginBottom: '3px' }}>
+                          <span style={{ background: tc.bg, color: tc.color, fontSize: '10px', fontWeight: 700, padding: '1px 7px', borderRadius: '20px' }}>{s.tip}</span>
+                        </div>
+                        <div style={{ fontSize: '13px', fontWeight: 500, color: '#94a3b8' }}>{s.name}</div>
+                        <div style={{ fontSize: '12px', color: '#475569', marginTop: '2px' }}>Director: {s.director}</div>
+                      </div>
+                      <span style={{ background: '#052e16', color: '#86efac', fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '20px' }}>✓ Citit</span>
                     </div>
-                    <span style={{ background: '#052e16', color: '#86efac', fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '20px' }}>✓ Citit</span>
-                  </div>
-                ))}
+                  )
+                })}
+                {scoli.length === 0 && (
+                  <div style={{ padding: '32px', textAlign: 'center', color: '#475569', fontSize: '13px' }}>Nicio unitate de tip „{judetTipFilter}" în acest județ.</div>
+                )}
               </div>
             </div>
           </div>
