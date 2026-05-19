@@ -69,6 +69,7 @@ function getQuickQuestions(pathname: string): string[] {
 
 export default function AraChatbot() {
   const pathname = usePathname()
+  if (pathname === '/') return null
   const pagina = PAGE_LABELS[pathname] || 'Platformă ARACIP'
   const quickQuestions = getQuickQuestions(pathname)
 
