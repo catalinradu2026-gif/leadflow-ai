@@ -60,6 +60,59 @@ const totalScoli = JUDETE.reduce((s, j) => s + j.scoli, 0)
 const totalActive = JUDETE.reduce((s, j) => s + j.active, 0)
 const totalAlerte = JUDETE.reduce((s, j) => s + j.alert, 0)
 
+type Scoala = { name: string; director: string; citit: boolean; activ: boolean }
+
+const SCOLI_PER_JUDET: Record<string, Scoala[]> = {
+  'Dolj': [
+    { name: 'Liceul Teoretic "Amărăștii de Jos"', director: 'Ion Marin', citit: true, activ: true },
+    { name: 'Colegiul Național "Elena Cuza"', director: 'Maria Ionescu', citit: true, activ: true },
+    { name: 'Liceul Teoretic "Henri Coandă"', director: 'Andrei Popescu', citit: true, activ: true },
+    { name: 'Școala Gimnazială Nr. 12 Craiova', director: 'Elena Dumitrescu', citit: false, activ: true },
+    { name: 'Colegiul Tehnic "Costin D. Nenițescu"', director: 'Gheorghe Stan', citit: true, activ: true },
+    { name: 'Liceul cu Program Sportiv', director: 'Florin Popa', citit: false, activ: false },
+    { name: 'Grădinița Nr. 3 Craiova', director: 'Ana Stoica', citit: true, activ: true },
+    { name: 'Școala Gimnazială "Nicolae Titulescu"', director: 'Mihai Tudorache', citit: true, activ: true },
+  ],
+  'Bacău': [
+    { name: 'Colegiul Național "Gheorghe Vrânceanu"', director: 'Ioana Toma', citit: true, activ: true },
+    { name: 'Liceul Teoretic "Henri Coandă" Bacău', director: 'Radu Dinu', citit: false, activ: true },
+    { name: 'Școala Gimnazială "Alexandru cel Bun"', director: 'Cristina Olaru', citit: false, activ: false },
+    { name: 'Colegiul Economic "Ion Ghica"', director: 'Vasile Lungu', citit: true, activ: true },
+    { name: 'Grădinița Nr. 7 Bacău', director: 'Mihaela Cojocaru', citit: true, activ: true },
+  ],
+  'Arad': [
+    { name: 'Colegiul Național "Moise Nicoară"', director: 'Petru Buda', citit: false, activ: true },
+    { name: 'Liceul Teoretic "Adam Müller-Guttenbrunn"', director: 'Ileana Feier', citit: true, activ: true },
+    { name: 'Școala Gimnazială Nr. 1 Arad', director: 'Dorin Sabău', citit: false, activ: false },
+    { name: 'Colegiul Tehnic "Mihai Viteazul"', director: 'Lucia Popa', citit: true, activ: true },
+  ],
+  'Constanța': [
+    { name: 'Colegiul Național "Mircea cel Bătrân"', director: 'Nelu Pănescu', citit: false, activ: true },
+    { name: 'Liceul Teoretic "Ovidius"', director: 'Simona Grigore', citit: true, activ: true },
+    { name: 'Școala Gimnazială Nr. 3 Constanța', director: 'Adrian Neagu', citit: false, activ: false },
+    { name: 'Colegiul Economic "Virgil Madgearu"', director: 'Carmen Stan', citit: true, activ: true },
+  ],
+}
+
+function getScoliJudet(judet: string): Scoala[] {
+  if (SCOLI_PER_JUDET[judet]) return SCOLI_PER_JUDET[judet]
+  const j = JUDETE.find(x => x.name === judet)
+  if (!j) return []
+  const necitite = j.alert
+  const result: Scoala[] = []
+  const tipuri = ['Liceul Teoretic', 'Colegiul Național', 'Școala Gimnazială', 'Colegiul Tehnic', 'Grădinița Nr.']
+  const localitati = [judet, judet, `${judet} 2`, `${judet} 3`]
+  for (let i = 0; i < Math.min(j.scoli, 8); i++) {
+    result.push({
+      name: `${tipuri[i % tipuri.length]} "${['Mihai Eminescu', 'Ion Creangă', 'Vasile Alecsandri', 'George Enescu', 'Nicolae Bălcescu'][i % 5]}" ${localitati[i % localitati.length]}`,
+      director: `${['Ion', 'Maria', 'Andrei', 'Elena', 'Gheorghe', 'Florin', 'Ana', 'Mihai'][i % 8]} ${['Ionescu', 'Popescu', 'Stan', 'Dumitrescu', 'Marin', 'Popa', 'Stoica', 'Tudor'][i % 8]}`,
+      citit: i >= necitite,
+      activ: i >= (necitite > 0 ? necitite - 1 : 0),
+    })
+  }
+  return result
+}
+
 type Doc = {
   id: number
   titlu: string
@@ -87,6 +140,7 @@ export default function InspectorNational() {
   const [showUpload, setShowUpload] = useState(false)
   const [docs, setDocs] = useState<Doc[]>(DOCS_INITIALE)
   const [tab, setTab] = useState<'judete' | 'documente'>('judete')
+  const [judetModal, setJudetModal] = useState<string | null>(null)
 
   // Upload form state
   const [uploadTitle, setUploadTitle] = useState('')
@@ -259,8 +313,17 @@ export default function InspectorNational() {
                   </thead>
                   <tbody>
                     {filtered.map((j, i) => (
-                      <tr key={j.name} style={{ borderBottom: '1px solid #1e293b', background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)' }}>
-                        <td style={{ padding: '10px 16px', fontSize: '13px', fontWeight: 600, color: '#f1f5f9' }}>{j.name}</td>
+                      <tr
+                        key={j.name}
+                        onClick={() => setJudetModal(j.name)}
+                        style={{ borderBottom: '1px solid #1e293b', background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)', cursor: 'pointer' }}
+                        onMouseEnter={e => (e.currentTarget.style.background = 'rgba(59,130,246,0.08)')}
+                        onMouseLeave={e => (e.currentTarget.style.background = i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)')}
+                      >
+                        <td style={{ padding: '10px 16px', fontSize: '13px', fontWeight: 600, color: '#f1f5f9' }}>
+                          {j.name}
+                          <span style={{ fontSize: '11px', color: '#475569', marginLeft: '6px' }}>→</span>
+                        </td>
                         <td style={{ padding: '10px 16px', fontSize: '13px', color: '#94a3b8' }}>{j.scoli}</td>
                         <td style={{ padding: '10px 16px', fontSize: '13px' }}>
                           <span style={{ color: j.active === j.scoli ? '#22c55e' : '#f59e0b' }}>{j.active}/{j.scoli}</span>
@@ -514,6 +577,84 @@ export default function InspectorNational() {
           </div>
         </div>
       )}
+
+      {/* JUDET DRILL-DOWN MODAL */}
+      {judetModal && (() => {
+        const scoli = getScoliJudet(judetModal)
+        const necitite = scoli.filter(s => !s.citit)
+        const inactive = scoli.filter(s => !s.activ)
+        const citite = scoli.filter(s => s.citit)
+        return (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '20px' }}>
+            <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '16px', width: '680px', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
+              {/* Header modal */}
+              <div style={{ padding: '20px 24px', borderBottom: '1px solid #334155', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <h3 style={{ fontSize: '17px', fontWeight: 700, color: '#f1f5f9' }}>🏛️ ISJ {judetModal} — Situație școli</h3>
+                  <p style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>
+                    {scoli.length} unități afișate · {necitite.length > 0 ? `${necitite.length} necitit` : 'toți au citit'} · {inactive.length > 0 ? `${inactive.length} inactivi` : 'toți activi'}
+                  </p>
+                </div>
+                <button onClick={() => setJudetModal(null)} style={{ background: '#334155', border: 'none', color: '#94a3b8', borderRadius: '8px', padding: '8px 14px', fontSize: '13px', cursor: 'pointer' }}>✕ Închide</button>
+              </div>
+
+              {/* Sumar rapid */}
+              <div style={{ padding: '14px 24px', borderBottom: '1px solid #334155', display: 'flex', gap: '12px' }}>
+                <div style={{ background: '#052e16', border: '1px solid #166534', borderRadius: '8px', padding: '10px 16px', flex: 1, textAlign: 'center' }}>
+                  <div style={{ fontSize: '20px', fontWeight: 800, color: '#22c55e' }}>{citite.length}</div>
+                  <div style={{ fontSize: '11px', color: '#86efac', marginTop: '2px' }}>Au citit</div>
+                </div>
+                <div style={{ background: '#7f1d1d', border: '1px solid #991b1b', borderRadius: '8px', padding: '10px 16px', flex: 1, textAlign: 'center' }}>
+                  <div style={{ fontSize: '20px', fontWeight: 800, color: '#fca5a5' }}>{necitite.length}</div>
+                  <div style={{ fontSize: '11px', color: '#fca5a5', marginTop: '2px' }}>Nu au citit</div>
+                </div>
+                <div style={{ background: '#451a03', border: '1px solid #92400e', borderRadius: '8px', padding: '10px 16px', flex: 1, textAlign: 'center' }}>
+                  <div style={{ fontSize: '20px', fontWeight: 800, color: '#fcd34d' }}>{inactive.length}</div>
+                  <div style={{ fontSize: '11px', color: '#fcd34d', marginTop: '2px' }}>Inactivi</div>
+                </div>
+              </div>
+
+              {/* Lista scoli */}
+              <div style={{ overflowY: 'auto', flex: 1 }}>
+                {necitite.length > 0 && (
+                  <div style={{ padding: '12px 24px 4px', fontSize: '11px', color: '#ef4444', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    ⚠️ Nu au citit ultimul document
+                  </div>
+                )}
+                {necitite.map((s, i) => (
+                  <div key={`n${i}`} style={{ padding: '12px 24px', borderBottom: '1px solid #1e293b', display: 'flex', alignItems: 'center', gap: '12px', background: 'rgba(239,68,68,0.05)' }}>
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: s.activ ? '#f59e0b' : '#ef4444', flexShrink: 0 }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: '13px', fontWeight: 600, color: '#f1f5f9' }}>{s.name}</div>
+                      <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>Director: {s.director}</div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                      <span style={{ background: '#7f1d1d', color: '#fca5a5', fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '20px' }}>✗ Necitit</span>
+                      {!s.activ && <span style={{ background: '#451a03', color: '#fcd34d', fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '20px' }}>⚠ Inactiv</span>}
+                    </div>
+                  </div>
+                ))}
+
+                {citite.length > 0 && (
+                  <div style={{ padding: '12px 24px 4px', fontSize: '11px', color: '#22c55e', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    ✓ Au confirmat lectura
+                  </div>
+                )}
+                {citite.map((s, i) => (
+                  <div key={`c${i}`} style={{ padding: '12px 24px', borderBottom: '1px solid #1e293b', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e', flexShrink: 0 }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: '13px', fontWeight: 500, color: '#94a3b8' }}>{s.name}</div>
+                      <div style={{ fontSize: '12px', color: '#475569', marginTop: '2px' }}>Director: {s.director}</div>
+                    </div>
+                    <span style={{ background: '#052e16', color: '#86efac', fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '20px' }}>✓ Citit</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )
+      })()}
 
       {/* BROADCAST MODAL */}
       {showBroadcast && (
