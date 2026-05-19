@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useIsMobile } from '../../hooks/useIsMobile'
 
 type StatusEval = 'programata' | 'in-curs' | 'finalizata' | 'urgent'
 
@@ -41,6 +42,7 @@ const CALIF_COLORS: Record<string, string> = {
 
 export default function EvaluarePeriodica() {
   const router = useRouter()
+  const isMobile = useIsMobile()
   const [selectata, setSelectata] = useState<EvaluareItem | null>(null)
   const [filtru, setFiltru] = useState<string>('toate')
   const [calificativNou, setCalificativNou] = useState('')
@@ -68,13 +70,13 @@ export default function EvaluarePeriodica() {
         </div>
       </div>
 
-      <div style={{ display: 'flex', maxWidth: '1200px', margin: '0 auto', padding: '24px', gap: '20px' }}>
+      <div style={{ display: 'flex', maxWidth: '1200px', margin: '0 auto', padding: isMobile ? '12px' : '24px', gap: '20px', flexDirection: isMobile ? 'column' : 'row' }}>
 
         {/* Left — calendar + tabel */}
         <div style={{ flex: 1 }}>
 
           {/* Stats */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '20px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: '12px', marginBottom: '20px' }}>
             {[
               { label: 'Total 2026', val: EVALUARI.length, color: '#818cf8' },
               { label: 'Programate', val: EVALUARI.filter(e => e.status === 'programata').length, color: '#3b82f6' },
@@ -114,6 +116,7 @@ export default function EvaluarePeriodica() {
 
           {/* Tabel */}
           <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '12px', overflow: 'hidden' }}>
+            <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ background: '#0f172a' }}>
@@ -157,6 +160,7 @@ export default function EvaluarePeriodica() {
                 })}
               </tbody>
             </table>
+            </div>
           </div>
 
           {/* Buton nou */}
@@ -169,8 +173,8 @@ export default function EvaluarePeriodica() {
 
         {/* Panel detalii */}
         {selectata && (
-          <div style={{ width: '280px', flexShrink: 0 }}>
-            <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '12px', padding: '20px', position: 'sticky', top: '20px' }}>
+          <div style={isMobile ? { position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 200 } : { width: '280px', flexShrink: 0 }}>
+            <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: isMobile ? '12px 12px 0 0' : '12px', padding: '20px', position: isMobile ? 'relative' : 'sticky', top: isMobile ? 'auto' : '20px', maxHeight: isMobile ? '60vh' : 'none', overflowY: isMobile ? 'auto' : 'visible' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                 <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Evaluare Selectată</div>
                 <button onClick={() => setSelectata(null)} style={{ background: 'none', border: 'none', color: '#475569', cursor: 'pointer', fontSize: '16px' }}>×</button>

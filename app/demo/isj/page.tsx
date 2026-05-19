@@ -1,6 +1,7 @@
 'use client'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { useIsMobile } from '../../hooks/useIsMobile'
 
 type TipUnitate = 'Liceu' | 'Colegiu' | 'Școală' | 'Grădiniță'
 const TIP_COLORS: Record<TipUnitate, { bg: string; color: string }> = {
@@ -35,6 +36,7 @@ const DOCUMENTE = [
 
 export default function ISJDolj() {
   const router = useRouter()
+  const isMobile = useIsMobile()
   const [tab, setTab] = useState<'docs' | 'scoli' | 'chat'>('docs')
   const [showUpload, setShowUpload] = useState(false)
   const [uploadTitle, setUploadTitle] = useState('')
@@ -91,7 +93,7 @@ export default function ISJDolj() {
     <div style={{ minHeight: '100vh', background: '#0f172a', fontFamily: "'Segoe UI', Arial, sans-serif", color: '#e2e8f0' }}>
 
       {/* Topbar */}
-      <div style={{ background: '#1e293b', borderBottom: '1px solid #334155', padding: '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '56px' }}>
+      <div style={{ background: '#1e293b', borderBottom: '1px solid #334155', padding: isMobile ? '8px 12px' : '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: '56px', flexWrap: 'wrap', gap: '8px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <button onClick={() => router.push('/demo')} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '13px' }}>← Demo</button>
           <div style={{ width: 1, height: 20, background: '#334155' }} />
@@ -116,7 +118,7 @@ export default function ISJDolj() {
       </div>
 
       {/* Stats */}
-      <div style={{ padding: '20px 24px 0', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '14px', maxWidth: '1200px', margin: '0 auto' }}>
+      <div style={{ padding: isMobile ? '12px 12px 0' : '20px 24px 0', display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: '14px', maxWidth: '1200px', margin: '0 auto' }}>
         {[
           { label: 'Unități Școlare Dolj', val: '240', icon: '🏫', color: '#3b82f6' },
           { label: 'Conectate Azi', val: '238', icon: '🟢', color: '#22c55e' },
@@ -134,8 +136,8 @@ export default function ISJDolj() {
       </div>
 
       {/* Tabs */}
-      <div style={{ padding: '20px 24px 0', maxWidth: '1200px', margin: '0 auto' }}>
-        <div style={{ display: 'flex', gap: '4px', background: '#1e293b', padding: '4px', borderRadius: '10px', width: 'fit-content' }}>
+      <div style={{ padding: isMobile ? '12px 12px 0' : '20px 24px 0', maxWidth: '1200px', margin: '0 auto' }}>
+        <div style={{ display: 'flex', gap: '4px', background: '#1e293b', padding: '4px', borderRadius: '10px', width: isMobile ? '100%' : 'fit-content' }}>
           {[
             { key: 'docs', label: '📄 Documente' },
             { key: 'scoli', label: '🏫 Școli & Directori' },
@@ -161,7 +163,7 @@ export default function ISJDolj() {
         </div>
       </div>
 
-      <div style={{ padding: '16px 24px 24px', maxWidth: '1200px', margin: '0 auto' }}>
+      <div style={{ padding: isMobile ? '12px' : '16px 24px 24px', maxWidth: '1200px', margin: '0 auto' }}>
 
         {/* DOCUMENTE TAB */}
         {tab === 'docs' && (
@@ -227,7 +229,7 @@ export default function ISJDolj() {
         {tab === 'scoli' && (
           <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '12px', overflow: 'hidden' }}>
             {/* Filtre tip */}
-            <div style={{ padding: '12px 16px', borderBottom: '1px solid #334155', display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <div style={{ padding: '12px 16px', borderBottom: '1px solid #334155', display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
               <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Tip:</span>
               {(['Toate', 'Liceu', 'Colegiu', 'Școală', 'Grădiniță'] as const).map(t => {
                 const count = t === 'Toate' ? SCOLI_DOLJ.length : SCOLI_DOLJ.filter(s => s.tip === t).length
@@ -246,6 +248,7 @@ export default function ISJDolj() {
                 )
               })}
             </div>
+            <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ background: '#0f172a' }}>
@@ -278,13 +281,14 @@ export default function ISJDolj() {
                 })}
               </tbody>
             </table>
+            </div>
           </div>
         )}
 
         {/* CHAT TAB */}
         {tab === 'chat' && (
-          <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr', gap: '16px', height: '500px' }}>
-            <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '12px', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '240px 1fr', gap: '16px', height: isMobile ? 'auto' : '500px' }}>
+            <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '12px', overflow: 'hidden', display: 'flex', flexDirection: 'column', maxHeight: isMobile ? '200px' : 'none' }}>
               <div style={{ padding: '12px 14px', borderBottom: '1px solid #334155', fontSize: '12px', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Selectează Școala</div>
               <div style={{ overflowY: 'auto', flex: 1 }}>
                 {SCOLI_DOLJ.map((s, i) => (
@@ -305,12 +309,12 @@ export default function ISJDolj() {
               </div>
             </div>
 
-            <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '12px', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '12px', display: 'flex', flexDirection: 'column', minHeight: isMobile ? '300px' : 'auto' }}>
               <div style={{ padding: '14px 18px', borderBottom: '1px solid #334155' }}>
                 <div style={{ fontSize: '14px', fontWeight: 700, color: '#f1f5f9' }}>{selectedSchool}</div>
                 <div style={{ fontSize: '12px', color: '#64748b' }}>Chat direct ISJ ↔ Director</div>
               </div>
-              <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: isMobile ? '250px' : 'none' }}>
                 {chatHistory.map((m, i) => (
                   <div key={i} style={{ display: 'flex', justifyContent: m.role === 'isj' ? 'flex-end' : 'flex-start' }}>
                     <div style={{
@@ -345,7 +349,7 @@ export default function ISJDolj() {
       {/* Upload Modal */}
       {showUpload && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
-          <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '16px', padding: '32px', width: '520px' }}>
+          <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '16px', padding: isMobile ? '20px' : '32px', width: isMobile ? 'calc(100vw - 32px)' : '520px', maxHeight: isMobile ? '90vh' : 'none', overflowY: isMobile ? 'auto' : 'visible' }}>
             {uploadDone ? (
               <div style={{ textAlign: 'center', padding: '20px' }}>
                 <div style={{ fontSize: '48px', marginBottom: '16px' }}>✅</div>

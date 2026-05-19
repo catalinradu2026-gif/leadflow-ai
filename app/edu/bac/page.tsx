@@ -1,8 +1,10 @@
 'use client'
 import { useRouter } from 'next/navigation'
+import { useIsMobile } from '../../hooks/useIsMobile'
 
 export default function BACLanding() {
   const router = useRouter()
+  const isMobile = useIsMobile()
 
   return (
     <div style={{
@@ -12,7 +14,7 @@ export default function BACLanding() {
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: '40px 20px',
+      padding: isMobile ? '0' : '40px 20px',
       fontFamily: "'Segoe UI', Arial, sans-serif",
     }}>
 
@@ -37,7 +39,7 @@ export default function BACLanding() {
             <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e', display: 'inline-block', boxShadow: '0 0 8px #22c55e' }} />
             Profesor AI disponibil 24/7 · Gratuit
           </div>
-          <h1 style={{ fontSize: '44px', fontWeight: 800, color: '#fff', marginBottom: '16px', letterSpacing: '-1px', lineHeight: 1.2 }}>
+          <h1 style={{ fontSize: isMobile ? '30px' : '44px', fontWeight: 800, color: '#fff', marginBottom: '16px', letterSpacing: '-1px', lineHeight: 1.2 }}>
             Pregătire Bacalaureat<br />
             <span style={{ color: '#10b981' }}>cu Inteligență Artificială</span>
           </h1>
@@ -47,7 +49,7 @@ export default function BACLanding() {
         </div>
 
         {/* Materii */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '20px', marginBottom: '40px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: '20px', marginBottom: '40px' }}>
 
           {/* Matematică */}
           <div style={{ background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.3)', borderRadius: '16px', padding: '28px', position: 'relative', overflow: 'hidden' }}>
@@ -131,7 +133,7 @@ export default function BACLanding() {
         </div>
 
         {/* Info bar */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: '12px' }}>
           {[
             { icon: '🤖', titlu: 'Profesor AI Adaptiv', desc: 'Se adaptează la nivelul și ritmul fiecărui elev' },
             { icon: '📋', titlu: 'Structură BAC Oficială', desc: 'Exerciții după programa și structura MEN 2026' },

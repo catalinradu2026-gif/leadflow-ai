@@ -1,8 +1,10 @@
 'use client'
 import { useRouter } from 'next/navigation'
+import { useIsMobile } from '../hooks/useIsMobile'
 
 export default function DemoLanding() {
   const router = useRouter()
+  const isMobile = useIsMobile()
 
   return (
     <div style={{
@@ -12,7 +14,7 @@ export default function DemoLanding() {
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: '40px 20px',
+      padding: isMobile ? '16px' : '40px 20px',
       fontFamily: "'Segoe UI', Arial, sans-serif",
     }}>
       {/* Header */}
@@ -34,7 +36,7 @@ export default function DemoLanding() {
           DEMO LIVE — Platformă Națională Transparență Școlară
         </div>
         <h1 style={{
-          fontSize: '42px',
+          fontSize: isMobile ? '28px' : '42px',
           fontWeight: 800,
           color: '#fff',
           lineHeight: 1.2,
@@ -53,7 +55,7 @@ export default function DemoLanding() {
       {/* Role Cards */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(3, 1fr)',
+        gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)',
         gap: '20px',
         maxWidth: '900px',
         width: '100%',

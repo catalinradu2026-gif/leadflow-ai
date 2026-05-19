@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useIsMobile } from '../../hooks/useIsMobile'
 
 type StatusType = 'autorizata' | 'in-evaluare' | 'acreditata' | 'expirata' | 'suspendata'
 
@@ -41,6 +42,7 @@ const STATUS_CONFIG: Record<StatusType, { label: string; color: string; bg: stri
 
 export default function DashboardAracip() {
   const router = useRouter()
+  const isMobile = useIsMobile()
   const [filtruStatus, setFiltruStatus] = useState<string>('toate')
   const [filtruTip, setFiltruTip] = useState<string>('toate')
   const [cautare, setCautare] = useState('')
@@ -90,7 +92,7 @@ export default function DashboardAracip() {
       <div style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
 
         {/* Stats cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '14px', marginBottom: '24px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(3, 1fr)' : 'repeat(5, 1fr)', gap: '14px', marginBottom: '24px' }}>
           {[
             { label: 'Total Unități', val: stats.total, color: '#818cf8', icon: '🏫' },
             { label: 'Acreditate', val: stats.acreditate, color: '#22c55e', icon: '✅' },
@@ -130,7 +132,7 @@ export default function DashboardAracip() {
           </div>
         )}
 
-        <div style={{ display: 'flex', gap: '20px' }}>
+        <div style={{ display: 'flex', gap: '20px', flexDirection: isMobile ? 'column' : 'row' }}>
 
           {/* Tabel scoli */}
           <div style={{ flex: 1 }}>
@@ -173,6 +175,7 @@ export default function DashboardAracip() {
 
             {/* Table */}
             <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '12px', overflow: 'hidden' }}>
+              <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr style={{ background: '#0f172a' }}>
@@ -233,13 +236,14 @@ export default function DashboardAracip() {
                   Nicio unitate școlară nu corespunde filtrelor aplicate.
                 </div>
               )}
+              </div>
             </div>
           </div>
 
           {/* Panel detalii */}
           {scoalaSelectata && (
-            <div style={{ width: '300px', flexShrink: 0 }}>
-              <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '12px', padding: '20px', position: 'sticky', top: '20px' }}>
+            <div style={isMobile ? { position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 200 } : { width: '300px', flexShrink: 0 }}>
+              <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: isMobile ? '12px 12px 0 0' : '12px', padding: '20px', position: isMobile ? 'relative' : 'sticky', top: isMobile ? 'auto' : '20px', maxHeight: isMobile ? '60vh' : 'none', overflowY: isMobile ? 'auto' : 'visible' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
                   <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Detalii Unitate</div>
                   <button onClick={() => setScoalaSelectata(null)} style={{ background: 'none', border: 'none', color: '#475569', cursor: 'pointer', fontSize: '16px', lineHeight: 1 }}>×</button>

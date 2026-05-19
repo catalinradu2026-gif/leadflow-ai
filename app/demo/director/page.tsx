@@ -1,6 +1,7 @@
 'use client'
 import { useRouter } from 'next/navigation'
 import { useState, useRef, useEffect } from 'react'
+import { useIsMobile } from '../../hooks/useIsMobile'
 
 function numRo(n: number): string {
   if (n === 0) return 'zero'
@@ -97,6 +98,7 @@ type Msg = { role: 'user' | 'assistant'; content: string }
 
 export default function DirectorPage() {
   const router = useRouter()
+  const isMobile = useIsMobile()
   const [tab, setTab] = useState<'notificari' | 'bot' | 'chat'>('notificari')
   const [notificari, setNotificari] = useState(NOTIFICARI)
   const [messages, setMessages] = useState<Msg[]>([])
@@ -160,11 +162,11 @@ export default function DirectorPage() {
     <div style={{ minHeight: '100vh', background: '#0f172a', fontFamily: "'Segoe UI', Arial, sans-serif", color: '#e2e8f0' }}>
 
       {/* Topbar */}
-      <div style={{ background: '#1e293b', borderBottom: '1px solid #334155', padding: '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '56px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+      <div style={{ background: '#1e293b', borderBottom: '1px solid #334155', padding: isMobile ? '8px 12px' : '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: '56px', flexWrap: 'wrap', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <button onClick={() => router.push('/demo')} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '13px' }}>← Demo</button>
           <div style={{ width: 1, height: 20, background: '#334155' }} />
-          <span style={{ fontSize: '13px', color: '#fff', fontWeight: 600 }}>🏫 Liceul Teoretic Amărăștii de Jos</span>
+          <span style={{ fontSize: isMobile ? '12px' : '13px', color: '#fff', fontWeight: 600 }}>🏫 {isMobile ? 'Amărăștii de Jos' : 'Liceul Teoretic Amărăștii de Jos'}</span>
           <span style={{ background: '#064e3b', color: '#6ee7b7', fontSize: '11px', fontWeight: 700, padding: '2px 10px', borderRadius: '20px' }}>DIRECTOR</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -178,8 +180,8 @@ export default function DirectorPage() {
       </div>
 
       {/* Tabs */}
-      <div style={{ padding: '20px 24px 0', maxWidth: '900px', margin: '0 auto' }}>
-        <div style={{ display: 'flex', gap: '4px', background: '#1e293b', padding: '4px', borderRadius: '10px', width: 'fit-content' }}>
+      <div style={{ padding: isMobile ? '12px 12px 0' : '20px 24px 0', maxWidth: '900px', margin: '0 auto' }}>
+        <div style={{ display: 'flex', gap: '4px', background: '#1e293b', padding: '4px', borderRadius: '10px', width: isMobile ? '100%' : 'fit-content' }}>
           {[
             { key: 'notificari', label: `🔔 Notificări ISJ${unread > 0 ? ` (${unread})` : ''}` },
             { key: 'bot', label: '🤖 Asistent AI' },
@@ -205,7 +207,7 @@ export default function DirectorPage() {
         </div>
       </div>
 
-      <div style={{ padding: '16px 24px 24px', maxWidth: '900px', margin: '0 auto' }}>
+      <div style={{ padding: isMobile ? '12px' : '16px 24px 24px', maxWidth: '900px', margin: '0 auto' }}>
 
         {/* NOTIFICARI */}
         {tab === 'notificari' && (

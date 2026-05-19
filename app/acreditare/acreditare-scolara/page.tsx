@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useIsMobile } from '../../hooks/useIsMobile'
 
 const CRITERII = [
   { cod: 'A1', titlu: 'Capacitatea instituțională', subcriterii: ['Structuri organizatorice', 'Baza materială', 'Resurse umane'] },
@@ -12,6 +13,7 @@ type CalificativType = '' | 'Excelent' | 'Bine' | 'Satisfăcător' | 'Nesatisfă
 
 export default function AcreditareScolara() {
   const router = useRouter()
+  const isMobile = useIsMobile()
   const [tab, setTab] = useState<'autoevaluare' | 'vizita' | 'decizie'>('autoevaluare')
   const [calificative, setCalificative] = useState<Record<string, CalificativType>>({})
 
@@ -34,7 +36,7 @@ export default function AcreditareScolara() {
         <div style={{ width: 1, height: 20, background: '#334155' }} />
         <span style={{ fontSize: '18px' }}>🏅</span>
         <div style={{ fontSize: '14px', fontWeight: 700, color: '#f1f5f9' }}>Acreditare Instituțională</div>
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px' }}>
+        <div style={{ marginLeft: isMobile ? '0' : 'auto', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           {['autoevaluare', 'vizita', 'decizie'].map(t => (
             <button
               key={t}
@@ -53,7 +55,7 @@ export default function AcreditareScolara() {
         </div>
       </div>
 
-      <div style={{ maxWidth: '900px', margin: '0 auto', padding: '32px 24px' }}>
+      <div style={{ maxWidth: '900px', margin: '0 auto', padding: isMobile ? '16px' : '32px 24px' }}>
 
         {tab === 'autoevaluare' && (
           <div>
@@ -69,9 +71,9 @@ export default function AcreditareScolara() {
                   <div style={{ fontSize: '15px', fontWeight: 700, color: '#f1f5f9' }}>{criteriu.titlu}</div>
                 </div>
                 {criteriu.subcriterii.map(sub => (
-                  <div key={sub} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid #0f172a' }}>
+                  <div key={sub} style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'center', gap: isMobile ? '8px' : '0', padding: '10px 0', borderBottom: '1px solid #0f172a' }}>
                     <span style={{ fontSize: '13px', color: '#94a3b8' }}>{sub}</span>
-                    <div style={{ display: 'flex', gap: '6px' }}>
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                       {(['Excelent', 'Bine', 'Satisfăcător', 'Nesatisfăcător'] as CalificativType[]).map(cal => (
                         <button
                           key={cal}
@@ -108,7 +110,7 @@ export default function AcreditareScolara() {
               <p style={{ color: '#64748b', fontSize: '13px' }}>Calendarul vizitei, comisia desemnată și raportul de evaluare externă.</p>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
               {[
                 { label: 'Data vizitei', val: '15–16 octombrie 2026', icon: '📅' },
                 { label: 'Președinte comisie', val: 'Prof. dr. Ionescu Maria', icon: '👤' },

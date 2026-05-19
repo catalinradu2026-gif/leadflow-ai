@@ -1,8 +1,10 @@
 'use client'
 import { useRouter } from 'next/navigation'
+import { useIsMobile } from '../hooks/useIsMobile'
 
 export default function AcreditareLanding() {
   const router = useRouter()
+  const isMobile = useIsMobile()
 
   return (
     <div style={{
@@ -12,7 +14,7 @@ export default function AcreditareLanding() {
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: '40px 20px',
+      padding: isMobile ? '16px' : '40px 20px',
       fontFamily: "'Segoe UI', Arial, sans-serif",
     }}>
 
@@ -36,7 +38,7 @@ export default function AcreditareLanding() {
         </div>
 
         <h1 style={{
-          fontSize: '48px',
+          fontSize: isMobile ? '32px' : '48px',
           fontWeight: 800,
           color: '#fff',
           lineHeight: 1.15,
@@ -82,7 +84,7 @@ export default function AcreditareLanding() {
       {/* Cards */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(3, 1fr)',
+        gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)',
         gap: '24px',
         maxWidth: '1080px',
         width: '100%',

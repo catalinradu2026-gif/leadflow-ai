@@ -2,6 +2,7 @@
 import { useRouter } from 'next/navigation'
 import { useState, useRef, useEffect } from 'react'
 import { speak } from '../tts'
+import { useIsMobile } from '../../hooks/useIsMobile'
 
 const MODULE = [
   {
@@ -212,6 +213,7 @@ type Msg = { role: 'user' | 'assistant'; content: string }
 
 export default function CursuriAI() {
   const router = useRouter()
+  const isMobile = useIsMobile()
   const [modulActiv, setModulActiv] = useState<number | null>(null)
   const [messages, setMessages] = useState<Msg[]>([])
   const [input, setInput] = useState('')
@@ -267,20 +269,20 @@ export default function CursuriAI() {
       <div style={{ minHeight: '100vh', background: '#0f172a', fontFamily: "'Segoe UI', Arial, sans-serif", color: '#e2e8f0', display: 'flex', flexDirection: 'column' }}>
 
         {/* Topbar */}
-        <div style={{ background: '#1e293b', borderBottom: '1px solid #334155', padding: '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '60px', flexShrink: 0 }}>
+        <div style={{ background: '#1e293b', borderBottom: '1px solid #334155', padding: isMobile ? '8px 12px' : '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: '60px', flexShrink: 0, flexWrap: 'wrap', gap: '8px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <button onClick={() => setModulActiv(null)} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '13px' }}>← Înapoi la module</button>
             <div style={{ width: 1, height: 20, background: '#334155' }} />
             <span style={{ fontSize: '22px' }}>{modul.icon}</span>
             <div>
-              <div style={{ fontSize: '14px', fontWeight: 700, color: '#f1f5f9' }}>Modulul {modul.id}: {modul.titlu}</div>
+              <div style={{ fontSize: isMobile ? '12px' : '14px', fontWeight: 700, color: '#f1f5f9' }}>Modulul {modul.id}: {modul.titlu}</div>
               <div style={{ fontSize: '11px', color: modul.culoare, display: 'flex', alignItems: 'center', gap: '6px' }}>
                 ● Lecție interactivă în desfășurare
                 {speaking && <span style={{ color: '#a78bfa', fontSize: '11px' }}>· 🔊 vorbește...</span>}
               </div>
             </div>
           </div>
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
             <button
               onClick={() => { if (voiceEnabled) { window.speechSynthesis?.cancel(); setSpeaking(false) }; setVoiceEnabled(v => !v) }}
               title={voiceEnabled ? 'Oprește vocea' : 'Activează vocea'}
@@ -288,7 +290,7 @@ export default function CursuriAI() {
             >
               {voiceEnabled ? '🔊' : '🔇'}
             </button>
-            {MODULE.map(m => (
+            {!isMobile && MODULE.map(m => (
               <button
                 key={m.id}
                 onClick={() => deschideModul(m.id)}
@@ -309,7 +311,7 @@ export default function CursuriAI() {
         </div>
 
         {/* Chat */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '24px', maxWidth: '800px', width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: isMobile ? '12px' : '24px', maxWidth: '800px', width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {messages.map((m, i) => (
             <div key={i} style={{ display: 'flex', justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start', gap: '12px', alignItems: 'flex-start' }}>
               {m.role === 'assistant' && (
@@ -383,7 +385,7 @@ export default function CursuriAI() {
         <span style={{ background: '#4338ca', color: '#a5b4fc', fontSize: '11px', fontWeight: 700, padding: '2px 10px', borderRadius: '20px' }}>8 MODULE</span>
       </div>
 
-      <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '40px 24px' }}>
+      <div style={{ maxWidth: '1000px', margin: '0 auto', padding: isMobile ? '16px' : '40px 24px' }}>
 
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: '48px' }}>
@@ -396,7 +398,7 @@ export default function CursuriAI() {
         </div>
 
         {/* Module grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: '16px' }}>
           {MODULE.map(m => (
             <div
               key={m.id}

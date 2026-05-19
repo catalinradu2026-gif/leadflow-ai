@@ -2,6 +2,7 @@
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useState, useRef, useEffect, Suspense } from 'react'
 import { speak } from '../../tts'
+import { useIsMobile } from '../../../hooks/useIsMobile'
 
 type Msg = { role: 'user' | 'assistant'; content: string }
 
@@ -24,6 +25,7 @@ const INTREBARI_RAPIDE: Record<string, string[]> = {
 
 function MatematicaChat() {
   const router = useRouter()
+  const isMobile = useIsMobile()
   const searchParams = useSearchParams()
   const profil = (searchParams.get('profil') || 'M1') as 'M1' | 'M2'
   const [messages, setMessages] = useState<Msg[]>([])
@@ -64,13 +66,13 @@ function MatematicaChat() {
     <div style={{ minHeight: '100vh', background: '#0f172a', fontFamily: "'Segoe UI', Arial, sans-serif", color: '#e2e8f0', display: 'flex', flexDirection: 'column' }}>
 
       {/* Topbar */}
-      <div style={{ background: '#1e293b', borderBottom: '1px solid #334155', padding: '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '60px', flexShrink: 0 }}>
+      <div style={{ background: '#1e293b', borderBottom: '1px solid #334155', padding: isMobile ? '8px 12px' : '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: '60px', flexShrink: 0, flexWrap: 'wrap', gap: '8px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <button onClick={() => router.push('/edu/bac')} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '13px' }}>← BAC</button>
           <div style={{ width: 1, height: 20, background: '#334155' }} />
           <span style={{ fontSize: '22px' }}>📐</span>
           <div>
-            <div style={{ fontSize: '14px', fontWeight: 700, color: '#f1f5f9' }}>Matematică {profil} — Profesor AI</div>
+            <div style={{ fontSize: isMobile ? '12px' : '14px', fontWeight: 700, color: '#f1f5f9' }}>Matematică {profil} — Profesor AI</div>
             <div style={{ fontSize: '11px', color: '#22c55e', display: 'flex', alignItems: 'center', gap: '6px' }}>
               ● Online · Cunoaște toată programa BAC 2026
               {speaking && <span style={{ color: '#a78bfa' }}>· 🔊 vorbește...</span>}
@@ -97,7 +99,7 @@ function MatematicaChat() {
       </div>
 
       {/* Chat */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '24px', maxWidth: '800px', width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: isMobile ? '12px' : '24px', maxWidth: '800px', width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
         {messages.length === 0 && (
           <div style={{ textAlign: 'center', padding: '40px 20px' }}>

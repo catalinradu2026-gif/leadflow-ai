@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useIsMobile } from '../../hooks/useIsMobile'
 
 const PASI = [
   { id: 1, titlu: 'Date identificare', desc: 'Denumire, CUI, adresă, reprezentant legal' },
@@ -13,6 +14,7 @@ const PASI = [
 
 export default function Autorizare() {
   const router = useRouter()
+  const isMobile = useIsMobile()
   const [pasActiv, setPasActiv] = useState(1)
   const [trimis, setTrimis] = useState(false)
 
@@ -62,15 +64,17 @@ export default function Autorizare() {
         <div style={{ marginLeft: 'auto', fontSize: '12px', color: '#475569' }}>Pasul {pasActiv} din {PASI.length}</div>
       </div>
 
-      <div style={{ display: 'flex', maxWidth: '1000px', margin: '0 auto', padding: '32px 24px', gap: '32px' }}>
+      <div style={{ display: 'flex', maxWidth: '1000px', margin: '0 auto', padding: isMobile ? '16px' : '32px 24px', gap: '32px', flexDirection: isMobile ? 'column' : 'row' }}>
 
-        {/* Steps sidebar */}
-        <div style={{ width: '220px', flexShrink: 0 }}>
+        {/* Steps sidebar / progress on mobile */}
+        <div style={isMobile ? { display: 'flex', overflowX: 'auto', gap: '8px', paddingBottom: '8px' } : { width: '220px', flexShrink: 0 }}>
           {PASI.map(p => (
             <div
               key={p.id}
               onClick={() => setPasActiv(p.id)}
-              style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', padding: '12px 0', cursor: 'pointer', borderBottom: '1px solid #1e293b' }}
+              style={isMobile
+                ? { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', padding: '8px', cursor: 'pointer', flexShrink: 0, minWidth: '60px', textAlign: 'center' }
+                : { display: 'flex', gap: '12px', alignItems: 'flex-start', padding: '12px 0', cursor: 'pointer', borderBottom: '1px solid #1e293b' }}
             >
               <div style={{
                 width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
@@ -81,10 +85,15 @@ export default function Autorizare() {
               }}>
                 {p.id < pasActiv ? '✓' : p.id}
               </div>
-              <div>
-                <div style={{ fontSize: '12px', fontWeight: 600, color: p.id === pasActiv ? '#f1f5f9' : '#64748b' }}>{p.titlu}</div>
-                <div style={{ fontSize: '10px', color: '#475569', marginTop: '2px', lineHeight: 1.4 }}>{p.desc}</div>
-              </div>
+              {!isMobile && (
+                <div>
+                  <div style={{ fontSize: '12px', fontWeight: 600, color: p.id === pasActiv ? '#f1f5f9' : '#64748b' }}>{p.titlu}</div>
+                  <div style={{ fontSize: '10px', color: '#475569', marginTop: '2px', lineHeight: 1.4 }}>{p.desc}</div>
+                </div>
+              )}
+              {isMobile && (
+                <div style={{ fontSize: '9px', color: p.id === pasActiv ? '#f1f5f9' : '#64748b', fontWeight: p.id === pasActiv ? 700 : 400 }}>{p.titlu}</div>
+              )}
             </div>
           ))}
         </div>
