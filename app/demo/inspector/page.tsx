@@ -141,6 +141,7 @@ export default function InspectorNational() {
   const [docs, setDocs] = useState<Doc[]>(DOCS_INITIALE)
   const [tab, setTab] = useState<'judete' | 'documente'>('judete')
   const [judetModal, setJudetModal] = useState<string | null>(null)
+  const [showAlerte, setShowAlerte] = useState(false)
 
   // Upload form state
   const [uploadTitle, setUploadTitle] = useState('')
@@ -250,17 +251,29 @@ export default function InspectorNational() {
         {/* Stat Cards */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
           {[
-            { label: 'Total Unități Școlare', val: totalScoli.toLocaleString('ro'), icon: '🏫', color: '#3b82f6', sub: 'școli + grădinițe' },
-            { label: 'Județe Conectate', val: '42 / 42', icon: '✅', color: '#10b981', sub: 'toate active' },
-            { label: 'Conectate Azi', val: totalActive.toLocaleString('ro'), icon: '🟢', color: '#22c55e', sub: `din ${totalScoli.toLocaleString('ro')} total` },
-            { label: 'Alerte Nerezolvate', val: totalAlerte, icon: '⚠️', color: '#f59e0b', sub: 'directori inactivi' },
+            { label: 'Total Unități Școlare', val: totalScoli.toLocaleString('ro'), icon: '🏫', color: '#3b82f6', sub: 'școli + grădinițe', click: null },
+            { label: 'Județe Conectate', val: '42 / 42', icon: '✅', color: '#10b981', sub: 'toate active', click: null },
+            { label: 'Conectate Azi', val: totalActive.toLocaleString('ro'), icon: '🟢', color: '#22c55e', sub: `din ${totalScoli.toLocaleString('ro')} total`, click: null },
+            { label: 'Alerte Nerezolvate', val: totalAlerte, icon: '⚠️', color: '#f59e0b', sub: 'click pentru detalii', click: () => setShowAlerte(true) },
           ].map(s => (
-            <div key={s.label} style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '12px', padding: '20px' }}>
+            <div
+              key={s.label}
+              onClick={s.click ?? undefined}
+              style={{
+                background: '#1e293b',
+                border: `1px solid ${s.click ? '#f59e0b' : '#334155'}`,
+                borderRadius: '12px',
+                padding: '20px',
+                cursor: s.click ? 'pointer' : 'default',
+              }}
+              onMouseEnter={e => { if (s.click) (e.currentTarget as HTMLDivElement).style.background = 'rgba(245,158,11,0.1)' }}
+              onMouseLeave={e => { if (s.click) (e.currentTarget as HTMLDivElement).style.background = '#1e293b' }}
+            >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
                   <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '8px' }}>{s.label}</div>
                   <div style={{ fontSize: '28px', fontWeight: 800, color: s.color }}>{s.val}</div>
-                  <div style={{ fontSize: '12px', color: '#475569', marginTop: '4px' }}>{s.sub}</div>
+                  <div style={{ fontSize: '12px', color: s.click ? '#f59e0b' : '#475569', marginTop: '4px' }}>{s.sub}</div>
                 </div>
                 <div style={{ fontSize: '28px' }}>{s.icon}</div>
               </div>
@@ -574,6 +587,72 @@ export default function InspectorNational() {
                 )}
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ALERTE MODAL */}
+      {showAlerte && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '20px' }}>
+          <div style={{ background: '#1e293b', border: '1px solid #f59e0b', borderRadius: '16px', width: '700px', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ padding: '20px 24px', borderBottom: '1px solid #334155', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div>
+                <h3 style={{ fontSize: '17px', fontWeight: 700, color: '#fcd34d' }}>⚠️ Alerte Nerezolvate — {totalAlerte} directori inactivi</h3>
+                <p style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>Directori care nu au accesat platforma în ultimele 48h sau nu au citit ultimul document</p>
+              </div>
+              <button onClick={() => setShowAlerte(false)} style={{ background: '#334155', border: 'none', color: '#94a3b8', borderRadius: '8px', padding: '8px 14px', fontSize: '13px', cursor: 'pointer' }}>✕ Închide</button>
+            </div>
+
+            <div style={{ overflowY: 'auto', flex: 1 }}>
+              {JUDETE.filter(j => j.alert > 0).map(j => {
+                const scoli = getScoliJudet(j.name).filter(s => !s.activ || !s.citit)
+                return (
+                  <div key={j.name}>
+                    <div style={{ padding: '10px 24px', background: '#0f172a', borderBottom: '1px solid #334155', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span style={{ fontSize: '13px', fontWeight: 700, color: '#f1f5f9' }}>🏛️ ISJ {j.name}</span>
+                      <span style={{ background: '#7f1d1d', color: '#fca5a5', fontSize: '11px', fontWeight: 700, padding: '2px 10px', borderRadius: '20px' }}>
+                        {j.alert} alertă{j.alert > 1 ? 'ri' : ''}
+                      </span>
+                    </div>
+                    {scoli.map((s, i) => (
+                      <div key={i} style={{ padding: '12px 24px 12px 36px', borderBottom: '1px solid #1e293b', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: !s.activ ? '#ef4444' : '#f59e0b', flexShrink: 0 }} />
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: '13px', fontWeight: 600, color: '#f1f5f9' }}>{s.name}</div>
+                          <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>Director: {s.director}</div>
+                        </div>
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          {!s.activ && <span style={{ background: '#7f1d1d', color: '#fca5a5', fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '20px' }}>Inactiv 48h</span>}
+                          {!s.citit && s.activ && <span style={{ background: '#451a03', color: '#fcd34d', fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '20px' }}>Nu a citit</span>}
+                        </div>
+                      </div>
+                    ))}
+                    {scoli.length === 0 && (
+                      <div style={{ padding: '12px 24px 12px 36px', display: 'flex', gap: '12px' }}>
+                        {Array.from({ length: j.alert }).map((_, i) => (
+                          <div key={i} style={{ fontSize: '13px', color: '#64748b' }}>Director #{i + 1} — inactiv 48h</div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+
+            <div style={{ padding: '14px 24px', borderTop: '1px solid #334155', display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setShowAlerte(false)}
+                style={{ background: '#334155', color: '#94a3b8', border: 'none', borderRadius: '8px', padding: '10px 20px', fontSize: '13px', cursor: 'pointer' }}
+              >
+                Închide
+              </button>
+              <button
+                onClick={() => { setShowAlerte(false); setBroadcastMsg('Vă rugăm să accesați platforma și să confirmați lectura ultimului document transmis. Termen: 24h.'); setShowBroadcast(true) }}
+                style={{ background: '#dc2626', color: '#fff', border: 'none', borderRadius: '8px', padding: '10px 20px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
+              >
+                📢 Trimite reminder tuturor →
+              </button>
+            </div>
           </div>
         </div>
       )}
