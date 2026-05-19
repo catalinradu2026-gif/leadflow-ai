@@ -4,54 +4,172 @@ import { useState, useRef, useEffect } from 'react'
 interface Message {
   role: 'user' | 'assistant'
   content: string
+  waText?: string
 }
 
-const WELCOME = 'Bună! Sunt asistentul AI al firmei AI Craiova. Apasă butonul de mai jos și vorbește cu mine!'
+function extractWA(text: string): { clean: string; waText: string | null } {
+  const waMatch = text.match(/\[WA:([\s\S]+?)\]/) || text.match(/\[WA:([\s\S]+)$/)
+  const clean = text
+    .replace(/\[WA:[\s\S]+?\]/g, '')
+    .replace(/\[WA:[\s\S]+$/g, '')
+    .trim()
+  return {
+    clean: clean || text.trim(),
+    waText: waMatch ? waMatch[1].trim() : null,
+  }
+}
 
+function waLink(msg: string): string {
+  return `https://wa.me/40787813485?text=${encodeURIComponent(msg)}`
+}
+
+const WELCOME = 'Bună! Sunt Ava, agentul AI al AIcraiova. Spune-mi ce tip de afacere ai și îți arăt exact ce putem automatiza pentru tine!'
+
+function getBubbleMessages(): string[] {
+  const h = new Date().getHours()
+  const salut = h < 12 ? 'Bună dimineața!' : h < 18 ? 'Bună ziua!' : 'Bună seara!'
+  return [
+    `${salut} Sunt Ava. Un bot WhatsApp care răspunde clienților tăi 24/7 — vrei să vedem ce poate face pentru afacerea ta?`,
+    'Știi că 3 angajați full-time costă 16.000–18.000 lei/lună? Sistemul nostru AI costă 400–600€ și nu greșește niciodată.',
+    'Automatizezi orice proces repetitiv din firma ta. Sute de ore economisite lunar — fără angajare, fără concedii.',
+    'Ai un site? Îți adaug un agent AI ca mine — preia clienți, răspunde întrebări, face programări. 24/7, automat.',
+    'Clienți din Italia, Franța, Germania? Sistemul nostru răspunde automat în limba lor, după prefixul numărului de telefon.',
+    'O demonstrație live durează 15 minute. Spune-mi domeniul tău și îți arăt exact ce poți automatiza de mâine.',
+  ]
+}
+
+function numRo(n: number): string {
+  if (n === 0) return 'zero'
+  const ones = ['', 'unu', 'doi', 'trei', 'patru', 'cinci', 'șase', 'șapte', 'opt', 'nouă',
+    'zece', 'unsprezece', 'doisprezece', 'treisprezece', 'paisprezece', 'cincisprezece',
+    'șaisprezece', 'șaptesprezece', 'optsprezece', 'nouăsprezece']
+  const tens = ['', '', 'douăzeci', 'treizeci', 'patruzeci', 'cincizeci',
+    'șaizeci', 'șaptezeci', 'optzeci', 'nouăzeci']
+  function conv(x: number): string {
+    if (x === 0) return ''
+    if (x < 20) return ones[x]
+    if (x < 100) { const t = Math.floor(x / 10), o = x % 10; return o === 0 ? tens[t] : `${tens[t]} și ${ones[o]}` }
+    if (x < 1000) {
+      const h = Math.floor(x / 100), r = x % 100
+      const s = h === 1 ? 'o sută' : h === 2 ? 'două sute' : `${ones[h]} sute`
+      return r === 0 ? s : `${s} ${conv(r)}`
+    }
+    if (x < 1000000) {
+      const th = Math.floor(x / 1000), r = x % 1000
+      const m = th === 1 ? 'o mie' : th === 2 ? 'două mii' : `${conv(th)} mii`
+      return r === 0 ? m : `${m} ${conv(r)}`
+    }
+    return String(x)
+  }
+  return conv(n)
+}
 
 function prepareForSpeech(text: string): string {
-  return text
-    .replace(/AI Craiova/gi, 'A I Craiova')
-    .replace(/\bAI\b/g, 'A I')
-    .replace(/n8n/gi, 'en opt en')
-    .replace(/WhatsApp/gi, 'uotsap')
-    .replace(/CRM/gi, 'C R M')
-    .replace(/ERP/gi, 'E R P')
-    .replace(/SLA/gi, 'S L A')
-    .replace(/Wi-Fi/gi, 'uai fai')
-    .replace(/check-in/gi, 'cek in')
-    .replace(/check-out/gi, 'cek aut')
-    .replace(/(\d+)€/g, '$1 euro')
-    .replace(/(\d+)%/g, '$1 procente')
-    .replace(/[\u{1F300}-\u{1FFFF}]/gu, '')
-    .replace(/[*_~`#]/g, '')
-    .trim()
+  let s = text
+
+  s = s.replace(/AIcraiova/gi, 'A I Craiova')
+       .replace(/\bAI\b/g, 'A I')
+       .replace(/n8n/gi, 'en opt en')
+       .replace(/WhatsApp/gi, 'uotsap')
+       .replace(/CRM/gi, 'C R M')
+       .replace(/ERP/gi, 'E R P')
+       .replace(/SLA/gi, 'S L A')
+       .replace(/POS/gi, 'P O S')
+       .replace(/Wi-Fi/gi, 'uai fai')
+       .replace(/MVP/gi, 'M V P')
+       .replace(/Vercel/gi, 'Versel')
+
+  s = s.replace(/[\u{1F300}-\u{1FFFF}]/gu, '').replace(/[*_~`#]/g, '')
+
+  s = s.replace(/×/g, ' ori ').replace(/\+/g, ' plus ').replace(/=\s*/g, ' egal ')
+
+  const phoneMap: Record<string, string> = {}
+  let phoneIdx = 0
+  s = s.replace(/\b\d{10,}\b/g, (m) => {
+    const key = `__PHONE${phoneIdx++}__`
+    phoneMap[key] = m.split('').join(' ')
+    return key
+  })
+
+  s = s.replace(/(\d[\d.]*),(\d+)/g, (_, int, dec) => {
+    const n = parseInt(int.replace(/\./g, ''))
+    return `${numRo(n)} virgulă ${numRo(parseInt(dec))}`
+  })
+
+  s = s.replace(/\b\d{1,3}(?:\.\d{3})+\b/g, (m) => numRo(parseInt(m.replace(/\./g, ''))))
+
+  s = s.replace(/\b(\d+)\s*€/g, (_, n) => `${numRo(parseInt(n))} euro`)
+  s = s.replace(/\b(\d+)\s*%/g, (_, n) => `${numRo(parseInt(n))} la sută`)
+  s = s.replace(/\b(\d+)\s*(lei|ron)/gi, (_, n, unit) => `${numRo(parseInt(n))} ${unit}`)
+  s = s.replace(/\b(\d+)\s*(luni|lună|zile|zi|ore|săptămâni)/gi, (_, n, unit) => `${numRo(parseInt(n))} ${unit}`)
+
+  s = s.replace(/\b(\d{1,9})\b/g, (_, n) => numRo(parseInt(n)))
+
+  for (const [key, val] of Object.entries(phoneMap)) s = s.replace(key, val)
+
+  s = s.replace(/(\w)-(\w)/g, '$1 $2').replace(/(\w)\/(\w)/g, '$1 $2')
+
+  return s.trim()
 }
 
-function speak(text: string) {
-  if (typeof window === 'undefined' || !window.speechSynthesis) return
-  window.speechSynthesis.cancel()
-  const clean = prepareForSpeech(text)
-  const utt = new SpeechSynthesisUtterance(clean)
-  utt.lang = 'ro-RO'
-  utt.rate = 0.9
-  utt.pitch = 0.85
-  utt.volume = 1
+function getVoice(): SpeechSynthesisVoice | null {
   const voices = window.speechSynthesis.getVoices()
-  const roFem = voices.find(v => v.lang.startsWith('ro') && v.name.toLowerCase().includes('female'))
+  return voices.find(v => v.lang.startsWith('ro') && v.name.toLowerCase().includes('female'))
     || voices.find(v => v.lang.startsWith('ro') && (v.name.includes('Ioana') || v.name.includes('Carmen') || v.name.includes('Maria')))
     || voices.find(v => v.lang.startsWith('ro'))
     || voices.find(v => v.lang.startsWith('en') && v.name.toLowerCase().includes('female'))
     || voices.find(v => v.lang.startsWith('en-GB'))
     || voices.find(v => ['Samantha', 'Karen', 'Moira', 'Tessa', 'Fiona', 'Victoria'].some(n => v.name.includes(n)))
     || voices[0]
-  if (roFem) utt.voice = roFem
-  window.speechSynthesis.speak(utt)
+    || null
+}
+
+function splitSentences(text: string): string[] {
+  return text
+    .split(/(?<=[.!?…])\s+|(?<=—)\s*/)
+    .map(s => s.trim())
+    .filter(s => s.length > 0)
+}
+
+function speak(text: string) {
+  if (typeof window === 'undefined' || !window.speechSynthesis) return
+  window.speechSynthesis.cancel()
+  const clean = prepareForSpeech(text)
+  const sentences = splitSentences(clean)
+  if (sentences.length === 0) return
+
+  const voice = getVoice()
+
+  function makeUtt(s: string): SpeechSynthesisUtterance {
+    const u = new SpeechSynthesisUtterance(s)
+    u.lang = 'ro-RO'
+    u.rate = 1.0
+    u.pitch = 1.0
+    u.volume = 1
+    if (voice) u.voice = voice
+    return u
+  }
+
+  let index = 0
+  function speakNext() {
+    if (index >= sentences.length) return
+    const u = makeUtt(sentences[index])
+    index++
+    const lastChar = sentences[index - 1].slice(-1)
+    const pause = (lastChar === '.' || lastChar === '!' || lastChar === '?') ? 280 : 180
+    u.onend = () => setTimeout(speakNext, pause)
+    window.speechSynthesis.speak(u)
+  }
+
+  speakNext()
 }
 
 export default function ChatBot() {
   const [open, setOpen] = useState(false)
   const [bubble, setBubble] = useState(false)
+  const [bubbleTyping, setBubbleTyping] = useState(false)
+  const [bubbleMsg, setBubbleMsg] = useState('')
+  const [bubbleMsgIdx, setBubbleMsgIdx] = useState(0)
   const [messages, setMessages] = useState<Message[]>([
     { role: 'assistant', content: WELCOME }
   ])
@@ -60,24 +178,54 @@ export default function ChatBot() {
   const [showQuick, setShowQuick] = useState(true)
   const [voiceOn, setVoiceOn] = useState(true)
   const [speaking, setSpeaking] = useState(false)
-  const [listening, setListening] = useState(false)
   const [userInteracted, setUserInteracted] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
-  const recognitionRef = useRef<any>(null)
+  const bubbleTimers = useRef<ReturnType<typeof setTimeout>[]>([])
+
+  function clearBubbleTimers() {
+    bubbleTimers.current.forEach(clearTimeout)
+    bubbleTimers.current = []
+  }
+
+  function showBubbleMessage(msgs: string[], idx: number) {
+    if (open) return
+    setBubbleTyping(true)
+    setBubbleMsg('')
+    const t1 = setTimeout(() => {
+      setBubbleTyping(false)
+      setBubbleMsg(msgs[idx])
+      const nextIdx = (idx + 1) % msgs.length
+      setBubbleMsgIdx(nextIdx)
+      const t2 = setTimeout(() => showBubbleMessage(msgs, nextIdx), 5000)
+      bubbleTimers.current.push(t2)
+    }, 1200)
+    bubbleTimers.current.push(t1)
+  }
 
   useEffect(() => {
     const t = setTimeout(() => {
-      if (!open) setBubble(true)
+      setBubble(true)
+      const msgs = getBubbleMessages()
+      showBubbleMessage(msgs, 0)
     }, 2000)
-    return () => clearTimeout(t)
+    return () => { clearTimeout(t); clearBubbleTimers() }
   }, [])
 
   useEffect(() => {
     if (open) {
       setBubble(false)
+      clearBubbleTimers()
       setTimeout(() => inputRef.current?.focus(), 100)
     }
+  }, [open])
+
+  useEffect(() => {
+    if (open) bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages, loading, open])
+
+  useEffect(() => {
+    if (!open && typeof window !== 'undefined') window.speechSynthesis?.cancel()
   }, [open])
 
   function speakText(text: string) {
@@ -86,9 +234,12 @@ export default function ChatBot() {
     const trySpeak = () => {
       speak(text)
       const interval = setInterval(() => {
-        if (!window.speechSynthesis.speaking) { setSpeaking(false); clearInterval(interval) }
-      }, 200)
-      setTimeout(() => { setSpeaking(false); clearInterval(interval) }, 15000)
+        if (!window.speechSynthesis.speaking && !window.speechSynthesis.pending) {
+          setSpeaking(false)
+          clearInterval(interval)
+        }
+      }, 250)
+      setTimeout(() => { setSpeaking(false); clearInterval(interval) }, 30000)
     }
     if (window.speechSynthesis.getVoices().length > 0) {
       trySpeak()
@@ -97,7 +248,6 @@ export default function ChatBot() {
     }
   }
 
-  // Cand userul interactioneaza prima data → citeste bun venit
   function handleFirstInteraction() {
     if (!userInteracted) {
       setUserInteracted(true)
@@ -105,17 +255,14 @@ export default function ChatBot() {
     }
   }
 
-  useEffect(() => {
-    if (open) bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, loading, open])
+  function toggleVoice() {
+    if (voiceOn) window.speechSynthesis?.cancel()
+    setVoiceOn(v => !v)
+    setSpeaking(false)
+  }
 
-  // Opreste vocea cand se inchide chat-ul
-  useEffect(() => {
-    if (!open && typeof window !== 'undefined') window.speechSynthesis?.cancel()
-  }, [open])
-
-  async function send(text?: string) {
-    const msg = (text || input).trim()
+  async function send(textParam?: string) {
+    const msg = (textParam || input).trim()
     if (!msg || loading) return
     setShowQuick(false)
     const userMsg: Message = { role: 'user', content: msg }
@@ -127,12 +274,17 @@ export default function ChatBot() {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: newMessages.map(m => ({ role: m.role, content: m.content })) }),
+        body: JSON.stringify({
+          messages: newMessages
+            .filter(m => m.role !== 'assistant' || m.content !== WELCOME)
+            .map(m => ({ role: m.role, content: m.content })),
+        }),
       })
       const data = await res.json()
-      const reply = data.text || 'A apărut o eroare. Scrie-ne pe WhatsApp: 0787 813 485'
-      setMessages(prev => [...prev, { role: 'assistant', content: reply }])
-      speakText(reply)
+      const raw = data.text || 'A apărut o eroare. Scrie-ne pe WhatsApp: 0787 813 485'
+      const { clean, waText } = extractWA(raw)
+      setMessages(prev => [...prev, { role: 'assistant', content: clean, waText: waText || undefined }])
+      speakText(clean)
     } catch {
       setMessages(prev => [...prev, { role: 'assistant', content: 'Eroare de conexiune. Scrie-ne pe WhatsApp la 0787 813 485!' }])
     } finally {
@@ -140,58 +292,19 @@ export default function ChatBot() {
     }
   }
 
-  function toggleVoice() {
-    if (voiceOn) window.speechSynthesis?.cancel()
-    setVoiceOn(v => !v)
-    setSpeaking(false)
-  }
-
-  function toggleMic() {
-    if (listening) {
-      recognitionRef.current?.stop()
-      setListening(false)
-      return
-    }
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-    if (!SpeechRecognition) {
-      setMessages(prev => [...prev, { role: 'assistant', content: '🎤 Microfonul funcționează doar în Chrome. Te rog deschide aicraiova.ro în Chrome pe telefon.' }])
-      return
-    }
-    const rec = new SpeechRecognition()
-    rec.lang = 'ro-RO'
-    rec.continuous = false
-    rec.interimResults = false
-    rec.onstart = () => setListening(true)
-    rec.onresult = (e: any) => {
-      const transcript = e.results[0][0].transcript
-      setListening(false)
-      send(transcript)
-    }
-    rec.onerror = (e: any) => {
-      setListening(false)
-      if (e.error === 'not-allowed') {
-        setMessages(prev => [...prev, { role: 'assistant', content: '🎤 Accesul la microfon a fost blocat. În Chrome, apasă pe 🔒 din bara de adresă → Microfon → Permite.' }])
-      } else if (e.error === 'no-speech') {
-        setMessages(prev => [...prev, { role: 'assistant', content: '🎤 Nu am auzit nimic. Încearcă din nou.' }])
-      }
-    }
-    rec.onend = () => setListening(false)
-    recognitionRef.current = rec
-    rec.start()
-  }
-
   return (
     <>
       {/* Fereastra chat */}
       {open && (
         <div className="fixed bottom-24 left-4 z-50 w-[320px] max-w-[calc(100vw-32px)] flex flex-col bg-white rounded-2xl shadow-2xl overflow-hidden"
-          style={{ height: '440px', boxShadow: '0 8px 40px rgba(0,0,0,0.18)' }}>
+          style={{ height: '460px', boxShadow: '0 8px 40px rgba(0,0,0,0.18)' }}>
 
           {/* Header */}
-          <div className="flex items-center gap-3 px-4 py-3 shrink-0" style={{ background: 'linear-gradient(135deg, #6d28d9 0%, #2563eb 100%)' }}>
-            <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center font-bold text-white text-sm shrink-0">AI</div>
+          <div className="flex items-center gap-3 px-4 py-3 shrink-0"
+            style={{ background: 'linear-gradient(135deg, #6d28d9 0%, #2563eb 100%)' }}>
+            <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center text-white text-sm font-bold shrink-0">AI</div>
             <div className="flex-1">
-              <p className="text-white font-semibold text-sm leading-tight">AI Craiova</p>
+              <p className="text-white font-semibold text-sm leading-tight">Ava · AIcraiova</p>
               <div className="flex items-center gap-1.5 mt-0.5">
                 {speaking ? (
                   <>
@@ -226,12 +339,6 @@ export default function ChatBot() {
               )}
             </button>
 
-            <a href="https://wa.me/40787813485" target="_blank" rel="noopener noreferrer"
-              className="text-white/50 hover:text-green-300 transition-colors p-1" title="WhatsApp">
-              <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current">
-                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-              </svg>
-            </a>
             <button onClick={() => setOpen(false)}
               className="text-white/60 hover:text-white transition text-xl leading-none w-7 h-7 flex items-center justify-center rounded-full hover:bg-white/15">
               ×
@@ -241,8 +348,8 @@ export default function ChatBot() {
           {/* Mesaje */}
           <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3" style={{ background: '#f7f8fc' }}>
             {messages.map((m, i) => (
-              <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[80%] px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
+              <div key={i} className={`flex flex-col ${m.role === 'user' ? 'items-end' : 'items-start'}`}>
+                <div className={`max-w-[82%] px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
                   m.role === 'user'
                     ? 'text-white rounded-2xl rounded-br-sm'
                     : 'bg-white text-gray-700 rounded-2xl rounded-bl-sm shadow-sm border border-gray-100'
@@ -250,6 +357,20 @@ export default function ChatBot() {
                 style={m.role === 'user' ? { background: 'linear-gradient(135deg, #6d28d9 0%, #2563eb 100%)' } : {}}>
                   {m.content}
                 </div>
+                {m.waText && (
+                  <a
+                    href={waLink(m.waText)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-2 flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white text-xs font-semibold px-4 py-2 rounded-full shadow transition-all"
+                  >
+                    <svg className="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+                      <path d="M12 0C5.373 0 0 5.373 0 12c0 2.117.553 4.103 1.522 5.828L.057 23.082a.75.75 0 00.92.92l5.255-1.465A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.891 0-3.667-.497-5.206-1.367l-.374-.214-3.876 1.081 1.081-3.876-.214-.374A9.944 9.944 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/>
+                    </svg>
+                    Scrie-ne pe WhatsApp
+                  </a>
+                )}
               </div>
             ))}
 
@@ -283,7 +404,7 @@ export default function ChatBot() {
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && send()}
                 onFocus={handleFirstInteraction}
-                placeholder="Scrie un mesaj..."
+                placeholder="Scrie sau vorbește..."
                 className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-violet-300 focus:border-violet-400 placeholder-gray-400"
                 style={{ fontSize: '16px' }}
               />
@@ -295,40 +416,65 @@ export default function ChatBot() {
                 </svg>
               </button>
             </div>
-            <p className="text-gray-400 text-[11px] mt-1.5 text-center">
-              🎤 Pe mobil folosește microfonul de pe tastatură
-            </p>
+            <p className="text-gray-400 text-[11px] mt-1.5 text-center">🎤 Pe mobil folosește microfonul de pe tastatură</p>
           </div>
         </div>
       )}
 
-      {/* Bubble */}
+      {/* Bubble rotativă */}
       {bubble && !open && (
-        <div className="fixed bottom-24 left-20 z-50 bg-white rounded-2xl rounded-bl-sm shadow-xl border border-gray-100 px-4 py-3 max-w-[200px] cursor-pointer"
-          onClick={() => { setOpen(true); setBubble(false); handleFirstInteraction() }}>
-          <button className="absolute -top-2 -right-2 bg-gray-100 hover:bg-gray-200 rounded-full w-5 h-5 text-xs flex items-center justify-center text-gray-500 transition-colors"
-            onClick={e => { e.stopPropagation(); setBubble(false) }}>×</button>
-          <p className="text-sm text-gray-700 leading-snug">👋 Bună! Spune-mi afacerea ta și hai să o automatizăm.</p>
+        <div
+          className="fixed bottom-24 left-20 z-50 bg-white rounded-2xl rounded-bl-sm shadow-xl border border-gray-100 px-4 py-3 max-w-[220px] cursor-pointer transition-all"
+          onClick={() => { setOpen(true); setBubble(false); clearBubbleTimers() }}
+        >
+          <button
+            className="absolute -top-2 -right-2 bg-gray-100 hover:bg-gray-200 rounded-full w-5 h-5 text-xs flex items-center justify-center text-gray-500 transition-colors"
+            onClick={e => { e.stopPropagation(); setBubble(false); clearBubbleTimers() }}
+          >×</button>
+
+          {bubbleTyping ? (
+            <div className="flex items-center gap-2 py-1">
+              <span className="text-xs text-gray-400 italic">Ava scrie</span>
+              <span className="flex gap-0.5">
+                <span className="w-1.5 h-1.5 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                <span className="w-1.5 h-1.5 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                <span className="w-1.5 h-1.5 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+              </span>
+            </div>
+          ) : (
+            <p className="text-sm text-gray-800 leading-snug">{bubbleMsg}</p>
+          )}
         </div>
       )}
 
-      {/* Buton toggle */}
-      <button
-        onClick={() => { setOpen(o => !o); setBubble(false) }}
-        className="fixed bottom-6 left-4 z-50 w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all hover:scale-105 hover:shadow-xl"
-        style={{ background: 'linear-gradient(135deg, #6d28d9 0%, #2563eb 100%)' }}
-        aria-label="Chat"
-      >
-        {open ? (
-          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        ) : (
-          <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/>
-          </svg>
+      {/* Buton toggle + eticheta */}
+      <div className="fixed bottom-6 left-4 z-50 flex flex-col items-start gap-1.5">
+        {!open && (
+          <button
+            onClick={() => { setOpen(true); setBubble(false); clearBubbleTimers() }}
+            className="text-xs font-semibold whitespace-nowrap px-3 py-1.5 rounded-full shadow-md border transition-all hover:opacity-90"
+            style={{ background: 'white', color: '#6d28d9', borderColor: '#6d28d9aa' }}
+          >
+            🤖 Vorbește cu Ava!
+          </button>
         )}
-      </button>
+        <button
+          onClick={() => { setOpen(o => !o); setBubble(false); clearBubbleTimers() }}
+          className="w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all hover:scale-105 hover:shadow-xl shrink-0"
+          style={{ background: 'linear-gradient(135deg, #6d28d9 0%, #2563eb 100%)' }}
+          aria-label="Chat Ava"
+        >
+          {open ? (
+            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          ) : (
+            <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/>
+            </svg>
+          )}
+        </button>
+      </div>
     </>
   )
 }
