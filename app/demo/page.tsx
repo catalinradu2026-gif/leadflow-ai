@@ -250,7 +250,7 @@ export default function DemoLanding() {
           { val: '11.500+', label: 'Școli & Grădinițe' },
           { val: '42', label: 'Județe' },
           { val: '24/7', label: 'Asistent AI Activ' },
-          { val: '0€', label: 'Costuri Infrastructură' },
+          { val: '100%', label: 'Date Securizate' },
         ].map(s => (
           <div key={s.label} style={{ textAlign: 'center' }}>
             <div style={{ fontSize: '24px', fontWeight: 800, color: '#60a5fa' }}>{s.val}</div>
