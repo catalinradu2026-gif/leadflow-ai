@@ -6,7 +6,7 @@ import { speak } from '../edu/tts'
 
 type Msg = { role: 'user' | 'assistant'; content: string }
 
-const ARA_GREETING = 'Bună ziua! Sunt ARA, asistentul digital oficial al ARACIP — Agenția Română de Asigurare a Calității în Învățământul Preuniversitar. Sunt aici să vă ghidez prin procesele noastre de autorizare, acreditare și evaluare externă. Cum vă putem ajuta astăzi?'
+const ARA_GREETING = 'Bună ziua! Sunt ARA, asistentul digital al Agenției ARACIP. Vă ghidez prin autorizare, acreditare și evaluare externă. Cu ce vă pot ajuta?'
 
 function AraChatbot({ isMobile }: { isMobile: boolean }) {
   const [open, setOpen] = useState(false)
