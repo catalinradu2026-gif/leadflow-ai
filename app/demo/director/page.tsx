@@ -2,6 +2,89 @@
 import { useRouter } from 'next/navigation'
 import { useState, useRef, useEffect } from 'react'
 
+function numRo(n: number): string {
+  if (n === 0) return 'zero'
+  const ones = ['', 'unu', 'doi', 'trei', 'patru', 'cinci', 'șase', 'șapte', 'opt', 'nouă',
+    'zece', 'unsprezece', 'doisprezece', 'treisprezece', 'paisprezece', 'cincisprezece',
+    'șaisprezece', 'șaptesprezece', 'optsprezece', 'nouăsprezece']
+  const tens = ['', '', 'douăzeci', 'treizeci', 'patruzeci', 'cincizeci',
+    'șaizeci', 'șaptezeci', 'optzeci', 'nouăzeci']
+  function conv(x: number): string {
+    if (x === 0) return ''
+    if (x < 20) return ones[x]
+    if (x < 100) { const t = Math.floor(x / 10), o = x % 10; return o === 0 ? tens[t] : `${tens[t]} și ${ones[o]}` }
+    if (x < 1000) {
+      const h = Math.floor(x / 100), r = x % 100
+      const s = h === 1 ? 'o sută' : h === 2 ? 'două sute' : `${ones[h]} sute`
+      return r === 0 ? s : `${s} ${conv(r)}`
+    }
+    if (x < 1000000) {
+      const th = Math.floor(x / 1000), r = x % 1000
+      const m = th === 1 ? 'o mie' : th === 2 ? 'două mii' : `${conv(th)} mii`
+      return r === 0 ? m : `${m} ${conv(r)}`
+    }
+    return String(x)
+  }
+  return conv(n)
+}
+
+function prepareForSpeech(text: string): string {
+  let s = text
+  s = s.replace(/\bISJ\b/g, 'I S J')
+     .replace(/\bPNRR\b/g, 'P N R R')
+     .replace(/\bAI\b/g, 'Ei Ai')
+     .replace(/nr\./gi, 'numărul')
+     .replace(/\bpct\./gi, 'punctul')
+  s = s.replace(/[\u{1F300}-\u{1FFFF}]/gu, '').replace(/[*_~`#]/g, '')
+  s = s.replace(/(\d+)\s*mai\s*(\d{4})/gi, (_, d, y) => `${numRo(parseInt(d))} mai ${numRo(parseInt(y))}`)
+  s = s.replace(/\b(\d+)\/(\d{4})\b/g, (_, n, y) => `${numRo(parseInt(n))} din ${numRo(parseInt(y))}`)
+  s = s.replace(/\b(\d{1,9})\b/g, (_, n) => numRo(parseInt(n)))
+  return s.trim()
+}
+
+function getVoice(): SpeechSynthesisVoice | null {
+  const voices = window.speechSynthesis.getVoices()
+  return voices.find(v => v.lang.startsWith('ro') && v.name.toLowerCase().includes('female'))
+    || voices.find(v => v.lang.startsWith('ro') && (v.name.includes('Ioana') || v.name.includes('Carmen') || v.name.includes('Maria')))
+    || voices.find(v => v.lang.startsWith('ro'))
+    || voices.find(v => v.lang.startsWith('en-GB'))
+    || voices[0]
+    || null
+}
+
+function splitSentences(text: string): string[] {
+  return text.split(/(?<=[.!?…])\s+|(?<=—)\s*/).map(s => s.trim()).filter(s => s.length > 0)
+}
+
+function speak(text: string, onEnd?: () => void) {
+  if (typeof window === 'undefined' || !window.speechSynthesis) return
+  window.speechSynthesis.cancel()
+  const clean = prepareForSpeech(text)
+  const sentences = splitSentences(clean)
+  if (sentences.length === 0) { onEnd?.(); return }
+  const voice = getVoice()
+  function makeUtt(s: string): SpeechSynthesisUtterance {
+    const u = new SpeechSynthesisUtterance(s)
+    u.lang = 'ro-RO'
+    u.rate = 1.0
+    u.pitch = 1.0
+    u.volume = 1
+    if (voice) u.voice = voice
+    return u
+  }
+  let index = 0
+  function speakNext() {
+    if (index >= sentences.length) { onEnd?.(); return }
+    const u = makeUtt(sentences[index])
+    index++
+    const lastChar = sentences[index - 1].slice(-1)
+    const pause = (lastChar === '.' || lastChar === '!' || lastChar === '?') ? 280 : 180
+    u.onend = () => setTimeout(speakNext, pause)
+    window.speechSynthesis.speak(u)
+  }
+  speakNext()
+}
+
 const NOTIFICARI = [
   { id: 1, titlu: 'Metodologie Evaluare Națională 2026', data: '19 mai 2026', citit: false, urgent: true, tip: 'Metodologie', sursa: 'Inspector Național' },
   { id: 2, titlu: 'Circular nr. 1247/2026 — Raportare absențe mai 2026', data: '17 mai 2026', citit: false, urgent: true, tip: 'Circular', sursa: 'ISJ Dolj' },
@@ -21,6 +104,8 @@ export default function DirectorPage() {
   const [loading, setLoading] = useState(false)
   const [chatHistory, setChatHistory] = useState<{ role: string; text: string }[]>([])
   const [chatInput, setChatInput] = useState('')
+  const [voiceEnabled, setVoiceEnabled] = useState(true)
+  const [speaking, setSpeaking] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const unread = notificari.filter(n => !n.citit).length
@@ -47,9 +132,16 @@ export default function DirectorPage() {
         body: JSON.stringify({ messages: newMessages }),
       })
       const data = await res.json()
-      setMessages(prev => [...prev, { role: 'assistant', content: data.text || 'Eroare. Contactați ISJ.' }])
+      const reply = data.text || 'Eroare. Contactați ISJ.'
+      setMessages(prev => [...prev, { role: 'assistant', content: reply }])
+      if (voiceEnabled) {
+        setSpeaking(true)
+        speak(reply, () => setSpeaking(false))
+      }
     } catch {
+      const errMsg = 'Eroare de conexiune. Contactați ISJ la zero două cinci unu, patru unu unu, cinci două două.'
       setMessages(prev => [...prev, { role: 'assistant', content: 'Eroare de conexiune. Contactați ISJ la 0251 411 522.' }])
+      if (voiceEnabled) { setSpeaking(true); speak(errMsg, () => setSpeaking(false)) }
     }
     setLoading(false)
   }
@@ -174,10 +266,36 @@ export default function DirectorPage() {
           <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '12px', overflow: 'hidden' }}>
             <div style={{ padding: '16px 20px', borderBottom: '1px solid #334155', display: 'flex', alignItems: 'center', gap: '12px' }}>
               <div style={{ width: 36, height: 36, background: 'linear-gradient(135deg, #4f46e5, #7c3aed)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>🤖</div>
-              <div>
-                <div style={{ fontSize: '14px', fontWeight: 700, color: '#f1f5f9' }}>Asistent AI ISJ Dolj</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '14px', fontWeight: 700, color: '#f1f5f9', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  Asistent AI ISJ Dolj
+                  {speaking && (
+                    <span style={{ fontSize: '11px', color: '#a78bfa', background: 'rgba(167,139,250,0.15)', padding: '2px 8px', borderRadius: '20px', fontWeight: 600 }}>
+                      🔊 vorbește...
+                    </span>
+                  )}
+                </div>
                 <div style={{ fontSize: '12px', color: '#22c55e' }}>● Online · Cunoaște toate documentele ISJ Dolj</div>
               </div>
+              <button
+                onClick={() => {
+                  if (voiceEnabled) { window.speechSynthesis?.cancel(); setSpeaking(false) }
+                  setVoiceEnabled(v => !v)
+                }}
+                title={voiceEnabled ? 'Oprește vocea' : 'Activează vocea'}
+                style={{
+                  background: voiceEnabled ? 'rgba(167,139,250,0.15)' : 'rgba(255,255,255,0.05)',
+                  border: `1px solid ${voiceEnabled ? '#7c3aed' : '#334155'}`,
+                  borderRadius: '8px',
+                  padding: '6px 12px',
+                  fontSize: '18px',
+                  cursor: 'pointer',
+                  color: voiceEnabled ? '#a78bfa' : '#475569',
+                  lineHeight: 1,
+                }}
+              >
+                {voiceEnabled ? '🔊' : '🔇'}
+              </button>
             </div>
 
             <div style={{ height: '360px', overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
