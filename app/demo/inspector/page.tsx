@@ -180,6 +180,7 @@ export default function InspectorNational() {
   const [uploadTarget, setUploadTarget] = useState<'national' | 'judet' | 'scoala'>('national')
   const [uploadJudete, setUploadJudete] = useState<string[]>([])
   const [uploadScoala, setUploadScoala] = useState(SCOLI_DEMO[0])
+  const [uploadTipUnitate, setUploadTipUnitate] = useState<string>('Toate')
   const [uploading, setUploading] = useState(false)
   const [uploadDone, setUploadDone] = useState(false)
 
@@ -202,14 +203,18 @@ export default function InspectorNational() {
     setUploading(true)
     await new Promise(r => setTimeout(r, 1800))
 
-    let targetName = 'Toate județele'
-    let destinatari = 11500
+    const tipSuffix = uploadTipUnitate !== 'Toate' ? ` · doar ${uploadTipUnitate}e` : ''
+    let targetName = `Toate județele${tipSuffix}`
+    const TIP_RATIOS: Record<string, number> = { 'Toate': 1, 'Liceu': 0.18, 'Colegiu': 0.12, 'Școală': 0.45, 'Grădiniță': 0.25 }
+    const ratio = TIP_RATIOS[uploadTipUnitate] ?? 1
+    let destinatari = Math.round(11500 * ratio)
     if (uploadTarget === 'judet') {
-      targetName = uploadJudete.length ? uploadJudete.join(', ') : 'ISJ selectate'
-      destinatari = uploadJudete.reduce((s, j) => {
+      targetName = (uploadJudete.length ? uploadJudete.join(', ') : 'ISJ selectate') + tipSuffix
+      const base = uploadJudete.reduce((s, j) => {
         const found = JUDETE.find(x => x.name === j)
         return s + (found ? found.scoli : 0)
       }, 0) || 240
+      destinatari = Math.round(base * ratio)
     } else if (uploadTarget === 'scoala') {
       targetName = uploadScoala
       destinatari = 1
@@ -234,6 +239,7 @@ export default function InspectorNational() {
       setUploadTitle('')
       setUploadTarget('national')
       setUploadJudete([])
+      setUploadTipUnitate('Toate')
     }, 2200)
   }
 
@@ -553,6 +559,40 @@ export default function InspectorNational() {
                     ))}
                   </div>
                 </div>
+
+                {/* TIP UNITATE SELECTOR */}
+                {uploadTarget !== 'scoala' && (
+                  <div style={{ marginBottom: '20px' }}>
+                    <label style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      Tip unitate destinatară
+                    </label>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      {[
+                        { val: 'Toate', label: 'Toate unitățile', sub: '100%', color: '#64748b', bg: '#334155' },
+                        { val: 'Liceu', label: 'Licee', sub: '~18%', color: '#93c5fd', bg: '#1e3a5f' },
+                        { val: 'Colegiu', label: 'Colegii', sub: '~12%', color: '#c4b5fd', bg: '#4c1d95' },
+                        { val: 'Școală', label: 'Școli Gimnaziale', sub: '~45%', color: '#6ee7b7', bg: '#064e3b' },
+                        { val: 'Grădiniță', label: 'Grădinițe', sub: '~25%', color: '#fde68a', bg: '#713f12' },
+                      ].map(opt => {
+                        const sel = uploadTipUnitate === opt.val
+                        return (
+                          <button
+                            key={opt.val}
+                            onClick={() => setUploadTipUnitate(opt.val)}
+                            style={{
+                              background: sel ? opt.bg : '#0f172a',
+                              border: `2px solid ${sel ? opt.color : '#334155'}`,
+                              borderRadius: '10px', padding: '10px 14px', cursor: 'pointer', textAlign: 'center', minWidth: '90px',
+                            }}
+                          >
+                            <div style={{ fontSize: '13px', fontWeight: 700, color: sel ? opt.color : '#64748b', marginBottom: '2px' }}>{opt.label}</div>
+                            <div style={{ fontSize: '11px', color: sel ? opt.color : '#475569', opacity: 0.8 }}>{opt.sub}</div>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
 
                 {/* JUDETE SELECTOR */}
                 {uploadTarget === 'judet' && (

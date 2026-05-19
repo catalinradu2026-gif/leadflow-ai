@@ -48,22 +48,29 @@ export default function ISJDolj() {
   ])
   const [selectedSchool, setSelectedSchool] = useState(SCOLI_DOLJ[0].name)
   const [tipFilter, setTipFilter] = useState<string>('Toate')
+  const [uploadTipDoc, setUploadTipDoc] = useState('Circular')
+  const [uploadTipUnitate, setUploadTipUnitate] = useState<string>('Toate')
+
+  const TIP_RATII: Record<string, number> = { 'Toate': 1, 'Liceu': 0.18, 'Colegiu': 0.12, 'Școală': 0.45, 'Grădiniță': 0.25 }
 
   async function handleUpload() {
     if (!uploadTitle.trim()) return
     setUploading(true)
     await new Promise(r => setTimeout(r, 1800))
+    const total = Math.round(240 * (TIP_RATII[uploadTipUnitate] ?? 1))
     setDocs(prev => [{
       id: prev.length + 1,
-      titlu: uploadTitle,
+      titlu: uploadTitle + (uploadTipUnitate !== 'Toate' ? ` — ${uploadTipUnitate}e` : ''),
       data: '19 mai 2026',
       citite: 0,
-      total: 240,
-      tip: 'Circular',
+      total,
+      tip: uploadTipDoc,
+      sursa: 'ISJ Dolj',
+      nou: true,
     }, ...prev])
     setUploading(false)
     setUploadDone(true)
-    setTimeout(() => { setShowUpload(false); setUploadDone(false); setUploadTitle(''); setUploadContent('') }, 2000)
+    setTimeout(() => { setShowUpload(false); setUploadDone(false); setUploadTitle(''); setUploadContent(''); setUploadTipUnitate('Toate') }, 2000)
   }
 
   async function sendChat() {
@@ -314,6 +321,49 @@ export default function ISJDolj() {
             ) : (
               <>
                 <h3 style={{ fontSize: '17px', fontWeight: 700, color: '#f1f5f9', marginBottom: '20px' }}>📄 Încarcă Document ISJ</h3>
+
+                {/* Tip document */}
+                <div style={{ marginBottom: '14px' }}>
+                  <label style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '6px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Tip document</label>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    {['Circular', 'Procedură', 'Adresă', 'Decizie'].map(t => (
+                      <button key={t} onClick={() => setUploadTipDoc(t)} style={{
+                        background: uploadTipDoc === t ? '#1d4ed8' : '#0f172a',
+                        border: `1px solid ${uploadTipDoc === t ? '#3b82f6' : '#334155'}`,
+                        color: uploadTipDoc === t ? '#fff' : '#94a3b8',
+                        borderRadius: '20px', padding: '5px 14px', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+                      }}>{t}</button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Tip unitate destinatara */}
+                <div style={{ marginBottom: '14px' }}>
+                  <label style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '8px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Destinatari — tip unitate</label>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    {[
+                      { val: 'Toate', label: 'Toate', color: '#94a3b8', bg: '#334155', count: '240' },
+                      { val: 'Liceu', label: 'Licee', color: '#93c5fd', bg: '#1e3a5f', count: '~43' },
+                      { val: 'Colegiu', label: 'Colegii', color: '#c4b5fd', bg: '#4c1d95', count: '~29' },
+                      { val: 'Școală', label: 'Școli Gimn.', color: '#6ee7b7', bg: '#064e3b', count: '~108' },
+                      { val: 'Grădiniță', label: 'Grădinițe', color: '#fde68a', bg: '#713f12', count: '~60' },
+                    ].map(opt => {
+                      const sel = uploadTipUnitate === opt.val
+                      return (
+                        <button key={opt.val} onClick={() => setUploadTipUnitate(opt.val)} style={{
+                          background: sel ? opt.bg : '#0f172a',
+                          border: `2px solid ${sel ? opt.color : '#334155'}`,
+                          color: sel ? opt.color : '#64748b',
+                          borderRadius: '10px', padding: '7px 14px', cursor: 'pointer', textAlign: 'center',
+                        }}>
+                          <div style={{ fontSize: '12px', fontWeight: 700 }}>{opt.label}</div>
+                          <div style={{ fontSize: '10px', opacity: 0.75 }}>{opt.count} unități</div>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
                 <div style={{ marginBottom: '14px' }}>
                   <label style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '6px' }}>Titlu document</label>
                   <input
