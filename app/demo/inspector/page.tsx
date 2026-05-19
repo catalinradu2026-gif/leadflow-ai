@@ -1,6 +1,6 @@
 'use client'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 const JUDETE = [
   { name: 'Alba', scoli: 198, active: 198, doc: 12, alert: 0 },
@@ -142,6 +142,12 @@ export default function InspectorNational() {
   const [tab, setTab] = useState<'judete' | 'documente'>('judete')
   const [judetModal, setJudetModal] = useState<string | null>(null)
   const [showAlerte, setShowAlerte] = useState(false)
+  const [now, setNow] = useState(new Date())
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 1000)
+    return () => clearInterval(t)
+  }, [])
+  const timeStr = now.toLocaleString('ro-RO', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' })
 
   // Upload form state
   const [uploadTitle, setUploadTitle] = useState('')
@@ -230,7 +236,7 @@ export default function InspectorNational() {
           <span style={{ background: '#1d4ed8', color: '#93c5fd', fontSize: '11px', fontWeight: 700, padding: '2px 10px', borderRadius: '20px' }}>NIVEL NAȚIONAL</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span style={{ fontSize: '12px', color: '#64748b' }}>19 mai 2026 · 09:42</span>
+          <span style={{ fontSize: '12px', color: '#64748b', fontVariantNumeric: 'tabular-nums' }}>{timeStr}</span>
           <button
             onClick={() => setShowUpload(true)}
             style={{ background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '8px', padding: '8px 16px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
