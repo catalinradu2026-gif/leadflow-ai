@@ -21,7 +21,34 @@ function AcreditareChatbot() {
   const [unread, setUnread] = useState(0)
   const [voiceEnabled, setVoiceEnabled] = useState(false)
   const [speaking, setSpeaking] = useState(false)
+  const [listening, setListening] = useState(false)
+  const recognitionRef = useRef<SpeechRecognition | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
+
+  function startListening() {
+    const SR = (window as typeof window & { SpeechRecognition?: typeof SpeechRecognition; webkitSpeechRecognition?: typeof SpeechRecognition }).SpeechRecognition || (window as typeof window & { webkitSpeechRecognition?: typeof SpeechRecognition }).webkitSpeechRecognition
+    if (!SR) return
+    if (listening) { recognitionRef.current?.stop(); setListening(false); return }
+    window.speechSynthesis?.cancel()
+    setSpeaking(false)
+    const rec = new SR()
+    rec.lang = 'ro-RO'
+    rec.continuous = false
+    rec.interimResults = true
+    rec.onstart = () => setListening(true)
+    rec.onresult = (e: SpeechRecognitionEvent) => {
+      const transcript = Array.from(e.results).map(r => r[0].transcript).join('')
+      setInput(transcript)
+      if (e.results[e.results.length - 1].isFinal) {
+        rec.stop()
+        send(transcript)
+      }
+    }
+    rec.onerror = () => setListening(false)
+    rec.onend = () => setListening(false)
+    recognitionRef.current = rec
+    rec.start()
+  }
 
   useEffect(() => {
     if (open) {
@@ -144,9 +171,21 @@ function AcreditareChatbot() {
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && !e.shiftKey && send()}
-              placeholder="Scrieți întrebarea..."
-              style={{ flex: 1, background: '#0f172a', border: '1px solid #334155', borderRadius: '8px', padding: '8px 12px', fontSize: '13px', color: '#e2e8f0', outline: 'none', fontFamily: 'inherit' }}
+              placeholder={listening ? '🎙️ Ascult...' : 'Scrieți sau vorbiți...'}
+              style={{ flex: 1, background: listening ? 'rgba(239,68,68,0.07)' : '#0f172a', border: `1px solid ${listening ? '#ef4444' : '#334155'}`, borderRadius: '8px', padding: '8px 12px', fontSize: '13px', color: '#e2e8f0', outline: 'none', fontFamily: 'inherit', transition: 'all 0.2s' }}
             />
+            <button
+              onClick={startListening}
+              title={listening ? 'Oprește microfonul' : 'Vorbește'}
+              style={{
+                background: listening ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.05)',
+                border: `1px solid ${listening ? '#ef4444' : '#334155'}`,
+                borderRadius: '8px', width: '36px', flexShrink: 0, cursor: 'pointer', fontSize: '16px',
+                animation: listening ? 'pulse 1s infinite' : 'none',
+              }}
+            >
+              🎙️
+            </button>
             <button
               onClick={() => send()}
               disabled={!input.trim() || loading}
