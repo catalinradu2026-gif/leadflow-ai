@@ -59,6 +59,25 @@ const QUICK_QUESTIONS: Record<string, string[]> = {
   ],
 }
 
+function getGreeting(pathname: string): string {
+  if (pathname === '/acreditare') return 'Bună ziua! Sunt ARA, asistentul digital ARACIP. Vă pot ajuta să navigați prin procesele de autorizare, acreditare și evaluare periodică. Ce doriți să aflați?'
+  if (pathname === '/acreditare/autorizare') return 'Bună ziua! Sunt ARA. Pe această pagină depuneți dosarul de autorizare de funcționare pentru o unitate școlară nouă. Vă pot ghida pas cu pas prin documente și cerințe. Cu ce începem?'
+  if (pathname === '/acreditare/acreditare-scolara') return 'Bună ziua! Sunt ARA. Suntem pe pagina de acreditare instituțională — etapa a doua după autorizare. Vă pot explica criteriile A1, A2, A3 sau cum să pregătiți dosarul. Ce vă interesează?'
+  if (pathname === '/acreditare/evaluare-periodica') return 'Bună ziua! Sunt ARA. Aceasta este pagina pentru evaluarea externă periodică — obligatorie la fiecare 5 ani. Vă pot ajuta cu calendarul, procedura sau ce presupune vizita comisiei. Ce doriți să știți?'
+  if (pathname === '/acreditare/dashboard') return 'Bună ziua! Sunt ARA. Pe acest dashboard vedeți situația tuturor unităților școlare. Vă pot ajuta să interpretați datele sau să găsiți o unitate specifică. Cu ce vă ajut?'
+  if (pathname === '/acreditare/registre') return 'Bună ziua! Sunt ARA. Aceasta este pagina Registrelor Naționale ARACIP — puteți căuta orice unitate școlară acreditată sau autorizată din România. Cum vă pot ajuta?'
+  if (pathname === '/acreditare/legislatie') return 'Bună ziua! Sunt ARA. Pe această pagină găsiți legislația ARACIP centralizată — legi, hotărâri de guvern și ordine ministeriale. Vă pot explica orice act normativ. Ce doriți să aflați?'
+  if (pathname === '/acreditare/faq') return 'Bună ziua! Sunt ARA. Aceasta este pagina cu întrebările frecvente ARACIP. Dacă nu găsiți răspunsul în listă, întrebați-mă direct — știu tot ce trebuie despre procesele noastre.'
+  if (pathname === '/aracip') return 'Bună ziua! Sunt ARA, asistentul digital oficial al ARACIP — Agenția Română de Asigurare a Calității în Învățământul Preuniversitar. Sunt aici să vă ghidez prin procesele de autorizare, acreditare și evaluare externă. Cum vă pot ajuta?'
+  if (pathname.includes('/bac/matematica')) return 'Salut! Sunt ARA, profesorul tău AI de matematică BAC. Suntem pe pagina de pregătire matematică. Poți să-mi pui orice exercițiu sau să-mi ceri să explic un concept. De unde începem?'
+  if (pathname.includes('/bac/romana')) return 'Salut! Sunt ARA, profesorul tău AI de română BAC. Suntem pe pagina de pregătire pentru examen. Te ajut cu eseuri, figuri de stil, autori sau structura probei. Ce vrei să exersăm?'
+  if (pathname.includes('/cursuri-ai')) return 'Salut! Sunt ARA, profesorul tău de inteligență artificială. Suntem în modulul de cursuri AI pentru elevi. Îți explic orice concept, de la ce este AI până la cum funcționează rețelele neuronale. Cu ce începem?'
+  if (pathname.includes('/cursuri-profesori')) return 'Bună ziua! Sunt ARA, mentorul tău AI pentru formare continuă. Pe această pagină explorăm cum puteți integra AI-ul în activitatea didactică. Ce aspect vă interesează cel mai mult?'
+  if (pathname.includes('/demo/director') || pathname.includes('/demo/isj')) return 'Bună ziua! Sunt ARA, asistentul platformei ISJ. Vă pot ajuta cu documentele circulare, termenele de raportare sau procedurile active din sistem. Cu ce vă ajut?'
+  if (pathname.includes('/demo')) return 'Bună ziua! Sunt ARA, asistentul platformei ISJ Dolj. Navigați prin demo-ul platformei de transparență școlară. Vă pot explica orice funcționalitate sau document. Cu ce vă ajut?'
+  return 'Bună ziua! Sunt ARA, asistentul digital ARACIP. Cu ce vă pot ajuta?'
+}
+
 function getQuickQuestions(pathname: string): string[] {
   if (pathname.includes('bac/matematica')) return QUICK_QUESTIONS.bac_mat
   if (pathname.includes('bac/romana')) return QUICK_QUESTIONS.bac_ro
@@ -75,7 +94,7 @@ export default function AraChatbot() {
 
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState<Msg[]>([
-    { role: 'assistant', content: 'Bună ziua! Sunt ARA, asistentul digital oficial al ARACIP. Vă pot ajuta cu informații despre acreditare, BAC, cursuri AI sau platforma ISJ. Cu ce vă pot ajuta?' }
+    { role: 'assistant', content: getGreeting(pathname) }
   ])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
