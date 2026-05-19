@@ -62,9 +62,9 @@ export default function EduLanding() {
       {/* Main Cards */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(2, 1fr)',
+        gridTemplateColumns: 'repeat(3, 1fr)',
         gap: '24px',
-        maxWidth: '860px',
+        maxWidth: '1100px',
         width: '100%',
         marginBottom: '48px',
       }}>
@@ -131,6 +131,72 @@ export default function EduLanding() {
           <div style={{ marginTop: '20px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             {['Gimnaziu', 'Liceu', 'Proiector', '24/7'].map(tag => (
               <span key={tag} style={{ background: 'rgba(99,102,241,0.2)', color: '#a5b4fc', fontSize: '11px', padding: '3px 10px', borderRadius: '20px' }}>{tag}</span>
+            ))}
+          </div>
+        </div>
+
+        {/* Cursuri Profesori */}
+        <div
+          onClick={() => router.push('/edu/cursuri-profesori')}
+          style={{
+            background: 'rgba(245,158,11,0.06)',
+            border: '2px solid #f59e0b',
+            borderRadius: '20px',
+            padding: '40px 32px',
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+            position: 'relative',
+            overflow: 'hidden',
+          }}
+          onMouseEnter={e => {
+            (e.currentTarget as HTMLDivElement).style.background = 'rgba(245,158,11,0.12)'
+            ;(e.currentTarget as HTMLDivElement).style.transform = 'translateY(-4px)'
+          }}
+          onMouseLeave={e => {
+            (e.currentTarget as HTMLDivElement).style.background = 'rgba(245,158,11,0.06)'
+            ;(e.currentTarget as HTMLDivElement).style.transform = 'translateY(0)'
+          }}
+        >
+          <div style={{
+            position: 'absolute', top: '-30px', right: '-30px',
+            width: '120px', height: '120px',
+            background: 'rgba(245,158,11,0.08)',
+            borderRadius: '50%',
+          }} />
+          <div style={{ fontSize: '56px', marginBottom: '20px' }}>👩‍🏫</div>
+          <div style={{
+            display: 'inline-block',
+            background: '#78350f',
+            color: '#fde68a',
+            fontSize: '11px',
+            fontWeight: 700,
+            padding: '3px 12px',
+            borderRadius: '20px',
+            marginBottom: '14px',
+            letterSpacing: '0.5px',
+          }}>
+            8 MODULE · FORMARE CONTINUĂ
+          </div>
+          <h2 style={{ fontSize: '26px', fontWeight: 800, color: '#fff', marginBottom: '12px', lineHeight: 1.2 }}>
+            Cursuri AI<br />pentru Profesori
+          </h2>
+          <p style={{ fontSize: '14px', color: '#94a3b8', lineHeight: 1.7, marginBottom: '28px' }}>
+            Formează-te în utilizarea AI la clasă. Pregătire lecții, evaluare, personalizare predare și certificat de formare recunoscut.
+          </p>
+          <div style={{
+            background: '#f59e0b',
+            color: '#fff',
+            padding: '14px 28px',
+            borderRadius: '12px',
+            fontSize: '15px',
+            fontWeight: 700,
+            display: 'inline-block',
+          }}>
+            Începe formarea →
+          </div>
+          <div style={{ marginTop: '20px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            {['ARACIP', 'Certificate', 'Credite', '24/7'].map(tag => (
+              <span key={tag} style={{ background: 'rgba(245,158,11,0.15)', color: '#fde68a', fontSize: '11px', padding: '3px 10px', borderRadius: '20px' }}>{tag}</span>
             ))}
           </div>
         </div>
