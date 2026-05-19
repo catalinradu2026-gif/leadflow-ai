@@ -22,7 +22,7 @@ export default function AracipHome() {
       colorLight: 'rgba(99,102,241,0.1)',
       colorBorder: 'rgba(99,102,241,0.25)',
       colorHover: 'rgba(99,102,241,0.18)',
-      route: '/demo/isj',
+      route: '/demo',
     },
     {
       id: 'acreditare',
