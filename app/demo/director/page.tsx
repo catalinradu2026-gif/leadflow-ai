@@ -128,10 +128,10 @@ export default function DirectorPage() {
     setMessages(newMessages)
     setLoading(true)
     try {
-      const res = await fetch('/api/demo-chat', {
+      const res = await fetch('/api/acreditare-chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: newMessages }),
+        body: JSON.stringify({ messages: newMessages, pagina: 'Portal Director ISJ Dolj' }),
       })
       const data = await res.json()
       const reply = data.text || 'Eroare. Contactați ISJ.'

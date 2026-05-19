@@ -248,10 +248,10 @@ export default function CursuriAI() {
     setMessages(newMessages)
     setLoading(true)
     try {
-      const res = await fetch('/api/edu-chat', {
+      const res = await fetch('/api/acreditare-chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: newMessages, modulId: modulActiv }),
+        body: JSON.stringify({ messages: newMessages, pagina: `Cursuri AI Elevi — Modulul ${modulActiv}` }),
       })
       const data = await res.json()
       const reply = data.text || 'Eroare. Încercați din nou.'

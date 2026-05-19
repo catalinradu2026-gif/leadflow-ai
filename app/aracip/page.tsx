@@ -1,14 +1,9 @@
 'use client'
 import { useRouter } from 'next/navigation'
 import { useIsMobile } from '../hooks/useIsMobile'
-import { useEffect, useState, useRef } from 'react'
-import { speak } from '../edu/tts'
+import { useEffect, useState } from 'react'
 
-type Msg = { role: 'user' | 'assistant'; content: string }
-
-const ARA_GREETING = 'Bună ziua! Sunt ARA, asistentul digital oficial al ARACIP — Agenția Română de Asigurare a Calității în Învățământul Preuniversitar. Sunt aici să vă ghidez prin procesele noastre de autorizare, acreditare și evaluare externă. Cum vă putem ajuta astăzi?'
-
-function AraChatbot({ isMobile }: { isMobile: boolean }) {
+function _AraChatbotRemoved({ isMobile }: { isMobile: boolean }) {
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState<Msg[]>([
     { role: 'assistant', content: ARA_GREETING }
@@ -524,7 +519,6 @@ export default function AracipHome() {
         }
       `}</style>
 
-      <AraChatbot isMobile={isMobile} />
     </div>
   )
 }

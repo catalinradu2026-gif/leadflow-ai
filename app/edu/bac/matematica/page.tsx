@@ -47,10 +47,10 @@ function MatematicaChat() {
     setMessages(newMessages)
     setLoading(true)
     try {
-      const res = await fetch('/api/bac-chat', {
+      const res = await fetch('/api/acreditare-chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: newMessages, materie: 'matematica', profil }),
+        body: JSON.stringify({ messages: newMessages, pagina: `BAC Matematică ${profil}` }),
       })
       const data = await res.json()
       const reply = data.text || 'Eroare. Încercați din nou.'

@@ -3,6 +3,7 @@ import './globals.css'
 import { LangProvider } from './LangContext'
 import { Analytics } from '@vercel/analytics/next'
 import { SpeedInsights } from '@vercel/speed-insights/next'
+import AraChatbot from './components/AraChatbot'
 
 export const metadata: Metadata = {
   icons: {
@@ -208,7 +209,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaWebSite) }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaFAQ) }} />
       </head>
-      <body><LangProvider>{children}</LangProvider><Analytics /><SpeedInsights /></body>
+      <body><LangProvider>{children}<AraChatbot /></LangProvider><Analytics /><SpeedInsights /></body>
     </html>
   )
 }
