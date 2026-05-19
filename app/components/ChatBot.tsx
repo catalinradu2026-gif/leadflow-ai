@@ -23,7 +23,7 @@ function waLink(msg: string): string {
   return `https://wa.me/40787813485?text=${encodeURIComponent(msg)}`
 }
 
-const WELCOME = 'Bună! Sunt Ava, agentul AI al AIcraiova. Spune-mi ce tip de afacere ai și îți arăt exact ce putem automatiza pentru tine!'
+const WELCOME = 'Bună! Sunt Ava, agenta virtuală a AIcraiova. Spune-mi ce tip de afacere ai și îți arăt exact ce putem automatiza pentru tine!'
 
 function getBubbleMessages(): string[] {
   const h = new Date().getHours()
