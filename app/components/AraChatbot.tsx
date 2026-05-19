@@ -235,14 +235,27 @@ export default function AraChatbot() {
         onClick={() => setOpen(o => !o)}
         style={{
           position: 'fixed', bottom: '24px', right: '24px', zIndex: 9999,
-          width: '56px', height: '56px', borderRadius: '50%',
+          height: '48px',
+          borderRadius: open ? '50%' : '24px',
+          width: open ? '48px' : 'auto',
+          padding: open ? '0' : '0 18px 0 14px',
           background: 'linear-gradient(135deg, #7c3aed, #14b8a6)',
           border: 'none', cursor: 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px',
-          boxShadow: '0 4px 20px rgba(124,58,237,0.5)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+          boxShadow: '0 4px 24px rgba(124,58,237,0.55)',
+          animation: open ? 'none' : 'ara-pulse 2.5s ease-in-out infinite',
+          transition: 'all 0.25s ease',
+          whiteSpace: 'nowrap',
         }}
       >
-        {open ? '×' : '🏛️'}
+        {open ? (
+          <span style={{ fontSize: '20px', color: '#fff' }}>×</span>
+        ) : (
+          <>
+            <span style={{ fontSize: '20px' }}>🏛️</span>
+            <span style={{ fontSize: '12px', fontWeight: 800, color: '#fff', letterSpacing: '0.5px', fontFamily: "'Segoe UI', Arial, sans-serif" }}>AI</span>
+          </>
+        )}
         {!open && unread > 0 && (
           <div style={{ position: 'absolute', top: -4, right: -4, background: '#ef4444', color: '#fff', borderRadius: '50%', width: 18, height: 18, fontSize: '10px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             {unread}
@@ -250,7 +263,7 @@ export default function AraChatbot() {
         )}
       </button>
 
-      <style>{`@keyframes bounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-6px)}} @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}`}</style>
+      <style>{`@keyframes bounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-6px)}} @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}} @keyframes ara-pulse{0%,100%{box-shadow:0 4px 24px rgba(124,58,237,0.55)}50%{box-shadow:0 4px 32px rgba(124,58,237,0.9),0 0 0 6px rgba(124,58,237,0.15)}}`}</style>
     </>
   )
 }
