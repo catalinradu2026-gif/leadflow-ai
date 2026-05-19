@@ -104,6 +104,7 @@ export default function AraChatbot() {
   const [listening, setListening] = useState(false)
   const recognitionRef = useRef<SpeechRecognition | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
+  const greetingSpokenRef = useRef(false)
 
   function startListening() {
     const SR = (window as typeof window & { SpeechRecognition?: typeof SpeechRecognition; webkitSpeechRecognition?: typeof SpeechRecognition }).SpeechRecognition || (window as typeof window & { webkitSpeechRecognition?: typeof SpeechRecognition }).webkitSpeechRecognition
@@ -134,8 +135,13 @@ export default function AraChatbot() {
     if (open) {
       setUnread(0)
       setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50)
+      if (!greetingSpokenRef.current && voiceEnabled && messages[0]?.content) {
+        greetingSpokenRef.current = true
+        setSpeaking(true)
+        speak(messages[0].content, () => setSpeaking(false))
+      }
     }
-  }, [open, messages])
+  }, [open])
 
   async function send(text?: string) {
     const content = text || input.trim()
