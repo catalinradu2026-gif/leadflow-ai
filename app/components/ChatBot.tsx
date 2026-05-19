@@ -67,8 +67,8 @@ function numRo(n: number): string {
 function prepareForSpeech(text: string): string {
   let s = text
 
-  s = s.replace(/AIcraiova/gi, 'A I Craiova')
-       .replace(/\bAI\b/g, 'A I')
+  s = s.replace(/AIcraiova/gi, 'Ei Ai Craiova')
+       .replace(/\bAI\b/g, 'Ei Ai')
        .replace(/n8n/gi, 'en opt en')
        .replace(/WhatsApp/gi, 'uotsap')
        .replace(/CRM/gi, 'C R M')
