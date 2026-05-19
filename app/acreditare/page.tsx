@@ -282,13 +282,12 @@ export default function AcreditareLanding() {
         </div>
         <div style={{
           display: 'grid',
-          gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)',
+          gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(3, 1fr)',
           gap: '12px',
         }}>
           {[
             { icon: '📋', label: 'Registre Naționale', desc: '7 registre cu toate unitățile', color: '#6366f1', route: '/acreditare/registre' },
             { icon: '⚖️', label: 'Legislație', desc: 'Acte normative centralizate', color: '#a855f7', route: '/acreditare/legislatie' },
-            { icon: '❓', label: 'Întrebări Frecvente', desc: 'Ghid pas cu pas ARACIP', color: '#14b8a6', route: '/acreditare/faq' },
             { icon: '📊', label: 'Statistici Naționale', desc: 'Date agregate pe județe', color: '#f59e0b', route: '/acreditare/dashboard' },
           ].map(r => (
             <div
