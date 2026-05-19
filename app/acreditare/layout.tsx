@@ -1,5 +1,6 @@
 'use client'
 import { useState, useRef, useEffect } from 'react'
+import { speak } from '../edu/tts'
 
 type Msg = { role: 'user' | 'assistant'; content: string }
 
@@ -18,6 +19,8 @@ function AcreditareChatbot() {
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [unread, setUnread] = useState(0)
+  const [voiceEnabled, setVoiceEnabled] = useState(false)
+  const [speaking, setSpeaking] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -43,6 +46,10 @@ function AcreditareChatbot() {
       const data = await res.json()
       setMessages(prev => [...prev, { role: 'assistant', content: data.text }])
       if (!open) setUnread(u => u + 1)
+      if (voiceEnabled && data.text) {
+        setSpeaking(true)
+        speak(data.text, () => setSpeaking(false))
+      }
     } catch {
       setMessages(prev => [...prev, { role: 'assistant', content: 'Eroare de conexiune. Încercați din nou.' }])
     }
@@ -71,7 +78,20 @@ function AcreditareChatbot() {
                 Online · Autorizare &amp; Acreditare
               </div>
             </div>
-            <button onClick={() => setOpen(false)} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: '#475569', cursor: 'pointer', fontSize: '18px', lineHeight: 1 }}>×</button>
+            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {speaking && <span style={{ fontSize: '11px', color: '#14b8a6', animation: 'pulse 1s infinite' }}>🔊</span>}
+              <button
+                onClick={() => {
+                  if (voiceEnabled) { window.speechSynthesis?.cancel(); setSpeaking(false) }
+                  setVoiceEnabled(v => !v)
+                }}
+                title={voiceEnabled ? 'Oprește vocea' : 'Activează vocea'}
+                style={{ background: voiceEnabled ? 'rgba(20,184,166,0.2)' : 'rgba(255,255,255,0.05)', border: `1px solid ${voiceEnabled ? '#14b8a6' : '#334155'}`, borderRadius: '6px', padding: '4px 8px', fontSize: '14px', cursor: 'pointer', color: voiceEnabled ? '#14b8a6' : '#475569' }}
+              >
+                {voiceEnabled ? '🔊' : '🔇'}
+              </button>
+              <button onClick={() => setOpen(false)} style={{ background: 'none', border: 'none', color: '#475569', cursor: 'pointer', fontSize: '18px', lineHeight: 1 }}>×</button>
+            </div>
           </div>
 
           {/* Messages */}
@@ -159,7 +179,7 @@ function AcreditareChatbot() {
         )}
       </button>
 
-      <style>{`@keyframes bounce { 0%,80%,100%{transform:translateY(0)} 40%{transform:translateY(-6px)} }`}</style>
+      <style>{`@keyframes bounce { 0%,80%,100%{transform:translateY(0)} 40%{transform:translateY(-6px)} } @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }`}</style>
     </>
   )
 }
