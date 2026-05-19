@@ -331,12 +331,10 @@ export default function AracipHome() {
             lineHeight: 1.05,
             letterSpacing: isMobile ? '-1.5px' : '-3px',
             marginBottom: '24px',
-            ...(isMobile ? { color: '#ffffff' } : {
-              background: 'linear-gradient(135deg, #f1f5f9 30%, #a78bfa 70%, #14b8a6 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
-            }),
+            background: 'linear-gradient(135deg, #f1f5f9 30%, #a78bfa 70%, #14b8a6 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
           }}>
             Educație de calitate<br />în era digitală
           </h1>
