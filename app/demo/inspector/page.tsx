@@ -136,6 +136,10 @@ export default function InspectorNational() {
   const [showBroadcast, setShowBroadcast] = useState(false)
   const [broadcastMsg, setBroadcastMsg] = useState('')
   const [broadcastSent, setBroadcastSent] = useState(false)
+  const [showNotifISJ, setShowNotifISJ] = useState(false)
+  const [notifISJSelected, setNotifISJSelected] = useState<string[]>([])
+  const [notifISJMsg, setNotifISJMsg] = useState('')
+  const [notifISJSent, setNotifISJSent] = useState(false)
   const [search, setSearch] = useState('')
   const [showUpload, setShowUpload] = useState(false)
   const [docs, setDocs] = useState<Doc[]>(DOCS_INITIALE)
@@ -242,6 +246,12 @@ export default function InspectorNational() {
             style={{ background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '8px', padding: '8px 16px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
           >
             📄 Încarcă Document
+          </button>
+          <button
+            onClick={() => setShowNotifISJ(true)}
+            style={{ background: '#7c3aed', color: '#fff', border: 'none', borderRadius: '8px', padding: '8px 16px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
+          >
+            🏛️ Notifică ISJ
           </button>
           <button
             onClick={() => setShowBroadcast(true)}
@@ -659,6 +669,128 @@ export default function InspectorNational() {
                 📢 Trimite reminder tuturor →
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* NOTIFICA ISJ MODAL */}
+      {showNotifISJ && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '20px' }}>
+          <div style={{ background: '#1e293b', border: '1px solid #7c3aed', borderRadius: '16px', width: '620px', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
+            {notifISJSent ? (
+              <div style={{ padding: '48px 32px', textAlign: 'center' }}>
+                <div style={{ fontSize: '52px', marginBottom: '16px' }}>✅</div>
+                <h3 style={{ color: '#22c55e', fontSize: '20px', fontWeight: 700, marginBottom: '8px' }}>Mesaj trimis!</h3>
+                <p style={{ color: '#64748b', fontSize: '13px', lineHeight: 1.7 }}>
+                  {notifISJSelected.length === 1
+                    ? `ISJ ${notifISJSelected[0]} a primit notificarea.`
+                    : `${notifISJSelected.length} ISJ-uri au primit notificarea instant.`}
+                </p>
+              </div>
+            ) : (
+              <>
+                {/* Header */}
+                <div style={{ padding: '20px 24px', borderBottom: '1px solid #334155', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div>
+                    <h3 style={{ fontSize: '17px', fontWeight: 700, color: '#f1f5f9' }}>🏛️ Notifică ISJ-uri</h3>
+                    <p style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>
+                      Selectează ISJ-urile destinatare · {notifISJSelected.length > 0 ? <span style={{ color: '#a78bfa' }}>{notifISJSelected.length} selectate</span> : 'niciunul selectat'}
+                    </p>
+                  </div>
+                  <button onClick={() => { setShowNotifISJ(false); setNotifISJSelected([]); setNotifISJMsg('') }} style={{ background: '#334155', border: 'none', color: '#94a3b8', borderRadius: '8px', padding: '8px 14px', fontSize: '13px', cursor: 'pointer' }}>✕</button>
+                </div>
+
+                {/* Selectie rapida */}
+                <div style={{ padding: '12px 24px', borderBottom: '1px solid #334155', display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <span style={{ fontSize: '12px', color: '#64748b' }}>Selectare rapidă:</span>
+                  <button
+                    onClick={() => setNotifISJSelected(JUDETE.map(j => j.name))}
+                    style={{ background: '#1e3a5f', color: '#93c5fd', border: '1px solid #1d4ed8', borderRadius: '20px', padding: '3px 12px', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}
+                  >
+                    Toate (42)
+                  </button>
+                  <button
+                    onClick={() => setNotifISJSelected(JUDETE.filter(j => j.alert > 0).map(j => j.name))}
+                    style={{ background: '#451a03', color: '#fcd34d', border: '1px solid #92400e', borderRadius: '20px', padding: '3px 12px', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}
+                  >
+                    Cu alerte ({JUDETE.filter(j => j.alert > 0).length})
+                  </button>
+                  <button
+                    onClick={() => setNotifISJSelected([])}
+                    style={{ background: '#1e293b', color: '#64748b', border: '1px solid #334155', borderRadius: '20px', padding: '3px 12px', fontSize: '11px', cursor: 'pointer' }}
+                  >
+                    Resetează
+                  </button>
+                </div>
+
+                {/* Lista ISJ-uri */}
+                <div style={{ overflowY: 'auto', maxHeight: '280px', padding: '12px 16px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                  {JUDETE.map(j => {
+                    const sel = notifISJSelected.includes(j.name)
+                    return (
+                      <button
+                        key={j.name}
+                        onClick={() => setNotifISJSelected(prev => sel ? prev.filter(x => x !== j.name) : [...prev, j.name])}
+                        style={{
+                          background: sel ? '#4c1d95' : '#0f172a',
+                          border: `1px solid ${sel ? '#7c3aed' : j.alert > 0 ? '#92400e' : '#334155'}`,
+                          color: sel ? '#e9d5ff' : j.alert > 0 ? '#fcd34d' : '#94a3b8',
+                          borderRadius: '8px',
+                          padding: '6px 12px',
+                          fontSize: '12px',
+                          fontWeight: sel ? 700 : 400,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '5px',
+                        }}
+                      >
+                        {sel ? '✓ ' : ''}{j.name}
+                        {j.alert > 0 && <span style={{ fontSize: '10px', opacity: 0.8 }}>⚠️</span>}
+                      </button>
+                    )
+                  })}
+                </div>
+
+                {/* Mesaj */}
+                <div style={{ padding: '14px 24px', borderTop: '1px solid #334155' }}>
+                  <label style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '8px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Mesaj</label>
+                  <textarea
+                    value={notifISJMsg}
+                    onChange={e => setNotifISJMsg(e.target.value)}
+                    placeholder="Scrieți mesajul pentru ISJ-urile selectate..."
+                    rows={3}
+                    style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', color: '#e2e8f0', outline: 'none', resize: 'none', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                {/* Footer */}
+                <div style={{ padding: '12px 24px 20px', display: 'flex', gap: '10px' }}>
+                  <button
+                    onClick={() => { setShowNotifISJ(false); setNotifISJSelected([]); setNotifISJMsg('') }}
+                    style={{ flex: 1, background: '#334155', color: '#94a3b8', border: 'none', borderRadius: '8px', padding: '12px', fontSize: '14px', cursor: 'pointer' }}
+                  >
+                    Anulează
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (!notifISJMsg.trim() || notifISJSelected.length === 0) return
+                      setNotifISJSent(true)
+                      setTimeout(() => { setShowNotifISJ(false); setNotifISJSent(false); setNotifISJSelected([]); setNotifISJMsg('') }, 2200)
+                    }}
+                    disabled={!notifISJMsg.trim() || notifISJSelected.length === 0}
+                    style={{
+                      flex: 2,
+                      background: !notifISJMsg.trim() || notifISJSelected.length === 0 ? '#334155' : '#7c3aed',
+                      color: '#fff', border: 'none', borderRadius: '8px', padding: '12px', fontSize: '14px', fontWeight: 600,
+                      cursor: !notifISJMsg.trim() || notifISJSelected.length === 0 ? 'not-allowed' : 'pointer',
+                    }}
+                  >
+                    Trimite la {notifISJSelected.length || '0'} ISJ{notifISJSelected.length !== 1 ? '-uri' : ''} →
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
