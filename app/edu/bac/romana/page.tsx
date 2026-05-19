@@ -1,6 +1,7 @@
 'use client'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useState, useRef, useEffect, Suspense } from 'react'
+import { speak } from '../../tts'
 
 type Msg = { role: 'user' | 'assistant'; content: string }
 
@@ -34,6 +35,8 @@ function RomanaChat() {
   const [messages, setMessages] = useState<Msg[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  const [voiceEnabled, setVoiceEnabled] = useState(true)
+  const [speaking, setSpeaking] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -54,7 +57,9 @@ function RomanaChat() {
         body: JSON.stringify({ messages: newMessages, materie: 'romana', profil }),
       })
       const data = await res.json()
-      setMessages(prev => [...prev, { role: 'assistant', content: data.text || 'Eroare. Încercați din nou.' }])
+      const reply = data.text || 'Eroare. Încercați din nou.'
+      setMessages(prev => [...prev, { role: 'assistant', content: reply }])
+      if (voiceEnabled) { setSpeaking(true); speak(reply, () => setSpeaking(false)) }
     } catch {
       setMessages(prev => [...prev, { role: 'assistant', content: 'Eroare de conexiune. Încercați din nou.' }])
     }
@@ -72,10 +77,20 @@ function RomanaChat() {
           <span style={{ fontSize: '22px' }}>{config.icon}</span>
           <div>
             <div style={{ fontSize: '14px', fontWeight: 700, color: '#f1f5f9' }}>Română — {config.label} — Profesor AI</div>
-            <div style={{ fontSize: '11px', color: '#22c55e' }}>● Online · {config.subtitle}</div>
+            <div style={{ fontSize: '11px', color: '#22c55e', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              ● Online · {config.subtitle}
+              {speaking && <span style={{ color: '#a78bfa' }}>· 🔊 vorbește...</span>}
+            </div>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: '8px' }}>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <button
+            onClick={() => { if (voiceEnabled) { window.speechSynthesis?.cancel(); setSpeaking(false) }; setVoiceEnabled(v => !v) }}
+            title={voiceEnabled ? 'Oprește vocea' : 'Activează vocea'}
+            style={{ background: voiceEnabled ? `rgba(124,58,237,0.15)` : 'rgba(255,255,255,0.03)', border: `1px solid ${voiceEnabled ? config.culoare : '#334155'}`, borderRadius: '8px', padding: '5px 10px', fontSize: '16px', cursor: 'pointer', color: voiceEnabled ? config.culoareLight : '#475569', lineHeight: 1 }}
+          >
+            {voiceEnabled ? '🔊' : '🔇'}
+          </button>
           <button
             onClick={() => router.push('/edu/bac/romana?profil=real')}
             style={{ background: profil === 'real' ? config.culoare : '#1e293b', border: '1px solid #334155', color: profil === 'real' ? '#fff' : '#64748b', borderRadius: '8px', padding: '6px 14px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}

@@ -1,6 +1,7 @@
 'use client'
 import { useRouter } from 'next/navigation'
 import { useState, useRef, useEffect } from 'react'
+import { speak } from '../tts'
 
 const MODULE = [
   {
@@ -215,6 +216,8 @@ export default function CursuriAI() {
   const [messages, setMessages] = useState<Msg[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  const [voiceEnabled, setVoiceEnabled] = useState(true)
+  const [speaking, setSpeaking] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -223,12 +226,16 @@ export default function CursuriAI() {
 
   function deschideModul(id: number) {
     const modul = MODULE.find(m => m.id === id)!
+    window.speechSynthesis?.cancel()
+    setSpeaking(false)
     setModulActiv(id)
-    setMessages([{
-      role: 'assistant',
-      content: `Bună ziua! Astăzi vom explora împreună Modulul ${id}: „${modul.titlu}".\n\nSunt profesorul vostru AI și vom parcurge acest subiect împreună, pas cu pas. Voi pune întrebări pe parcurs pentru a verifica înțelegerea.\n\nSă începem! Prima întrebare pentru voi: **Ați mai auzit până acum de ${modul.titlu.toLowerCase()}? Ce știți deja despre acest subiect?**`,
-    }])
+    const welcomeMsg = `Bună ziua! Astăzi vom explora împreună Modulul ${id}: „${modul.titlu}".\n\nSunt profesorul vostru AI și vom parcurge acest subiect împreună, pas cu pas. Voi pune întrebări pe parcurs pentru a verifica înțelegerea.\n\nSă începem! Prima întrebare pentru voi: Ați mai auzit până acum de ${modul.titlu.toLowerCase()}? Ce știți deja despre acest subiect?`
+    setMessages([{ role: 'assistant', content: welcomeMsg }])
     setInput('')
+    if (voiceEnabled) {
+      setSpeaking(true)
+      speak(welcomeMsg, () => setSpeaking(false))
+    }
   }
 
   async function sendMsg() {
@@ -245,7 +252,9 @@ export default function CursuriAI() {
         body: JSON.stringify({ messages: newMessages, modulId: modulActiv }),
       })
       const data = await res.json()
-      setMessages(prev => [...prev, { role: 'assistant', content: data.text || 'Eroare. Încercați din nou.' }])
+      const reply = data.text || 'Eroare. Încercați din nou.'
+      setMessages(prev => [...prev, { role: 'assistant', content: reply }])
+      if (voiceEnabled) { setSpeaking(true); speak(reply, () => setSpeaking(false)) }
     } catch {
       setMessages(prev => [...prev, { role: 'assistant', content: 'Eroare de conexiune. Încercați din nou.' }])
     }
@@ -265,10 +274,20 @@ export default function CursuriAI() {
             <span style={{ fontSize: '22px' }}>{modul.icon}</span>
             <div>
               <div style={{ fontSize: '14px', fontWeight: 700, color: '#f1f5f9' }}>Modulul {modul.id}: {modul.titlu}</div>
-              <div style={{ fontSize: '11px', color: modul.culoare }}>● Lecție interactivă în desfășurare</div>
+              <div style={{ fontSize: '11px', color: modul.culoare, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                ● Lecție interactivă în desfășurare
+                {speaking && <span style={{ color: '#a78bfa', fontSize: '11px' }}>· 🔊 vorbește...</span>}
+              </div>
             </div>
           </div>
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <button
+              onClick={() => { if (voiceEnabled) { window.speechSynthesis?.cancel(); setSpeaking(false) }; setVoiceEnabled(v => !v) }}
+              title={voiceEnabled ? 'Oprește vocea' : 'Activează vocea'}
+              style={{ background: voiceEnabled ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.03)', border: `1px solid ${voiceEnabled ? modul.culoare : '#334155'}`, borderRadius: '8px', padding: '5px 10px', fontSize: '16px', cursor: 'pointer', color: voiceEnabled ? modul.culoare : '#475569', lineHeight: 1 }}
+            >
+              {voiceEnabled ? '🔊' : '🔇'}
+            </button>
             {MODULE.map(m => (
               <button
                 key={m.id}
