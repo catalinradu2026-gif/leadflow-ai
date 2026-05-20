@@ -517,23 +517,23 @@ export default function AracipHome() {
             {[
               {
                 icon: '🏛️',
-                titlu: 'Cine suntem',
-                text: 'Newtime Concept Solutions este o companie românească specializată în soluții AI pentru instituții publice. Construim platforme care înțeleg procedurile, legislația și nevoile reale ale României.',
+                titlu: 'Cine este ARACIP',
+                text: 'Agenția Română de Asigurare a Calității în Învățământul Preuniversitar este autoritatea națională care evaluează și acreditează unitățile de învățământ din România, garantând dreptul fiecărui copil la o educație de calitate.',
               },
               {
                 icon: '🎯',
-                titlu: 'Misiunea noastră',
-                text: 'Digitalizarea completă a sistemului de calitate în educația preuniversitară — procese transparente, registre publice, comunicare directă cu cele peste 7.000 de unități școlare din țară.',
+                titlu: 'Misiunea ARACIP',
+                text: 'Evaluarea externă a calității educației în toate cele 11.500 de unități școlare din România — stat și privat, urban și rural — printr-un sistem transparent, obiectiv și bazat pe standarde naționale și europene.',
               },
               {
-                icon: '🔐',
-                titlu: 'Angajamentul nostru',
-                text: 'Date stocate exclusiv pe servere europene, conformitate GDPR și AI Act 2024. Nicio instituție publică nu trebuie să compromită securitatea pentru a beneficia de tehnologie modernă.',
+                icon: '⚖️',
+                titlu: 'Cadrul legal',
+                text: 'ARACIP funcționează în baza Legii 198/2023 și OUG 75/2005, aplicând standarde de calitate aliniate directivelor europene. Fiecare decizie de acreditare are forță juridică și este publicată în Registrul Național.',
               },
               {
                 icon: '🚀',
-                titlu: 'De ce acum',
-                text: 'România are nevoie de transparență instituțională dovedită, nu declarată. Fiecare școală acreditată, fiecare decizie ARACIP — vizibilă în timp real pentru elevi, părinți și societate.',
+                titlu: 'ARACIP Digital',
+                text: 'Prin această platformă, ARACIP face pasul decisiv spre transparență totală — procese 100% digitale, registre publice în timp real, comunicare directă cu unitățile școlare și acces deschis pentru elevi, părinți și societate.',
               },
             ].map(item => (
               <div key={item.titlu} style={{
