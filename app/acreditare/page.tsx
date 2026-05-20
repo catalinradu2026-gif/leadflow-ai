@@ -95,7 +95,7 @@ export default function AcreditareLanding() {
         <div
           onClick={() => router.push('/acreditare/autorizare')}
           style={{
-            background: 'rgba(59,130,246,0.07)',
+            background: isMobile ? 'rgba(59,130,246,0.14)' : 'rgba(59,130,246,0.07)',
             border: '2px solid #3b82f6',
             borderRadius: '20px',
             padding: '40px 32px',
@@ -103,6 +103,8 @@ export default function AcreditareLanding() {
             transition: 'all 0.2s',
             position: 'relative',
             overflow: 'hidden',
+            transform: isMobile ? 'translateY(-4px)' : undefined,
+            boxShadow: isMobile ? '0 12px 32px rgba(59,130,246,0.25), 0 4px 0 rgba(59,130,246,0.4)' : undefined,
           }}
           onMouseEnter={e => {
             (e.currentTarget as HTMLDivElement).style.background = 'rgba(59,130,246,0.14)'
@@ -156,7 +158,7 @@ export default function AcreditareLanding() {
         <div
           onClick={() => router.push('/acreditare/acreditare-scolara')}
           style={{
-            background: 'rgba(168,85,247,0.07)',
+            background: isMobile ? 'rgba(168,85,247,0.14)' : 'rgba(168,85,247,0.07)',
             border: '2px solid #a855f7',
             borderRadius: '20px',
             padding: '40px 32px',
@@ -164,6 +166,8 @@ export default function AcreditareLanding() {
             transition: 'all 0.2s',
             position: 'relative',
             overflow: 'hidden',
+            transform: isMobile ? 'translateY(-4px)' : undefined,
+            boxShadow: isMobile ? '0 12px 32px rgba(168,85,247,0.25), 0 4px 0 rgba(168,85,247,0.4)' : undefined,
           }}
           onMouseEnter={e => {
             (e.currentTarget as HTMLDivElement).style.background = 'rgba(168,85,247,0.14)'
@@ -217,7 +221,7 @@ export default function AcreditareLanding() {
         <div
           onClick={() => router.push('/acreditare/evaluare-periodica')}
           style={{
-            background: 'rgba(20,184,166,0.07)',
+            background: isMobile ? 'rgba(20,184,166,0.14)' : 'rgba(20,184,166,0.07)',
             border: '2px solid #14b8a6',
             borderRadius: '20px',
             padding: '40px 32px',
@@ -225,6 +229,8 @@ export default function AcreditareLanding() {
             transition: 'all 0.2s',
             position: 'relative',
             overflow: 'hidden',
+            transform: isMobile ? 'translateY(-4px)' : undefined,
+            boxShadow: isMobile ? '0 12px 32px rgba(20,184,166,0.25), 0 4px 0 rgba(20,184,166,0.4)' : undefined,
           }}
           onMouseEnter={e => {
             (e.currentTarget as HTMLDivElement).style.background = 'rgba(20,184,166,0.14)'

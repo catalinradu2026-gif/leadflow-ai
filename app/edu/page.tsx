@@ -75,7 +75,7 @@ export default function EduLanding() {
         <div
           onClick={() => router.push('/edu/cursuri-ai')}
           style={{
-            background: 'rgba(99,102,241,0.08)',
+            background: isMobile ? 'rgba(99,102,241,0.15)' : 'rgba(99,102,241,0.08)',
             border: '2px solid #6366f1',
             borderRadius: '20px',
             padding: '40px 32px',
@@ -83,6 +83,8 @@ export default function EduLanding() {
             transition: 'all 0.2s',
             position: 'relative',
             overflow: 'hidden',
+            transform: isMobile ? 'translateY(-4px)' : undefined,
+            boxShadow: isMobile ? '0 12px 32px rgba(99,102,241,0.25), 0 4px 0 rgba(99,102,241,0.4)' : undefined,
           }}
           onMouseEnter={e => {
             (e.currentTarget as HTMLDivElement).style.background = 'rgba(99,102,241,0.15)'
@@ -141,7 +143,7 @@ export default function EduLanding() {
         <div
           onClick={() => router.push('/edu/cursuri-profesori')}
           style={{
-            background: 'rgba(245,158,11,0.06)',
+            background: isMobile ? 'rgba(245,158,11,0.12)' : 'rgba(245,158,11,0.06)',
             border: '2px solid #f59e0b',
             borderRadius: '20px',
             padding: '40px 32px',
@@ -149,6 +151,8 @@ export default function EduLanding() {
             transition: 'all 0.2s',
             position: 'relative',
             overflow: 'hidden',
+            transform: isMobile ? 'translateY(-4px)' : undefined,
+            boxShadow: isMobile ? '0 12px 32px rgba(245,158,11,0.25), 0 4px 0 rgba(245,158,11,0.4)' : undefined,
           }}
           onMouseEnter={e => {
             (e.currentTarget as HTMLDivElement).style.background = 'rgba(245,158,11,0.12)'
@@ -207,7 +211,7 @@ export default function EduLanding() {
         <div
           onClick={() => router.push('/edu/bac')}
           style={{
-            background: 'rgba(16,185,129,0.06)',
+            background: isMobile ? 'rgba(16,185,129,0.12)' : 'rgba(16,185,129,0.06)',
             border: '2px solid #10b981',
             borderRadius: '20px',
             padding: '40px 32px',
@@ -215,6 +219,8 @@ export default function EduLanding() {
             transition: 'all 0.2s',
             position: 'relative',
             overflow: 'hidden',
+            transform: isMobile ? 'translateY(-4px)' : undefined,
+            boxShadow: isMobile ? '0 12px 32px rgba(16,185,129,0.25), 0 4px 0 rgba(16,185,129,0.4)' : undefined,
           }}
           onMouseEnter={e => {
             (e.currentTarget as HTMLDivElement).style.background = 'rgba(16,185,129,0.12)'
