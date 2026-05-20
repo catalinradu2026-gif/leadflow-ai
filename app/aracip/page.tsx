@@ -567,12 +567,13 @@ export default function AracipHome() {
 
         {/* Footer */}
         <footer style={{
-          padding: isMobile ? '24px 20px' : '28px 56px',
+          padding: isMobile ? '24px 20px 100px' : '28px 56px',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '12px',
+          justifyContent: 'center',
+          flexDirection: 'column',
+          gap: '8px',
+          textAlign: 'center',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <div style={{ width: 24, height: 24, borderRadius: '6px', background: 'linear-gradient(135deg, #7c3aed, #14b8a6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px' }}>🏛️</div>
