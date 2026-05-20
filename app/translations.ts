@@ -230,6 +230,7 @@ export const t = {
     footer: {
       copy: '© 2026 AI Craiova. Toate drepturile rezervate.',
       address: 'Craiova, județul Dolj • 0787 813 485',
+      email: 'contact@aicraiova.ro',
       links: [
         { href: '#servicii', label: 'Servicii' },
         { href: '#portofoliu', label: 'Portofoliu' },
@@ -467,6 +468,7 @@ export const t = {
     footer: {
       copy: '© 2026 AI Craiova. All rights reserved.',
       address: 'Craiova, Dolj County • 0787 813 485',
+      email: 'contact@aicraiova.ro',
       links: [
         { href: '#servicii', label: 'Services' },
         { href: '#portofoliu', label: 'Portfolio' },

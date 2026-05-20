@@ -14,6 +14,7 @@ export default function Footer() {
             AI <span className="text-gold">Craiova</span>
           </span>
           <p className="text-white/20 text-xs mt-1">{tr.address}</p>
+          <a href={`mailto:${tr.email}`} className="text-gold/60 text-xs mt-1 hover:text-gold transition-colors">{tr.email}</a>
         </div>
         <p className="text-white/20 text-sm">{tr.copy}</p>
         <div className="flex gap-6 text-white/30 text-xs">
