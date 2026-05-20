@@ -579,7 +579,7 @@ export default function AracipHome() {
             <span style={{ fontSize: '12px', color: '#334155' }}>ARACIP · Platformă Digitală · România · 2026</span>
           </div>
           <div style={{ fontSize: '12px', color: '#1e293b' }}>
-            Powered by <strong style={{ color: '#7c3aed' }}>AIcraiova</strong> · NewTime Concept Solutions S.R.L.
+            Powered by <strong style={{ color: '#7c3aed' }}>AIcraiova</strong>
           </div>
         </footer>
       </div>
