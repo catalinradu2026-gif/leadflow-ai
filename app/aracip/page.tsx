@@ -387,15 +387,17 @@ export default function AracipHome() {
                 onMouseEnter={() => setHovered(card.id)}
                 onMouseLeave={() => setHovered(null)}
                 style={{
-                  background: hovered === card.id ? card.colorHover : card.colorLight,
-                  border: `1.5px solid ${hovered === card.id ? card.color : card.colorBorder}`,
+                  background: isMobile ? card.colorHover : (hovered === card.id ? card.colorHover : card.colorLight),
+                  border: `1.5px solid ${isMobile ? card.color : (hovered === card.id ? card.color : card.colorBorder)}`,
                   borderRadius: '24px',
                   padding: isMobile ? '28px 24px' : '36px 32px',
                   cursor: 'pointer',
                   textAlign: 'left',
-                  transform: hovered === card.id ? 'translateY(-6px)' : 'translateY(0)',
+                  transform: isMobile ? 'translateY(-4px)' : (hovered === card.id ? 'translateY(-6px)' : 'translateY(0)'),
                   transition: 'all 0.25s cubic-bezier(0.4,0,0.2,1)',
-                  boxShadow: hovered === card.id ? `0 20px 48px ${card.color}22` : '0 4px 20px rgba(0,0,0,0.2)',
+                  boxShadow: isMobile
+                    ? `0 12px 32px ${card.color}33, 0 4px 0 ${card.color}44`
+                    : (hovered === card.id ? `0 20px 48px ${card.color}22` : '0 4px 20px rgba(0,0,0,0.2)'),
                   position: 'relative',
                   overflow: 'hidden',
                 }}
