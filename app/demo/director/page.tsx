@@ -109,6 +109,12 @@ export default function DirectorPage() {
   const [voiceEnabled, setVoiceEnabled] = useState(true)
   const [speaking, setSpeaking] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const [showReclama, setShowReclama] = useState(false)
+  const [reclamaCategorie, setReclamaCategorie] = useState('Abatere disciplinară')
+  const [reclamaDescriere, setReclamaDescriere] = useState('')
+  const [reclamaTrimiteISJ, setReclamaTrimiteISJ] = useState(true)
+  const [reclamaTrimiteARACIP, setReclamaTrimiteARACIP] = useState(true)
+  const [reclamaSent, setReclamaSent] = useState(false)
 
   const unread = notificari.filter(n => !n.citit).length
 
@@ -176,6 +182,25 @@ export default function DirectorPage() {
               🔔 {unread} nou{unread > 1 ? 'ă' : ''}
             </span>
           )}
+          <button
+            onClick={() => { setShowReclama(true); setReclamaSent(false); setReclamaDescriere('') }}
+            style={{
+              background: '#dc2626',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '8px',
+              padding: isMobile ? '6px 10px' : '7px 16px',
+              fontSize: isMobile ? '11px' : '12px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px',
+              boxShadow: '0 2px 8px rgba(220,38,38,0.4)',
+            }}
+          >
+            🚨 {isMobile ? 'Reclamă' : 'Reclamă o abatere'}
+          </button>
         </div>
       </div>
 
@@ -426,6 +451,141 @@ export default function DirectorPage() {
           </div>
         )}
       </div>
+
+      {/* RECLAMA ABATERE MODAL */}
+      {showReclama && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 1000,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px',
+        }}>
+          <div style={{
+            background: '#1e293b', border: '2px solid #dc2626', borderRadius: '16px',
+            padding: '28px', width: '100%', maxWidth: '520px', maxHeight: '90vh', overflowY: 'auto',
+            boxShadow: '0 20px 60px rgba(220,38,38,0.25)',
+          }}>
+            {reclamaSent ? (
+              <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                <div style={{ fontSize: '52px', marginBottom: '16px' }}>✅</div>
+                <div style={{ fontSize: '18px', fontWeight: 800, color: '#f1f5f9', marginBottom: '8px' }}>Reclamație trimisă!</div>
+                <div style={{ fontSize: '13px', color: '#94a3b8', marginBottom: '8px', lineHeight: 1.6 }}>
+                  Sesizarea dvs. a fost înregistrată și transmisă către:
+                </div>
+                <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginBottom: '24px', flexWrap: 'wrap' }}>
+                  {reclamaTrimiteISJ && <span style={{ background: '#1d4ed8', color: '#93c5fd', fontSize: '12px', fontWeight: 700, padding: '4px 14px', borderRadius: '20px' }}>🏛️ ISJ Dolj</span>}
+                  {reclamaTrimiteARACIP && <span style={{ background: '#7c3aed', color: '#c4b5fd', fontSize: '12px', fontWeight: 700, padding: '4px 14px', borderRadius: '20px' }}>🏅 ARACIP</span>}
+                </div>
+                <div style={{ fontSize: '11px', color: '#475569', marginBottom: '24px' }}>Număr sesizare: <strong style={{ color: '#fca5a5' }}>SES-{Date.now().toString().slice(-6)}</strong></div>
+                <button onClick={() => setShowReclama(false)} style={{ background: '#059669', color: '#fff', border: 'none', borderRadius: '8px', padding: '10px 28px', fontSize: '14px', fontWeight: 700, cursor: 'pointer' }}>
+                  Închide
+                </button>
+              </div>
+            ) : (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+                  <div style={{ width: 42, height: 42, background: '#7f1d1d', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', flexShrink: 0 }}>🚨</div>
+                  <div>
+                    <div style={{ fontSize: '16px', fontWeight: 800, color: '#fca5a5' }}>Reclamă o abatere</div>
+                    <div style={{ fontSize: '12px', color: '#94a3b8' }}>Sesizare oficială către ISJ și/sau ARACIP</div>
+                  </div>
+                  <button onClick={() => setShowReclama(false)} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: '#64748b', fontSize: '20px', cursor: 'pointer', lineHeight: 1 }}>✕</button>
+                </div>
+
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 600, display: 'block', marginBottom: '6px' }}>CATEGORIE ABATERE</label>
+                  <select
+                    value={reclamaCategorie}
+                    onChange={e => setReclamaCategorie(e.target.value)}
+                    style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', borderRadius: '8px', padding: '10px 12px', fontSize: '13px', color: '#e2e8f0', outline: 'none' }}
+                  >
+                    {['Abatere disciplinară', 'Nerespectare curriculă', 'Evaluare incorectă', 'Hărțuire / bullying', 'Condiții improprii de studiu', 'Fraudă sau corupție', 'Altă abatere'].map(c => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div style={{ marginBottom: '20px' }}>
+                  <label style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 600, display: 'block', marginBottom: '6px' }}>DESCRIERE SESIZARE <span style={{ color: '#ef4444' }}>*</span></label>
+                  <textarea
+                    value={reclamaDescriere}
+                    onChange={e => setReclamaDescriere(e.target.value)}
+                    placeholder="Descrieți abaterea constatată (persoana implicată, data, circumstanțele, orice detalii relevante)..."
+                    rows={5}
+                    style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', borderRadius: '8px', padding: '10px 12px', fontSize: '13px', color: '#e2e8f0', outline: 'none', resize: 'vertical', boxSizing: 'border-box', lineHeight: 1.6 }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: '24px' }}>
+                  <label style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 600, display: 'block', marginBottom: '10px' }}>TRANSMITE SESIZAREA CĂTRE:</label>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {[
+                      { state: reclamaTrimiteISJ, setter: setReclamaTrimiteISJ, color: '#1d4ed8', bg: 'rgba(29,78,216,0.15)', border: '#3b82f6', icon: '🏛️', label: 'ISJ Dolj', sub: 'Inspectoratul Școlar Județean Dolj' },
+                      { state: reclamaTrimiteARACIP, setter: setReclamaTrimiteARACIP, color: '#7c3aed', bg: 'rgba(124,58,237,0.15)', border: '#8b5cf6', icon: '🏅', label: 'ARACIP', sub: 'Agenția Română de Asigurare a Calității în Învățământul Preuniversitar' },
+                    ].map(item => (
+                      <div
+                        key={item.label}
+                        onClick={() => item.setter(v => !v)}
+                        style={{
+                          background: item.state ? item.bg : 'rgba(255,255,255,0.03)',
+                          border: `1px solid ${item.state ? item.border : '#334155'}`,
+                          borderRadius: '10px',
+                          padding: '12px 16px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '12px',
+                          transition: 'all 0.15s',
+                        }}
+                      >
+                        <div style={{ fontSize: '22px' }}>{item.icon}</div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: '13px', fontWeight: 700, color: item.state ? '#f1f5f9' : '#64748b' }}>{item.label}</div>
+                          <div style={{ fontSize: '11px', color: '#475569', lineHeight: 1.4 }}>{item.sub}</div>
+                        </div>
+                        <div style={{
+                          width: 20, height: 20, borderRadius: '6px',
+                          background: item.state ? item.color : 'transparent',
+                          border: `2px solid ${item.state ? item.color : '#475569'}`,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: '12px', color: '#fff', flexShrink: 0,
+                          transition: 'all 0.15s',
+                        }}>
+                          {item.state ? '✓' : ''}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button
+                    onClick={() => setShowReclama(false)}
+                    style={{ flex: 1, background: 'none', border: '1px solid #334155', borderRadius: '8px', padding: '11px', fontSize: '13px', color: '#64748b', cursor: 'pointer', fontWeight: 600 }}
+                  >
+                    Anulează
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (!reclamaDescriere.trim()) return
+                      if (!reclamaTrimiteISJ && !reclamaTrimiteARACIP) return
+                      setReclamaSent(true)
+                    }}
+                    disabled={!reclamaDescriere.trim() || (!reclamaTrimiteISJ && !reclamaTrimiteARACIP)}
+                    style={{
+                      flex: 2, background: reclamaDescriere.trim() && (reclamaTrimiteISJ || reclamaTrimiteARACIP) ? '#dc2626' : '#334155',
+                      color: '#fff', border: 'none', borderRadius: '8px', padding: '11px',
+                      fontSize: '13px', fontWeight: 700, cursor: reclamaDescriere.trim() ? 'pointer' : 'not-allowed',
+                      boxShadow: reclamaDescriere.trim() ? '0 4px 12px rgba(220,38,38,0.3)' : 'none',
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    🚨 Trimite sesizarea
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
