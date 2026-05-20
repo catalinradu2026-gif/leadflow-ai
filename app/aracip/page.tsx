@@ -547,10 +547,15 @@ export default function AracipHome() {
               },
             ].map(item => (
               <div key={item.titlu} style={{
-                background: 'rgba(255,255,255,0.02)',
-                border: '1px solid rgba(255,255,255,0.06)',
+                background: 'rgba(255,255,255,0.04)',
+                border: '1px solid rgba(124,58,237,0.2)',
                 borderRadius: '14px',
                 padding: '24px',
+                transform: isMobile ? 'translateY(-4px)' : undefined,
+                boxShadow: isMobile
+                  ? '0 12px 32px rgba(124,58,237,0.2), 0 4px 0 rgba(124,58,237,0.35)'
+                  : '0 4px 20px rgba(0,0,0,0.2)',
+                transition: 'all 0.25s ease',
               }}>
                 <div style={{ fontSize: '28px', marginBottom: '12px' }}>{item.icon}</div>
                 <div style={{ fontSize: '14px', fontWeight: 700, color: '#f1f5f9', marginBottom: '8px' }}>{item.titlu}</div>
