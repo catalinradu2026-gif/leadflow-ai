@@ -516,6 +516,16 @@ export default function AracipHome() {
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '20px' }}>
             {[
               {
+                icon: '🤖',
+                titlu: 'ARA — Asistentul AI ARACIP',
+                text: 'ARA este primul asistent digital vocal specializat pe procedurile ARACIP din România. Răspunde în timp real la întrebări despre autorizare, acreditare și evaluare periodică — disponibil 24/7, în limba română, pe orice dispozitiv.',
+              },
+              {
+                icon: '🧠',
+                titlu: 'Inteligență Artificială în Educație',
+                text: 'ARA nu este un chatbot obișnuit. Cunoaște legislația ARACIP, standardele A1/A2/A3, procedurile ISJ și programele BAC. Se adaptează contextului fiecărei pagini și ghidează fiecare utilizator exact acolo unde are nevoie.',
+              },
+              {
                 icon: '🏛️',
                 titlu: 'Cine este ARACIP',
                 text: 'Agenția Română de Asigurare a Calității în Învățământul Preuniversitar este autoritatea națională care evaluează și acreditează unitățile de învățământ din România, garantând dreptul fiecărui copil la o educație de calitate.',
