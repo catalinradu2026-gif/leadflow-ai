@@ -156,6 +156,11 @@ export default function InspectorNational() {
   const [showBroadcast, setShowBroadcast] = useState(false)
   const [broadcastMsg, setBroadcastMsg] = useState('')
   const [broadcastSent, setBroadcastSent] = useState(false)
+  const [showNotifScoala, setShowNotifScoala] = useState(false)
+  const [notifScoalaJudet, setNotifScoalaJudet] = useState('Dolj')
+  const [notifScoalaScoala, setNotifScoalaScoala] = useState('')
+  const [notifScoalaMsg, setNotifScoalaMsg] = useState('')
+  const [notifScoalaSent, setNotifScoalaSent] = useState(false)
   const [showNotifISJ, setShowNotifISJ] = useState(false)
   const [notifISJSelected, setNotifISJSelected] = useState<string[]>([])
   const [notifISJMsg, setNotifISJMsg] = useState('')
@@ -273,6 +278,12 @@ export default function InspectorNational() {
             style={{ background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '8px', padding: '8px 16px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
           >
             📄 Încarcă Document
+          </button>
+          <button
+            onClick={() => { setShowNotifScoala(true); setNotifScoalaScoala('') }}
+            style={{ background: '#059669', color: '#fff', border: 'none', borderRadius: '8px', padding: '8px 16px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
+          >
+            🏫 Notifică Școală
           </button>
           <button
             onClick={() => setShowNotifISJ(true)}
@@ -958,6 +969,115 @@ export default function InspectorNational() {
                   <div style={{ padding: '32px', textAlign: 'center', color: '#475569', fontSize: '13px' }}>Nicio unitate de tip „{judetTipFilter}" în acest județ.</div>
                 )}
               </div>
+            </div>
+          </div>
+        )
+      })()}
+
+      {/* NOTIFICA SCOALA MODAL */}
+      {showNotifScoala && (() => {
+        const scoliJudet = getScoliJudet(notifScoalaJudet)
+        return (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '20px' }}>
+            <div style={{ background: '#1e293b', border: '1px solid #059669', borderRadius: '16px', width: '560px', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
+              {notifScoalaSent ? (
+                <div style={{ padding: '48px 32px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '52px', marginBottom: '16px' }}>✅</div>
+                  <h3 style={{ color: '#22c55e', fontSize: '20px', fontWeight: 700, marginBottom: '8px' }}>Notificare trimisă!</h3>
+                  <p style={{ color: '#64748b', fontSize: '13px', lineHeight: 1.7 }}>
+                    Directorul de la <strong style={{ color: '#f1f5f9' }}>{notifScoalaScoala}</strong> a primit notificarea instant.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <div style={{ padding: '20px 24px', borderBottom: '1px solid #334155', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div>
+                      <h3 style={{ fontSize: '17px', fontWeight: 700, color: '#f1f5f9' }}>🏫 Notifică direct școala / grădinița</h3>
+                      <p style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>Mesaj direct către directorul unei unități școlare</p>
+                    </div>
+                    <button onClick={() => { setShowNotifScoala(false); setNotifScoalaMsg(''); setNotifScoalaScoala('') }} style={{ background: '#334155', border: 'none', color: '#94a3b8', borderRadius: '8px', padding: '8px 14px', fontSize: '13px', cursor: 'pointer' }}>✕</button>
+                  </div>
+
+                  <div style={{ padding: '20px 24px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    {/* Județ */}
+                    <div>
+                      <label style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '8px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Județ</label>
+                      <select
+                        value={notifScoalaJudet}
+                        onChange={e => { setNotifScoalaJudet(e.target.value); setNotifScoalaScoala('') }}
+                        style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', color: '#e2e8f0', outline: 'none' }}
+                      >
+                        {JUDETE.map(j => <option key={j.name} value={j.name}>{j.name}</option>)}
+                      </select>
+                    </div>
+
+                    {/* Scoala */}
+                    <div>
+                      <label style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '8px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        Unitate școlară ({scoliJudet.length} disponibile)
+                      </label>
+                      <div style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: '10px', padding: '8px', maxHeight: '200px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        {scoliJudet.map((s, i) => {
+                          const tc = TIP_COLORS[s.tip]
+                          const sel = notifScoalaScoala === s.name
+                          return (
+                            <button
+                              key={i}
+                              onClick={() => setNotifScoalaScoala(s.name)}
+                              style={{
+                                background: sel ? 'rgba(5,150,105,0.2)' : 'transparent',
+                                border: `1px solid ${sel ? '#059669' : 'transparent'}`,
+                                borderRadius: '8px', padding: '8px 12px', cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '10px',
+                              }}
+                            >
+                              <span style={{ background: tc.bg, color: tc.color, fontSize: '10px', fontWeight: 700, padding: '1px 7px', borderRadius: '20px', flexShrink: 0 }}>{s.tip}</span>
+                              <span style={{ fontSize: '13px', color: sel ? '#f1f5f9' : '#94a3b8', flex: 1 }}>{s.name}</span>
+                              <span style={{ fontSize: '11px', color: '#475569' }}>Dir: {s.director}</span>
+                              {sel && <span style={{ color: '#22c55e', fontSize: '14px' }}>✓</span>}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Mesaj */}
+                    <div>
+                      <label style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '8px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Mesaj</label>
+                      <textarea
+                        value={notifScoalaMsg}
+                        onChange={e => setNotifScoalaMsg(e.target.value)}
+                        placeholder="Scrieți mesajul pentru directorul școlii selectate..."
+                        rows={3}
+                        style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', color: '#e2e8f0', outline: 'none', resize: 'none', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ padding: '14px 24px 20px', borderTop: '1px solid #334155', display: 'flex', gap: '10px' }}>
+                    <button
+                      onClick={() => { setShowNotifScoala(false); setNotifScoalaMsg(''); setNotifScoalaScoala('') }}
+                      style={{ flex: 1, background: '#334155', color: '#94a3b8', border: 'none', borderRadius: '8px', padding: '12px', fontSize: '14px', cursor: 'pointer' }}
+                    >
+                      Anulează
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (!notifScoalaMsg.trim() || !notifScoalaScoala) return
+                        setNotifScoalaSent(true)
+                        setTimeout(() => { setShowNotifScoala(false); setNotifScoalaSent(false); setNotifScoalaMsg(''); setNotifScoalaScoala('') }, 2200)
+                      }}
+                      disabled={!notifScoalaMsg.trim() || !notifScoalaScoala}
+                      style={{
+                        flex: 2, background: !notifScoalaMsg.trim() || !notifScoalaScoala ? '#334155' : '#059669',
+                        color: '#fff', border: 'none', borderRadius: '8px', padding: '12px', fontSize: '14px', fontWeight: 600,
+                        cursor: !notifScoalaMsg.trim() || !notifScoalaScoala ? 'not-allowed' : 'pointer',
+                      }}
+                    >
+                      {notifScoalaScoala ? `Trimite la ${notifScoalaScoala.split('"')[0].trim()} →` : 'Selectează o unitate →'}
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         )
