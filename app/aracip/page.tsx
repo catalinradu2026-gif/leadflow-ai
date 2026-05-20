@@ -495,6 +495,59 @@ export default function AracipHome() {
           </div>
         </section>
 
+        {/* Despre noi */}
+        <section style={{
+          padding: isMobile ? '48px 20px' : '72px 56px',
+          maxWidth: '860px',
+          margin: '0 auto',
+        }}>
+          <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+            <div style={{ display: 'inline-block', background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.2)', borderRadius: '20px', padding: '6px 16px', fontSize: '11px', fontWeight: 700, color: '#a78bfa', letterSpacing: '1px', marginBottom: '16px' }}>DESPRE NOI</div>
+            <h2 style={{ fontSize: isMobile ? '26px' : '36px', fontWeight: 900, color: '#f1f5f9', lineHeight: 1.2, marginBottom: '16px' }}>
+              Transparență în Era Digitală
+            </h2>
+            <p style={{ fontSize: '15px', color: '#64748b', maxWidth: '560px', margin: '0 auto', lineHeight: 1.8 }}>
+              România 2026 — digitalizarea educației nu mai e o viziune, e o realitate.
+            </p>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '20px' }}>
+            {[
+              {
+                icon: '🏛️',
+                titlu: 'Cine suntem',
+                text: 'Newtime Concept Solutions este o companie românească specializată în soluții AI pentru instituții publice. Construim platforme care înțeleg procedurile, legislația și nevoile reale ale României.',
+              },
+              {
+                icon: '🎯',
+                titlu: 'Misiunea noastră',
+                text: 'Digitalizarea completă a sistemului de calitate în educația preuniversitară — procese transparente, registre publice, comunicare directă cu cele peste 7.000 de unități școlare din țară.',
+              },
+              {
+                icon: '🔐',
+                titlu: 'Angajamentul nostru',
+                text: 'Date stocate exclusiv pe servere europene, conformitate GDPR și AI Act 2024. Nicio instituție publică nu trebuie să compromită securitatea pentru a beneficia de tehnologie modernă.',
+              },
+              {
+                icon: '🚀',
+                titlu: 'De ce acum',
+                text: 'România are nevoie de transparență instituțională dovedită, nu declarată. Fiecare școală acreditată, fiecare decizie ARACIP — vizibilă în timp real pentru elevi, părinți și societate.',
+              },
+            ].map(item => (
+              <div key={item.titlu} style={{
+                background: 'rgba(255,255,255,0.02)',
+                border: '1px solid rgba(255,255,255,0.06)',
+                borderRadius: '14px',
+                padding: '24px',
+              }}>
+                <div style={{ fontSize: '28px', marginBottom: '12px' }}>{item.icon}</div>
+                <div style={{ fontSize: '14px', fontWeight: 700, color: '#f1f5f9', marginBottom: '8px' }}>{item.titlu}</div>
+                <div style={{ fontSize: '13px', color: '#64748b', lineHeight: 1.7 }}>{item.text}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+
         {/* Footer */}
         <footer style={{
           padding: isMobile ? '24px 20px' : '28px 56px',
