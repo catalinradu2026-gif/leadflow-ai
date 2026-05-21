@@ -1,7 +1,7 @@
 'use client'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useState, useRef, useEffect, Suspense } from 'react'
-import { speak } from '../../tts'
+
 import { useIsMobile } from '../../../hooks/useIsMobile'
 
 type Msg = { role: 'user' | 'assistant'; content: string }
@@ -374,19 +374,54 @@ function MatematicaChat() {
     }
   }, [boardText, canvasSize, messages, typing, profil])
 
-  function startTypewriter(text: string) {
+  function startSyncedOutput(text: string) {
     if (typewriterRef.current) clearInterval(typewriterRef.current)
+    window.speechSynthesis?.cancel()
     setBoardText('')
     setTyping(true)
-    let i = 0
-    typewriterRef.current = setInterval(() => {
-      i++
-      setBoardText(text.slice(0, i))
-      if (i >= text.length) {
-        clearInterval(typewriterRef.current!)
-        setTyping(false)
+
+    if (!voiceEnabled || typeof window === 'undefined' || !window.speechSynthesis) {
+      setSpeaking(false)
+      let i = 0
+      typewriterRef.current = setInterval(() => {
+        i++; setBoardText(text.slice(0, i))
+        if (i >= text.length) { clearInterval(typewriterRef.current!); setTyping(false) }
+      }, 40)
+      return
+    }
+
+    setSpeaking(true)
+    const u = new SpeechSynthesisUtterance(text)
+    u.lang = 'ro-RO'
+    u.rate = 1.0
+    const voices = window.speechSynthesis.getVoices()
+    const roVoice = voices.find(v => v.lang.startsWith('ro'))
+    if (roVoice) u.voice = roVoice
+
+    let usedBoundary = false
+
+    u.onboundary = (e: SpeechSynthesisEvent) => {
+      if (e.name !== 'word') return
+      usedBoundary = true
+      const end = e.charIndex + (e.charLength ?? 1)
+      setBoardText(text.slice(0, Math.min(end, text.length)))
+    }
+
+    u.onend = () => { setBoardText(text); setTyping(false); setSpeaking(false) }
+    u.onerror = () => { setBoardText(text); setTyping(false); setSpeaking(false) }
+
+    window.speechSynthesis.speak(u)
+
+    // Fallback pentru browsere fără onboundary
+    setTimeout(() => {
+      if (!usedBoundary) {
+        let i = 0
+        typewriterRef.current = setInterval(() => {
+          i++; setBoardText(text.slice(0, i))
+          if (i >= text.length) { clearInterval(typewriterRef.current!); setTyping(false) }
+        }, 40)
       }
-    }, 55)
+    }, 800)
   }
 
   async function sendMsg(text?: string) {
@@ -407,8 +442,7 @@ function MatematicaChat() {
       const reply = data.text || 'Eroare. Încercați din nou.'
       setMessages(prev => [...prev, { role: 'assistant', content: reply }])
       setBoardFull(reply)
-      startTypewriter(reply)
-      if (voiceEnabled) { setSpeaking(true); speak(reply, () => setSpeaking(false), 1.0) }
+      startSyncedOutput(reply)
     } catch {
       const err = 'Eroare de conexiune. Încercați din nou.'
       setBoardText(err)
