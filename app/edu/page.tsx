@@ -1,10 +1,12 @@
 'use client'
 import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 import { useIsMobile } from '../hooks/useIsMobile'
 
 export default function EduLanding() {
   const router = useRouter()
   const isMobile = useIsMobile()
+  const [sectiune, setSectiune] = useState<'scoala' | 'gradinita'>('scoala')
 
   return (
     <div style={{
@@ -61,7 +63,50 @@ export default function EduLanding() {
         </p>
       </div>
 
+      {/* Tab selector */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '40px', background: 'rgba(255,255,255,0.05)', borderRadius: '16px', padding: '6px' }}>
+        {[
+          { key: 'scoala', label: '🏫 Școală', desc: 'Cls. I–XII' },
+          { key: 'gradinita', label: '🧸 Grădiniță', desc: 'În curând' },
+        ].map(t => (
+          <button
+            key={t.key}
+            onClick={() => setSectiune(t.key as 'scoala' | 'gradinita')}
+            style={{
+              background: sectiune === t.key ? '#6366f1' : 'transparent',
+              border: 'none',
+              borderRadius: '12px',
+              padding: '10px 28px',
+              cursor: 'pointer',
+              color: sectiune === t.key ? '#fff' : '#64748b',
+              fontWeight: 700,
+              fontSize: '15px',
+              transition: 'all 0.2s',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '2px',
+            }}
+          >
+            {t.label}
+            <span style={{ fontSize: '10px', fontWeight: 400, opacity: 0.7 }}>{t.desc}</span>
+          </button>
+        ))}
+      </div>
+
       {/* Main Cards */}
+      {sectiune === 'gradinita' ? (
+        <div style={{ textAlign: 'center', padding: '80px 20px', maxWidth: '500px' }}>
+          <div style={{ fontSize: '72px', marginBottom: '24px' }}>🧸</div>
+          <h2 style={{ fontSize: '28px', fontWeight: 800, color: '#fff', marginBottom: '12px' }}>Modul Grădiniță</h2>
+          <p style={{ fontSize: '16px', color: '#64748b', lineHeight: 1.7, marginBottom: '32px' }}>
+            Conținut educațional AI adaptat pentru copii de 3–6 ani — povești interactive, jocuri de litere și cifre, activități creative. În pregătire.
+          </p>
+          <div style={{ display: 'inline-block', background: 'rgba(99,102,241,0.15)', border: '1px solid #6366f155', borderRadius: '12px', padding: '10px 24px', fontSize: '13px', color: '#a5b4fc' }}>
+            🔔 Disponibil în curând
+          </div>
+        </div>
+      ) : (
       <div style={{
         display: 'grid',
         gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)',
@@ -275,6 +320,7 @@ export default function EduLanding() {
           </div>
         </div>
       </div>
+      )}
 
       {/* Stats */}
       <div style={{
