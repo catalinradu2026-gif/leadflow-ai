@@ -215,6 +215,9 @@ function MatematicaChat() {
   const [listening, setListening] = useState(false)
   const typewriterRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const boardRef = useRef<HTMLDivElement>(null)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const boardContainerRef = useRef<HTMLDivElement>(null)
+  const [canvasSize, setCanvasSize] = useState({ w: 0, h: 0 })
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null)
 
@@ -249,10 +252,126 @@ function MatematicaChat() {
     rec.start()
   }
 
-  // Scroll tabla la final când textul crește
+  // ResizeObserver pentru canvas
   useEffect(() => {
-    if (boardRef.current) boardRef.current.scrollTop = boardRef.current.scrollHeight
-  }, [boardText])
+    if (!boardContainerRef.current) return
+    const obs = new ResizeObserver(entries => {
+      const { width, height } = entries[0].contentRect
+      setCanvasSize({ w: Math.floor(width), h: Math.floor(height) })
+    })
+    obs.observe(boardContainerRef.current)
+    return () => obs.disconnect()
+  }, [])
+
+  // Desenează tabla pe canvas
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas || canvasSize.w === 0) return
+    const dpr = window.devicePixelRatio || 1
+    canvas.width = canvasSize.w * dpr
+    canvas.height = canvasSize.h * dpr
+    canvas.style.width = canvasSize.w + 'px'
+    canvas.style.height = canvasSize.h + 'px'
+    const ctx = canvas.getContext('2d')!
+    ctx.scale(dpr, dpr)
+    const W = canvasSize.w
+    const H = canvasSize.h
+    const PADDING = 32
+    const FONT_SIZE = 22
+    const LINE_HEIGHT = 36
+    ctx.clearRect(0, 0, W, H)
+    ctx.font = `${FONT_SIZE}px 'Caveat', cursive`
+
+    function seededRand(seed: number) {
+      const x = Math.sin(seed + 1) * 10000
+      return x - Math.floor(x)
+    }
+
+    function drawChalkText(text: string, x: number, y: number, rgb: string, baseOffset: number) {
+      let cx = x
+      ctx.textBaseline = 'top'
+      for (let i = 0; i < text.length; i++) {
+        const s = baseOffset + i
+        const ox = (seededRand(s * 2) - 0.5) * 1.6
+        const oy = (seededRand(s * 2 + 1) - 0.5) * 1.6
+        const alpha = 0.85 + seededRand(s * 3) * 0.15
+        ctx.fillStyle = `rgba(${rgb},${alpha})`
+        ctx.shadowBlur = 2
+        ctx.shadowColor = `rgba(${rgb},0.35)`
+        ctx.fillText(text[i], cx + ox, y + oy)
+        cx += ctx.measureText(text[i]).width
+      }
+      return cx - x
+    }
+
+    function wrapText(text: string, maxW: number): string[] {
+      const lines: string[] = []
+      for (const para of text.split('\n')) {
+        if (!para) { lines.push(''); continue }
+        let line = ''
+        for (const word of para.split(' ')) {
+          const test = line ? line + ' ' + word : word
+          if (ctx.measureText(test).width > maxW && line) { lines.push(line); line = word }
+          else line = test
+        }
+        if (line) lines.push(line)
+      }
+      return lines
+    }
+
+    if (isEmpty) {
+      ctx.textBaseline = 'middle'
+      ctx.font = '28px "Caveat", cursive'
+      ctx.fillStyle = 'rgba(134,239,172,0.35)'
+      ctx.shadowBlur = 0
+      const title = `Profesor AI — Matematică ${profil}`
+      ctx.fillText(title, PADDING, H / 2 - 20)
+      ctx.font = '20px "Caveat", cursive'
+      ctx.fillStyle = 'rgba(134,239,172,0.2)'
+      ctx.fillText('Pune o întrebare sau alege un subiect →', PADDING, H / 2 + 20)
+      return
+    }
+
+    type CLine = { text: string; rgb: string; off: number }
+    const clines: CLine[] = []
+    let off = 0
+    const maxW = W - PADDING * 2
+
+    const lastUser = [...messages].reverse().find(m => m.role === 'user')
+    if (lastUser) {
+      const wrapped = wrapText('Elev: ' + lastUser.content, maxW)
+      for (const l of wrapped) { clines.push({ text: l, rgb: '251,191,36', off }); off += l.length }
+      clines.push({ text: '', rgb: '251,191,36', off }); off++
+    }
+
+    if (boardText) {
+      clines.push({ text: 'Prof:', rgb: '134,239,172', off }); off += 5
+      for (const l of wrapText(boardText, maxW)) { clines.push({ text: l, rgb: '240,255,235', off }); off += l.length }
+    }
+
+    const totalH = clines.length * LINE_HEIGHT + PADDING * 2
+    const scrollOff = Math.max(0, totalH - H)
+
+    for (let i = 0; i < clines.length; i++) {
+      const y = PADDING + i * LINE_HEIGHT - scrollOff
+      if (y + LINE_HEIGHT < 0 || y > H) continue
+      const cl = clines[i]
+      if (cl.text) drawChalkText(cl.text, PADDING, y, cl.rgb, cl.off)
+    }
+
+    // Cursor clipit
+    if (typing && clines.length > 0) {
+      const last = clines[clines.length - 1]
+      const ly = PADDING + (clines.length - 1) * LINE_HEIGHT - scrollOff
+      const tw = ctx.measureText(last.text).width
+      if (Math.floor(Date.now() / 500) % 2 === 0) {
+        ctx.fillStyle = 'rgba(134,239,172,0.9)'
+        ctx.shadowBlur = 4
+        ctx.shadowColor = 'rgba(134,239,172,0.5)'
+        ctx.fillRect(PADDING + tw + 3, ly + 2, 2, FONT_SIZE)
+      }
+    }
+  }, [boardText, canvasSize, messages, typing, isEmpty, profil])
 
   function startTypewriter(text: string) {
     if (typewriterRef.current) clearInterval(typewriterRef.current)
@@ -334,55 +453,22 @@ function MatematicaChat() {
         {/* Tablă */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
-          {/* Suprafața tablei */}
+          {/* Suprafața tablei — Canvas cu efect cretă */}
           <div
-            ref={boardRef}
+            ref={boardContainerRef}
             style={{
               flex: 1,
               background: 'linear-gradient(160deg, #0d2b0d 0%, #0a230a 40%, #0c2a0c 100%)',
               borderBottom: '4px solid #1a3d1a',
               borderRight: isMobile ? 'none' : '3px solid #1a3d1a',
-              padding: isMobile ? '20px 16px' : '32px 40px',
-              overflowY: 'auto',
               position: 'relative',
               boxShadow: 'inset 0 0 60px rgba(0,0,0,0.5)',
+              overflow: 'hidden',
             }}
           >
             {/* Linii orizontale subtile ca o tablă reală */}
-            <div style={{ position: 'absolute', inset: 0, backgroundImage: 'repeating-linear-gradient(transparent, transparent 39px, rgba(255,255,255,0.02) 39px, rgba(255,255,255,0.02) 40px)', pointerEvents: 'none' }} />
-
-            {isEmpty ? (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', opacity: 0.4 }}>
-                <div style={{ fontSize: '64px', marginBottom: '20px' }}>📐</div>
-                <div style={{ fontSize: '22px', color: '#86efac', fontFamily: "'Courier New', monospace", textAlign: 'center', lineHeight: 1.6 }}>
-                  Profesor AI Matematică {profil}
-                </div>
-                <div style={{ fontSize: '14px', color: '#4ade80', marginTop: '12px', textAlign: 'center', maxWidth: '400px', lineHeight: 1.7, fontFamily: "'Courier New', monospace" }}>
-                  Pune o întrebare sau alege un subiect din dreapta.{'\n'}Voi explica pe tablă și vocal, pas cu pas.
-                </div>
-              </div>
-            ) : (
-              <div style={{ position: 'relative' }}>
-                {/* Întrebarea elevului */}
-                {messages.length > 0 && messages[messages.length - 1]?.role === 'user' && (
-                  <div style={{ marginBottom: '24px', display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
-                    <span style={{ fontSize: '12px', color: '#fbbf24', fontFamily: "'Courier New', monospace", background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.2)', borderRadius: '4px', padding: '2px 8px', whiteSpace: 'nowrap', flexShrink: 0 }}>Elev:</span>
-                    <span style={{ fontSize: isMobile ? '14px' : '15px', color: '#fde68a', fontFamily: "'Courier New', monospace", lineHeight: 1.6 }}>
-                      {messages[messages.length - (messages[messages.length-1].role === 'user' ? 1 : 2)]?.content}
-                    </span>
-                  </div>
-                )}
-
-                {/* Răspunsul pe tablă */}
-                <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                  <span style={{ fontSize: '12px', color: '#86efac', fontFamily: "'Courier New', monospace", background: 'rgba(134,239,172,0.1)', border: '1px solid rgba(134,239,172,0.2)', borderRadius: '4px', padding: '2px 8px', whiteSpace: 'nowrap', flexShrink: 0 }}>Prof:</span>
-                  <div style={{ fontSize: isMobile ? '14px' : '16px', color: '#f0fdf4', fontFamily: "'Courier New', monospace", lineHeight: 1.9, whiteSpace: 'pre-wrap', letterSpacing: '0.3px' }}>
-                    {boardText}
-                    {typing && <span style={{ display: 'inline-block', width: '10px', height: '18px', background: '#86efac', marginLeft: '2px', verticalAlign: 'middle', animation: 'blink 0.7s step-end infinite' }} />}
-                  </div>
-                </div>
-              </div>
-            )}
+            <div style={{ position: 'absolute', inset: 0, backgroundImage: 'repeating-linear-gradient(transparent, transparent 35px, rgba(255,255,255,0.02) 35px, rgba(255,255,255,0.02) 36px)', pointerEvents: 'none', zIndex: 1 }} />
+            <canvas ref={canvasRef} style={{ position: 'absolute', top: 0, left: 0, zIndex: 2 }} />
           </div>
 
           {/* Bordul tablei (chalk tray) */}
@@ -487,10 +573,7 @@ function MatematicaChat() {
       </div>
 
       <style>{`
-        @keyframes blink {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0; }
-        }
+        @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;600&display=swap');
         @keyframes pulse {
           0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.4); }
           50% { box-shadow: 0 0 0 8px rgba(239,68,68,0); }
