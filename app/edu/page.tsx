@@ -116,7 +116,7 @@ export default function EduLanding() {
         marginBottom: '48px',
       }}>
 
-        {/* Cursuri AI */}
+        {/* Educatie Digitala */}
         <div
           onClick={() => router.push('/edu/cursuri-ai')}
           style={{
@@ -158,13 +158,13 @@ export default function EduLanding() {
             marginBottom: '14px',
             letterSpacing: '0.5px',
           }}>
-            8 MODULE · INTERACTIV
+            16 MODULE · INTERACTIV
           </div>
           <h2 style={{ fontSize: '26px', fontWeight: 800, color: '#fff', marginBottom: '12px', lineHeight: 1.2 }}>
-            Cursuri AI<br />pentru Elevi
+            Educație<br />Digitală
           </h2>
           <p style={{ fontSize: '14px', color: '#94a3b8', lineHeight: 1.7, marginBottom: '28px' }}>
-            Învață ce este inteligența artificială, cum te ajută la școală și cum să o folosești corect. Un modul pe săptămână, predat interactiv de AI.
+            Cursuri AI interactive pentru elevi — ce este inteligența artificială, cum te ajută la școală, cariere în tech, fake news, educație financiară și pregătire BAC/Capacitate.
           </p>
           <div style={{
             background: '#6366f1',
@@ -229,7 +229,7 @@ export default function EduLanding() {
             8 MODULE · FORMARE CONTINUĂ
           </div>
           <h2 style={{ fontSize: '26px', fontWeight: 800, color: '#fff', marginBottom: '12px', lineHeight: 1.2 }}>
-            Cursuri AI<br />pentru Profesori
+            Formare<br />Continuă
           </h2>
           <p style={{ fontSize: '14px', color: '#94a3b8', lineHeight: 1.7, marginBottom: '28px' }}>
             Formează-te în utilizarea AI la clasă. Pregătire lecții, evaluare, personalizare predare și certificat de formare recunoscut.
@@ -297,10 +297,10 @@ export default function EduLanding() {
             MATEMATICĂ · ROMÂNĂ · 24/7
           </div>
           <h2 style={{ fontSize: '26px', fontWeight: 800, color: '#fff', marginBottom: '12px', lineHeight: 1.2 }}>
-            Pregătire<br />Bacalaureat
+            Pregătire<br />BAC
           </h2>
           <p style={{ fontSize: '14px', color: '#94a3b8', lineHeight: 1.7, marginBottom: '28px' }}>
-            Profesor AI disponibil 24/7. Explică orice capitol, generează exerciții, corectează și adaptează la nivelul tău. Mai eficient decât meditatiile clasice.
+            Profesor AI disponibil 24/7. Explică orice capitol, generează exerciții, corectează și adaptează la nivelul tău. Matematică M1/M2 și Română.
           </p>
           <div style={{
             background: '#10b981',
@@ -316,6 +316,56 @@ export default function EduLanding() {
           <div style={{ marginTop: '20px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             {['Matematică M1/M2', 'Română', 'Exerciții', 'Eseu'].map(tag => (
               <span key={tag} style={{ background: 'rgba(16,185,129,0.15)', color: '#6ee7b7', fontSize: '11px', padding: '3px 10px', borderRadius: '20px' }}>{tag}</span>
+            ))}
+          </div>
+        </div>
+
+        {/* Pregătire Capacitate */}
+        <div
+          onClick={() => router.push('/edu/capacitate')}
+          style={{
+            background: isMobile ? 'rgba(245,101,101,0.12)' : 'rgba(245,101,101,0.06)',
+            border: '2px solid #f87171',
+            borderRadius: '20px',
+            padding: '40px 32px',
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+            position: 'relative',
+            overflow: 'hidden',
+          }}
+          onMouseEnter={e => {
+            (e.currentTarget as HTMLDivElement).style.background = 'rgba(245,101,101,0.12)'
+            ;(e.currentTarget as HTMLDivElement).style.transform = 'translateY(-4px)'
+          }}
+          onMouseLeave={e => {
+            (e.currentTarget as HTMLDivElement).style.background = 'rgba(245,101,101,0.06)'
+            ;(e.currentTarget as HTMLDivElement).style.transform = 'translateY(0)'
+          }}
+        >
+          <div style={{ position: 'absolute', top: '-30px', right: '-30px', width: '120px', height: '120px', background: 'rgba(245,101,101,0.08)', borderRadius: '50%' }} />
+          <div style={{ fontSize: '56px', marginBottom: '20px' }}>🎯</div>
+          <div style={{
+            display: 'inline-block', background: '#7f1d1d', color: '#fca5a5',
+            fontSize: '11px', fontWeight: 700, padding: '3px 12px', borderRadius: '20px',
+            marginBottom: '14px', letterSpacing: '0.5px',
+          }}>
+            MATEMATICĂ · ROMÂNĂ · 24/7
+          </div>
+          <h2 style={{ fontSize: '26px', fontWeight: 800, color: '#fff', marginBottom: '12px', lineHeight: 1.2 }}>
+            Pregătire<br />Capacitate
+          </h2>
+          <p style={{ fontSize: '14px', color: '#94a3b8', lineHeight: 1.7, marginBottom: '28px' }}>
+            Profesor AI pentru examenul de Evaluare Națională cls. VIII. Matematică și Română — exerciții, teorie și simulări după programa oficială.
+          </p>
+          <div style={{
+            background: '#ef4444', color: '#fff', padding: '14px 28px',
+            borderRadius: '12px', fontSize: '15px', fontWeight: 700, display: 'inline-block',
+          }}>
+            Începe pregătirea →
+          </div>
+          <div style={{ marginTop: '20px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            {['Cls. VIII', 'Matematică', 'Română', 'EN 2026'].map(tag => (
+              <span key={tag} style={{ background: 'rgba(245,101,101,0.15)', color: '#fca5a5', fontSize: '11px', padding: '3px 10px', borderRadius: '20px' }}>{tag}</span>
             ))}
           </div>
         </div>
