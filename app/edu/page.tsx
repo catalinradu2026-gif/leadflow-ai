@@ -229,7 +229,7 @@ export default function EduLanding() {
             8 MODULE · FORMARE CONTINUĂ
           </div>
           <h2 style={{ fontSize: '26px', fontWeight: 800, color: '#fff', marginBottom: '12px', lineHeight: 1.2 }}>
-            Formare<br />Continuă
+            AI pentru<br />Profesori
           </h2>
           <p style={{ fontSize: '14px', color: '#94a3b8', lineHeight: 1.7, marginBottom: '28px' }}>
             Formează-te în utilizarea AI la clasă. Pregătire lecții, evaluare, personalizare predare și certificat de formare recunoscut.
