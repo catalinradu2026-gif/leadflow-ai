@@ -196,8 +196,42 @@ function MatematicaChat() {
   const [speaking, setSpeaking] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
 
+  const [listening, setListening] = useState(false)
   const typewriterRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const boardRef = useRef<HTMLDivElement>(null)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const recognitionRef = useRef<any>(null)
+
+  function toggleMic() {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    if (!SR) { alert('Browserul tău nu suportă recunoaștere vocală. Folosește Chrome.'); return }
+
+    if (listening) {
+      recognitionRef.current?.stop()
+      setListening(false)
+      return
+    }
+
+    const rec = new SR()
+    rec.lang = 'ro-RO'
+    rec.continuous = false
+    rec.interimResults = false
+    recognitionRef.current = rec
+
+    rec.onstart = () => setListening(true)
+    rec.onend = () => setListening(false)
+    rec.onerror = () => setListening(false)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    rec.onresult = (e: any) => {
+      const transcript = e.results[0]?.[0]?.transcript
+      if (transcript) {
+        setInput(transcript)
+        setTimeout(() => sendMsg(transcript), 100)
+      }
+    }
+    rec.start()
+  }
 
   // Scroll tabla la final când textul crește
   useEffect(() => {
@@ -349,9 +383,25 @@ function MatematicaChat() {
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMsg()}
-                placeholder={`Întreabă profesorul despre Matematică ${profil}...`}
-                style={{ flex: 1, background: '#1e293b', border: '1px solid #334155', borderRadius: '10px', padding: '10px 16px', fontSize: '14px', color: '#e2e8f0', outline: 'none' }}
+                placeholder={listening ? '🎤 Ascult...' : `Întreabă profesorul despre Matematică ${profil}...`}
+                style={{ flex: 1, background: listening ? 'rgba(239,68,68,0.08)' : '#1e293b', border: `1px solid ${listening ? '#ef4444' : '#334155'}`, borderRadius: '10px', padding: '10px 16px', fontSize: '14px', color: '#e2e8f0', outline: 'none', transition: 'all 0.2s' }}
               />
+              <button
+                onClick={toggleMic}
+                title={listening ? 'Oprește microfonul' : 'Vorbește cu profesorul'}
+                style={{
+                  background: listening ? '#ef4444' : 'rgba(239,68,68,0.1)',
+                  border: `1px solid ${listening ? '#ef4444' : 'rgba(239,68,68,0.3)'}`,
+                  borderRadius: '10px',
+                  padding: '10px 14px',
+                  fontSize: '18px',
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                  animation: listening ? 'pulse 1s infinite' : 'none',
+                }}
+              >
+                🎤
+              </button>
               <button
                 onClick={() => sendMsg()}
                 disabled={loading || typing}
@@ -424,6 +474,10 @@ function MatematicaChat() {
         @keyframes blink {
           0%, 100% { opacity: 1; }
           50% { opacity: 0; }
+        }
+        @keyframes pulse {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.4); }
+          50% { box-shadow: 0 0 0 8px rgba(239,68,68,0); }
         }
       `}</style>
     </div>
