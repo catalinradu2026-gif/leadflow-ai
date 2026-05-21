@@ -109,7 +109,7 @@ export default function EduLanding() {
       ) : (
       <div style={{
         display: 'grid',
-        gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)',
+        gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)',
         gap: '24px',
         maxWidth: '1100px',
         width: '100%',
@@ -252,123 +252,6 @@ export default function EduLanding() {
           </div>
         </div>
 
-        {/* BAC */}
-        <div
-          onClick={() => router.push('/edu/bac')}
-          style={{
-            background: isMobile ? 'rgba(16,185,129,0.12)' : 'rgba(16,185,129,0.06)',
-            border: '2px solid #10b981',
-            borderRadius: '20px',
-            padding: '40px 32px',
-            cursor: 'pointer',
-            transition: 'all 0.2s',
-            position: 'relative',
-            overflow: 'hidden',
-            transform: isMobile ? 'translateY(-4px)' : undefined,
-            boxShadow: isMobile ? '0 12px 32px rgba(16,185,129,0.25), 0 4px 0 rgba(16,185,129,0.4)' : undefined,
-          }}
-          onMouseEnter={e => {
-            (e.currentTarget as HTMLDivElement).style.background = 'rgba(16,185,129,0.12)'
-            ;(e.currentTarget as HTMLDivElement).style.transform = 'translateY(-4px)'
-          }}
-          onMouseLeave={e => {
-            (e.currentTarget as HTMLDivElement).style.background = 'rgba(16,185,129,0.06)'
-            ;(e.currentTarget as HTMLDivElement).style.transform = 'translateY(0)'
-          }}
-        >
-          <div style={{
-            position: 'absolute', top: '-30px', right: '-30px',
-            width: '120px', height: '120px',
-            background: 'rgba(16,185,129,0.08)',
-            borderRadius: '50%',
-          }} />
-          <div style={{ fontSize: '56px', marginBottom: '20px' }}>📚</div>
-          <div style={{
-            display: 'inline-block',
-            background: '#065f46',
-            color: '#6ee7b7',
-            fontSize: '11px',
-            fontWeight: 700,
-            padding: '3px 12px',
-            borderRadius: '20px',
-            marginBottom: '14px',
-            letterSpacing: '0.5px',
-          }}>
-            MATEMATICĂ · ROMÂNĂ · 24/7
-          </div>
-          <h2 style={{ fontSize: '26px', fontWeight: 800, color: '#fff', marginBottom: '12px', lineHeight: 1.2 }}>
-            Pregătire<br />BAC
-          </h2>
-          <p style={{ fontSize: '14px', color: '#94a3b8', lineHeight: 1.7, marginBottom: '28px' }}>
-            Profesor AI disponibil 24/7. Explică orice capitol, generează exerciții, corectează și adaptează la nivelul tău. Matematică M1/M2 și Română.
-          </p>
-          <div style={{
-            background: '#10b981',
-            color: '#fff',
-            padding: '14px 28px',
-            borderRadius: '12px',
-            fontSize: '15px',
-            fontWeight: 700,
-            display: 'inline-block',
-          }}>
-            Începe pregătirea →
-          </div>
-          <div style={{ marginTop: '20px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            {['Matematică M1/M2', 'Română', 'Exerciții', 'Eseu'].map(tag => (
-              <span key={tag} style={{ background: 'rgba(16,185,129,0.15)', color: '#6ee7b7', fontSize: '11px', padding: '3px 10px', borderRadius: '20px' }}>{tag}</span>
-            ))}
-          </div>
-        </div>
-
-        {/* Pregătire Capacitate */}
-        <div
-          onClick={() => router.push('/edu/capacitate')}
-          style={{
-            background: isMobile ? 'rgba(245,101,101,0.12)' : 'rgba(245,101,101,0.06)',
-            border: '2px solid #f87171',
-            borderRadius: '20px',
-            padding: '40px 32px',
-            cursor: 'pointer',
-            transition: 'all 0.2s',
-            position: 'relative',
-            overflow: 'hidden',
-          }}
-          onMouseEnter={e => {
-            (e.currentTarget as HTMLDivElement).style.background = 'rgba(245,101,101,0.12)'
-            ;(e.currentTarget as HTMLDivElement).style.transform = 'translateY(-4px)'
-          }}
-          onMouseLeave={e => {
-            (e.currentTarget as HTMLDivElement).style.background = 'rgba(245,101,101,0.06)'
-            ;(e.currentTarget as HTMLDivElement).style.transform = 'translateY(0)'
-          }}
-        >
-          <div style={{ position: 'absolute', top: '-30px', right: '-30px', width: '120px', height: '120px', background: 'rgba(245,101,101,0.08)', borderRadius: '50%' }} />
-          <div style={{ fontSize: '56px', marginBottom: '20px' }}>🎯</div>
-          <div style={{
-            display: 'inline-block', background: '#7f1d1d', color: '#fca5a5',
-            fontSize: '11px', fontWeight: 700, padding: '3px 12px', borderRadius: '20px',
-            marginBottom: '14px', letterSpacing: '0.5px',
-          }}>
-            MATEMATICĂ · ROMÂNĂ · 24/7
-          </div>
-          <h2 style={{ fontSize: '26px', fontWeight: 800, color: '#fff', marginBottom: '12px', lineHeight: 1.2 }}>
-            Pregătire<br />Capacitate
-          </h2>
-          <p style={{ fontSize: '14px', color: '#94a3b8', lineHeight: 1.7, marginBottom: '28px' }}>
-            Profesor AI pentru examenul de Evaluare Națională cls. VIII. Matematică și Română — exerciții, teorie și simulări după programa oficială.
-          </p>
-          <div style={{
-            background: '#ef4444', color: '#fff', padding: '14px 28px',
-            borderRadius: '12px', fontSize: '15px', fontWeight: 700, display: 'inline-block',
-          }}>
-            Începe pregătirea →
-          </div>
-          <div style={{ marginTop: '20px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            {['Cls. VIII', 'Matematică', 'Română', 'EN 2026'].map(tag => (
-              <span key={tag} style={{ background: 'rgba(245,101,101,0.15)', color: '#fca5a5', fontSize: '11px', padding: '3px 10px', borderRadius: '20px' }}>{tag}</span>
-            ))}
-          </div>
-        </div>
       </div>
       )}
 
