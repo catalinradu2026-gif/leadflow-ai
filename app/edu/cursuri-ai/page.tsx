@@ -4,6 +4,8 @@ import { useState, useRef, useEffect } from 'react'
 import { speak } from '../tts'
 import { useIsMobile } from '../../hooks/useIsMobile'
 
+type Nivel = 'primar' | 'gimnaziu' | 'liceu'
+
 const MODULE = [
   {
     id: 1,
@@ -12,6 +14,7 @@ const MODULE = [
     icon: '🧠',
     culoare: '#6366f1',
     culoareBg: 'rgba(99,102,241,0.1)',
+    nivel: 'gimnaziu' as Nivel,
   },
   {
     id: 2,
@@ -20,6 +23,7 @@ const MODULE = [
     icon: '📖',
     culoare: '#8b5cf6',
     culoareBg: 'rgba(139,92,246,0.1)',
+    nivel: 'gimnaziu' as Nivel,
   },
   {
     id: 3,
@@ -28,6 +32,7 @@ const MODULE = [
     icon: '⚡',
     culoare: '#06b6d4',
     culoareBg: 'rgba(6,182,212,0.1)',
+    nivel: 'gimnaziu' as Nivel,
   },
   {
     id: 4,
@@ -36,6 +41,7 @@ const MODULE = [
     icon: '📅',
     culoare: '#10b981',
     culoareBg: 'rgba(16,185,129,0.1)',
+    nivel: 'gimnaziu' as Nivel,
   },
   {
     id: 5,
@@ -44,6 +50,7 @@ const MODULE = [
     icon: '🔬',
     culoare: '#f59e0b',
     culoareBg: 'rgba(245,158,11,0.1)',
+    nivel: 'liceu' as Nivel,
   },
   {
     id: 6,
@@ -52,6 +59,7 @@ const MODULE = [
     icon: '⚠️',
     culoare: '#ef4444',
     culoareBg: 'rgba(239,68,68,0.1)',
+    nivel: 'gimnaziu' as Nivel,
   },
   {
     id: 7,
@@ -60,6 +68,7 @@ const MODULE = [
     icon: '⚖️',
     culoare: '#64748b',
     culoareBg: 'rgba(100,116,139,0.1)',
+    nivel: 'gimnaziu' as Nivel,
   },
   {
     id: 8,
@@ -68,6 +77,7 @@ const MODULE = [
     icon: '🚀',
     culoare: '#ec4899',
     culoareBg: 'rgba(236,72,153,0.1)',
+    nivel: 'liceu' as Nivel,
   },
   {
     id: 9,
@@ -76,6 +86,7 @@ const MODULE = [
     icon: '🔍',
     culoare: '#dc2626',
     culoareBg: 'rgba(220,38,38,0.1)',
+    nivel: 'gimnaziu' as Nivel,
   },
   {
     id: 10,
@@ -84,6 +95,7 @@ const MODULE = [
     icon: '💰',
     culoare: '#16a34a',
     culoareBg: 'rgba(22,163,74,0.1)',
+    nivel: 'liceu' as Nivel,
   },
   {
     id: 11,
@@ -92,6 +104,7 @@ const MODULE = [
     icon: '🏗️',
     culoare: '#f97316',
     culoareBg: 'rgba(249,115,22,0.1)',
+    nivel: 'liceu' as Nivel,
   },
   {
     id: 12,
@@ -100,6 +113,7 @@ const MODULE = [
     icon: '💻',
     culoare: '#0ea5e9',
     culoareBg: 'rgba(14,165,233,0.1)',
+    nivel: 'liceu' as Nivel,
   },
   {
     id: 13,
@@ -108,6 +122,7 @@ const MODULE = [
     icon: '💚',
     culoare: '#22c55e',
     culoareBg: 'rgba(34,197,94,0.1)',
+    nivel: 'gimnaziu' as Nivel,
   },
   {
     id: 14,
@@ -116,6 +131,7 @@ const MODULE = [
     icon: '🏛️',
     culoare: '#8b5cf6',
     culoareBg: 'rgba(139,92,246,0.1)',
+    nivel: 'gimnaziu' as Nivel,
   },
   {
     id: 15,
@@ -124,6 +140,7 @@ const MODULE = [
     icon: '📐',
     culoare: '#f59e0b',
     culoareBg: 'rgba(245,158,11,0.1)',
+    nivel: 'liceu' as Nivel,
   },
   {
     id: 16,
@@ -132,6 +149,7 @@ const MODULE = [
     icon: '📝',
     culoare: '#e879f9',
     culoareBg: 'rgba(232,121,249,0.1)',
+    nivel: 'liceu' as Nivel,
   },
 ]
 
@@ -431,9 +449,49 @@ STIL: academic dar accesibil, cu exemple din texte canonice, ajută la structura
 
 type Msg = { role: 'user' | 'assistant'; content: string }
 
+const NIVELE = [
+  {
+    key: 'primar' as Nivel,
+    titlu: 'Primar',
+    clase: 'Clasele I–IV',
+    icon: '🌱',
+    culoare: '#f59e0b',
+    culoareBg: 'rgba(245,158,11,0.08)',
+    border: '#f59e0b',
+    badge: '#78350f',
+    badgeText: '#fde68a',
+    comingSoon: true,
+  },
+  {
+    key: 'gimnaziu' as Nivel,
+    titlu: 'Gimnaziu',
+    clase: 'Clasele V–VIII',
+    icon: '📚',
+    culoare: '#6366f1',
+    culoareBg: 'rgba(99,102,241,0.08)',
+    border: '#6366f1',
+    badge: '#4338ca',
+    badgeText: '#a5b4fc',
+    comingSoon: false,
+  },
+  {
+    key: 'liceu' as Nivel,
+    titlu: 'Liceu',
+    clase: 'Clasele IX–XII',
+    icon: '🎓',
+    culoare: '#ec4899',
+    culoareBg: 'rgba(236,72,153,0.08)',
+    border: '#ec4899',
+    badge: '#9d174d',
+    badgeText: '#fbcfe8',
+    comingSoon: false,
+  },
+]
+
 export default function CursuriAI() {
   const router = useRouter()
   const isMobile = useIsMobile()
+  const [nivelActiv, setNivelActiv] = useState<Nivel | null>(null)
   const [modulActiv, setModulActiv] = useState<number | null>(null)
   const [messages, setMessages] = useState<Msg[]>([])
   const [input, setInput] = useState('')
@@ -594,15 +652,89 @@ export default function CursuriAI() {
     )
   }
 
+  // Ecran alegere nivel
+  if (!nivelActiv) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#0f172a', fontFamily: "'Segoe UI', Arial, sans-serif", color: '#e2e8f0' }}>
+        <div style={{ background: '#1e293b', borderBottom: '1px solid #334155', padding: '0 24px', display: 'flex', alignItems: 'center', gap: '16px', height: '56px' }}>
+          <button onClick={() => router.push('/edu')} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '13px' }}>← Edu</button>
+          <div style={{ width: 1, height: 20, background: '#334155' }} />
+          <span style={{ fontSize: '13px', color: '#fff', fontWeight: 600 }}>🤖 Educație Digitală</span>
+          <span style={{ background: '#4338ca', color: '#a5b4fc', fontSize: '11px', fontWeight: 700, padding: '2px 10px', borderRadius: '20px' }}>16 MODULE</span>
+        </div>
+
+        <div style={{ maxWidth: '900px', margin: '0 auto', padding: isMobile ? '24px 16px' : '60px 24px' }}>
+          <div style={{ textAlign: 'center', marginBottom: '48px' }}>
+            <h1 style={{ fontSize: isMobile ? '28px' : '40px', fontWeight: 800, color: '#fff', marginBottom: '12px' }}>
+              Alege nivelul tău
+            </h1>
+            <p style={{ fontSize: '16px', color: '#64748b', maxWidth: '460px', margin: '0 auto', lineHeight: 1.7 }}>
+              Cursuri AI adaptate pentru fiecare ciclu școlar — de la primar până la liceu.
+            </p>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: '20px' }}>
+            {NIVELE.map(n => {
+              const count = MODULE.filter(m => m.nivel === n.key).length
+              return (
+                <div
+                  key={n.key}
+                  onClick={() => !n.comingSoon && setNivelActiv(n.key)}
+                  style={{
+                    background: n.culoareBg,
+                    border: `2px solid ${n.comingSoon ? '#1e293b' : n.border}`,
+                    borderRadius: '20px',
+                    padding: '36px 28px',
+                    cursor: n.comingSoon ? 'default' : 'pointer',
+                    transition: 'all 0.2s',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    opacity: n.comingSoon ? 0.5 : 1,
+                  }}
+                  onMouseEnter={e => { if (!n.comingSoon) { (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-4px)' } }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.transform = 'translateY(0)' }}
+                >
+                  {n.comingSoon && (
+                    <div style={{ position: 'absolute', top: 12, right: 12, background: '#1e293b', color: '#475569', fontSize: '10px', fontWeight: 700, padding: '2px 10px', borderRadius: '20px' }}>
+                      ÎN CURÂND
+                    </div>
+                  )}
+                  <div style={{ fontSize: '52px', marginBottom: '16px' }}>{n.icon}</div>
+                  <div style={{ display: 'inline-block', background: n.badge, color: n.badgeText, fontSize: '11px', fontWeight: 700, padding: '3px 12px', borderRadius: '20px', marginBottom: '12px' }}>
+                    {n.comingSoon ? 'ÎN PREGĂTIRE' : `${count} MODULE`}
+                  </div>
+                  <h2 style={{ fontSize: '24px', fontWeight: 800, color: n.comingSoon ? '#475569' : '#fff', marginBottom: '6px' }}>{n.titlu}</h2>
+                  <div style={{ fontSize: '13px', color: n.comingSoon ? '#334155' : n.culoare, fontWeight: 600, marginBottom: '12px' }}>{n.clase}</div>
+                  {!n.comingSoon && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px' }}>
+                      {MODULE.filter(m => m.nivel === n.key).slice(0, 3).map(m => (
+                        <span key={m.id} style={{ background: `${n.culoare}22`, color: n.culoare, fontSize: '11px', padding: '2px 8px', borderRadius: '20px' }}>{m.icon} {m.titlu.split(' ').slice(0, 2).join(' ')}</span>
+                      ))}
+                      {count > 3 && <span style={{ background: `${n.culoare}22`, color: n.culoare, fontSize: '11px', padding: '2px 8px', borderRadius: '20px' }}>+{count - 3} module</span>}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  const nivel = NIVELE.find(n => n.key === nivelActiv)!
+  const moduleNivel = MODULE.filter(m => m.nivel === nivelActiv)
+
   return (
     <div style={{ minHeight: '100vh', background: '#0f172a', fontFamily: "'Segoe UI', Arial, sans-serif", color: '#e2e8f0' }}>
 
       {/* Topbar */}
       <div style={{ background: '#1e293b', borderBottom: '1px solid #334155', padding: '0 24px', display: 'flex', alignItems: 'center', gap: '16px', height: '56px' }}>
-        <button onClick={() => router.push('/edu')} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '13px' }}>← Edu</button>
+        <button onClick={() => setNivelActiv(null)} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '13px' }}>← Nivele</button>
         <div style={{ width: 1, height: 20, background: '#334155' }} />
-        <span style={{ fontSize: '13px', color: '#fff', fontWeight: 600 }}>🤖 Cursuri AI pentru Elevi</span>
-        <span style={{ background: '#4338ca', color: '#a5b4fc', fontSize: '11px', fontWeight: 700, padding: '2px 10px', borderRadius: '20px' }}>16 MODULE</span>
+        <span style={{ fontSize: '22px' }}>{nivel.icon}</span>
+        <span style={{ fontSize: '13px', color: '#fff', fontWeight: 600 }}>{nivel.titlu} — {nivel.clase}</span>
+        <span style={{ background: nivel.badge, color: nivel.badgeText, fontSize: '11px', fontWeight: 700, padding: '2px 10px', borderRadius: '20px' }}>{moduleNivel.length} MODULE</span>
       </div>
 
       <div style={{ maxWidth: '1000px', margin: '0 auto', padding: isMobile ? '16px' : '40px 24px' }}>
@@ -610,7 +742,7 @@ export default function CursuriAI() {
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: '48px' }}>
           <h1 style={{ fontSize: '36px', fontWeight: 800, color: '#fff', marginBottom: '12px' }}>
-            Cursuri AI Interactive
+            {nivel.icon} Cursuri AI — {nivel.titlu}
           </h1>
           <p style={{ fontSize: '16px', color: '#64748b', maxWidth: '500px', margin: '0 auto', lineHeight: 1.7 }}>
             Selectați modulul săptămânii. Profesorul AI predă interactiv — pune întrebări, explică și adaptează lecția pentru clasa voastră.
@@ -619,7 +751,7 @@ export default function CursuriAI() {
 
         {/* Module grid */}
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: '16px' }}>
-          {MODULE.map(m => (
+          {moduleNivel.map((m) => (
             <div
               key={m.id}
               onClick={() => deschideModul(m.id)}
