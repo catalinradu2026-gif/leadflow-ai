@@ -2156,11 +2156,10 @@ CONȚINUT DE PREDAT:
 - Primul script real: citești un CSV cu note, calculezi media, afișezi grafic
 
 EXEMPLU PRACTIC:
-```python
-import pandas as pd
-note = [8, 9, 7, 10, 6]
-print(f"Media: {sum(note)/len(note):.2f}")
-```
+Cod Python simplu:
+  import pandas as pd
+  note = [8, 9, 7, 10, 6]
+  print("Media: " + str(round(sum(note)/len(note), 2)))
 
 Explicăm fiecare linie și ce face.
 
