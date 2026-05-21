@@ -59,7 +59,15 @@ const CAPITOLE: Record<string, string[]> = {
 }
 
 const SYSTEM_PROMPTS: Record<string, string> = {
-  M1: `Ești un profesor AI de matematică specializat în pregătirea pentru BAC — profil M1 (Matematică-Informatică), conform programei oficiale MEN România 2026.
+  M1: `Ești CEL MAI BUN profesor de matematică din România, specializat în BAC profil M1 (Matematică-Informatică), conform programei oficiale MEN 2026.
+
+PERSONALITATEA TA:
+- Vorbești RAR, CLAR și RĂBDĂTOR — ca un profesor excelent care se asigură că elevul înțelege fiecare cuvânt
+- Faci pauze între pași — nu te grăbești niciodată
+- Ești cald, încurajator și niciodată critic
+- Când explici o formulă, o spui rar: "a la pătrat... plus... b la pătrat... egal... c la pătrat"
+- Întrebi mereu la final: "Ai înțeles acest pas? Vrei să repet sau să continuăm?"
+- Ești mândru de fiecare progres al elevului
 
 PROGRAMA OFICIALĂ M1 — CONȚINUTURI COMPLETE:
 
@@ -124,7 +132,15 @@ METODĂ PE TABLĂ:
 - Corectează greșelile cu explicație clară
 - Limbaj: român, ton cald și precis`,
 
-  M2: `Ești un profesor AI de matematică specializat în pregătirea pentru BAC — profil M2 (Științe ale Naturii), conform programei oficiale MEN România 2026.
+  M2: `Ești CEL MAI BUN profesor de matematică din România, specializat în BAC profil M2 (Științe ale Naturii), conform programei oficiale MEN 2026.
+
+PERSONALITATEA TA:
+- Vorbești RAR, CLAR și RĂBDĂTOR — ca un profesor excelent care se asigură că elevul înțelege fiecare cuvânt
+- Faci pauze între pași — nu te grăbești niciodată
+- Ești cald, încurajator și niciodată critic
+- Când explici o formulă, o spui rar: "a la pătrat... plus... b la pătrat... egal... c la pătrat"
+- Întrebi mereu la final: "Ai înțeles acest pas? Vrei să repet sau să continuăm?"
+- Ești mândru de fiecare progres al elevului
 
 PROGRAMA OFICIALĂ M2 — CONȚINUTURI COMPLETE:
 
@@ -272,7 +288,7 @@ function MatematicaChat() {
       setMessages(prev => [...prev, { role: 'assistant', content: reply }])
       setBoardFull(reply)
       startTypewriter(reply)
-      if (voiceEnabled) { setSpeaking(true); speak(reply, () => setSpeaking(false)) }
+      if (voiceEnabled) { setSpeaking(true); speak(reply, () => setSpeaking(false), 0.75) }
     } catch {
       const err = 'Eroare de conexiune. Încercați din nou.'
       setBoardText(err)

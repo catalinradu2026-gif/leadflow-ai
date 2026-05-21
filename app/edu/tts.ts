@@ -54,7 +54,7 @@ export function splitSentences(text: string): string[] {
   return text.split(/(?<=[.!?…])\s+|(?<=—)\s*/).map(s => s.trim()).filter(s => s.length > 0)
 }
 
-export function speak(text: string, onEnd?: () => void) {
+export function speak(text: string, onEnd?: () => void, rate = 1.0) {
   if (typeof window === 'undefined' || !window.speechSynthesis) return
   window.speechSynthesis.cancel()
   const clean = prepareForSpeech(text)
@@ -64,7 +64,7 @@ export function speak(text: string, onEnd?: () => void) {
   function makeUtt(s: string): SpeechSynthesisUtterance {
     const u = new SpeechSynthesisUtterance(s)
     u.lang = 'ro-RO'
-    u.rate = 1.0
+    u.rate = rate
     u.pitch = 1.0
     u.volume = 1
     if (voice) u.voice = voice
