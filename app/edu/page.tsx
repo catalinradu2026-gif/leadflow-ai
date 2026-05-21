@@ -161,7 +161,7 @@ export default function EduLanding() {
             16 MODULE · INTERACTIV
           </div>
           <h2 style={{ fontSize: '26px', fontWeight: 800, color: '#fff', marginBottom: '12px', lineHeight: 1.2 }}>
-            Educație<br />Digitală
+            AI pentru<br />Elevi
           </h2>
           <p style={{ fontSize: '14px', color: '#94a3b8', lineHeight: 1.7, marginBottom: '28px' }}>
             Cursuri AI interactive pentru elevi — ce este inteligența artificială, cum te ajută la școală, cariere în tech, fake news, educație financiară și pregătire BAC/Capacitate.
