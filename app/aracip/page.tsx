@@ -218,6 +218,7 @@ export default function AracipHome() {
       colorBorder: 'rgba(99,102,241,0.25)',
       colorHover: 'rgba(99,102,241,0.18)',
       route: '/demo',
+      securizabil: true,
     },
     {
       id: 'acreditare',
@@ -242,6 +243,7 @@ export default function AracipHome() {
       colorBorder: 'rgba(20,184,166,0.25)',
       colorHover: 'rgba(20,184,166,0.18)',
       route: '/edu',
+      securizabil: true,
     },
     {
       id: 'examene',
@@ -423,6 +425,19 @@ export default function AracipHome() {
                   transition: 'opacity 0.25s',
                   opacity: hovered === card.id ? 1 : 0.5,
                 }} />
+
+                {(card as any).securizabil && (
+                  <div style={{
+                    position: 'absolute', top: 12, right: 12,
+                    background: 'rgba(239,68,68,0.12)',
+                    border: '1px solid rgba(239,68,68,0.35)',
+                    borderRadius: '20px', padding: '2px 10px',
+                    fontSize: '10px', fontWeight: 800, color: '#ef4444',
+                    textTransform: 'uppercase', letterSpacing: '0.5px',
+                  }}>
+                    🔒 Securizabil
+                  </div>
+                )}
 
                 <div style={{ fontSize: '40px', marginBottom: '16px', filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.3))' }}>{card.icon}</div>
 
