@@ -408,7 +408,7 @@ function MatematicaChat() {
       setMessages(prev => [...prev, { role: 'assistant', content: reply }])
       setBoardFull(reply)
       startTypewriter(reply)
-      if (voiceEnabled) { setSpeaking(true); speak(reply, () => setSpeaking(false), 0.75) }
+      if (voiceEnabled) { setSpeaking(true); speak(reply, () => setSpeaking(false), 0.6) }
     } catch {
       const err = 'Eroare de conexiune. Încercați din nou.'
       setBoardText(err)
