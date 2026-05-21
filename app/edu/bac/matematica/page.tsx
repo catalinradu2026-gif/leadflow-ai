@@ -386,7 +386,7 @@ function MatematicaChat() {
         clearInterval(typewriterRef.current!)
         setTyping(false)
       }
-    }, 18)
+    }, 55)
   }
 
   async function sendMsg(text?: string) {
@@ -408,7 +408,7 @@ function MatematicaChat() {
       setMessages(prev => [...prev, { role: 'assistant', content: reply }])
       setBoardFull(reply)
       startTypewriter(reply)
-      if (voiceEnabled) { setSpeaking(true); speak(reply, () => setSpeaking(false), 0.1) }
+      if (voiceEnabled) { setSpeaking(true); speak(reply, () => setSpeaking(false), 1.0) }
     } catch {
       const err = 'Eroare de conexiune. Încercați din nou.'
       setBoardText(err)
