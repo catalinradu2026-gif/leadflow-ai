@@ -319,6 +319,7 @@ function MatematicaChat() {
       return lines
     }
 
+    const isEmpty = messages.length === 0 && !boardText
     if (isEmpty) {
       ctx.textBaseline = 'middle'
       ctx.font = '28px "Caveat", cursive'
@@ -371,7 +372,7 @@ function MatematicaChat() {
         ctx.fillRect(PADDING + tw + 3, ly + 2, 2, FONT_SIZE)
       }
     }
-  }, [boardText, canvasSize, messages, typing, isEmpty, profil])
+  }, [boardText, canvasSize, messages, typing, profil])
 
   function startTypewriter(text: string) {
     if (typewriterRef.current) clearInterval(typewriterRef.current)
