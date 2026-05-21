@@ -234,14 +234,26 @@ export default function AracipHome() {
     {
       id: 'edu',
       icon: '🤖',
-      tag: 'EDU·AI',
-      title: 'Cursuri AI,\nBAC & Profesori',
-      desc: 'Inteligență artificială în educație — cursuri interactive pentru elevi, pregătire BAC și formare continuă.',
+      tag: 'EDU Digital',
+      title: 'Educație\nDigitală',
+      desc: 'Cursuri AI interactive pentru elevi, formare continuă pentru profesori și educație digitală în școală.',
       color: '#14b8a6',
       colorLight: 'rgba(20,184,166,0.1)',
       colorBorder: 'rgba(20,184,166,0.25)',
       colorHover: 'rgba(20,184,166,0.18)',
       route: '/edu',
+    },
+    {
+      id: 'examene',
+      icon: '🎯',
+      tag: 'Pregătire Examene',
+      title: 'BAC &\nCapacitate',
+      desc: 'Profesor AI acasă — meditații interactive pentru Bacalaureat și Evaluare Națională, 24/7, gratuit.',
+      color: '#f59e0b',
+      colorLight: 'rgba(245,158,11,0.1)',
+      colorBorder: 'rgba(245,158,11,0.25)',
+      colorHover: 'rgba(245,158,11,0.18)',
+      route: '/edu/examene',
     },
   ]
 
@@ -375,9 +387,9 @@ export default function AracipHome() {
           {/* Cards */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)',
+            gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)',
             gap: isMobile ? '16px' : '20px',
-            maxWidth: '980px',
+            maxWidth: '1200px',
             margin: '0 auto',
           }}>
             {cards.map(card => (
