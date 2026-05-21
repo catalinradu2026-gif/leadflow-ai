@@ -222,12 +222,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ text: 'Prea multe cereri. Încercați din nou în câteva secunde.' }, { status: 429 })
     }
 
-    const { messages, pagina } = await req.json()
+    const { messages, pagina, systemPrompt: customSystemPrompt } = await req.json()
     if (!messages || !Array.isArray(messages)) {
       return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
     }
 
-    const systemPrompt = buildSystemPrompt(pagina)
+    const systemPrompt = customSystemPrompt || buildSystemPrompt(pagina)
 
     const response = await groq.chat.completions.create({
       model: 'llama-3.3-70b-versatile',

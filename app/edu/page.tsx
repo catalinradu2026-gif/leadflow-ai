@@ -286,7 +286,7 @@ export default function EduLanding() {
         justifyContent: 'center',
       }}>
         {[
-          { val: '8', label: 'Module Interactive' },
+          { val: '16', label: 'Module Interactive' },
           { val: '24/7', label: 'Disponibil Oricând' },
           { val: 'AI', label: 'Profesor Adaptiv' },
           { val: '100%', label: 'Gratuit pentru Școli' },
