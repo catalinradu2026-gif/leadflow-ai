@@ -380,13 +380,17 @@ function MatematicaChat() {
     setBoardText('')
     setTyping(true)
 
+    // ~80ms/char ≈ viteza vocii românești la rate 1.0 (~115 cuvinte/min × 6 chars)
+    const MS_PER_CHAR = 80
+    let i = 0
+    typewriterRef.current = setInterval(() => {
+      i++
+      setBoardText(text.slice(0, i))
+      if (i >= text.length) { clearInterval(typewriterRef.current!); setTyping(false) }
+    }, MS_PER_CHAR)
+
     if (!voiceEnabled || typeof window === 'undefined' || !window.speechSynthesis) {
       setSpeaking(false)
-      let i = 0
-      typewriterRef.current = setInterval(() => {
-        i++; setBoardText(text.slice(0, i))
-        if (i >= text.length) { clearInterval(typewriterRef.current!); setTyping(false) }
-      }, 40)
       return
     }
 
@@ -397,31 +401,9 @@ function MatematicaChat() {
     const voices = window.speechSynthesis.getVoices()
     const roVoice = voices.find(v => v.lang.startsWith('ro'))
     if (roVoice) u.voice = roVoice
-
-    let usedBoundary = false
-
-    u.onboundary = (e: SpeechSynthesisEvent) => {
-      if (e.name !== 'word') return
-      usedBoundary = true
-      const end = e.charIndex + (e.charLength ?? 1)
-      setBoardText(text.slice(0, Math.min(end, text.length)))
-    }
-
-    u.onend = () => { setBoardText(text); setTyping(false); setSpeaking(false) }
-    u.onerror = () => { setBoardText(text); setTyping(false); setSpeaking(false) }
-
+    u.onend = () => setSpeaking(false)
+    u.onerror = () => setSpeaking(false)
     window.speechSynthesis.speak(u)
-
-    // Fallback pentru browsere fără onboundary
-    setTimeout(() => {
-      if (!usedBoundary) {
-        let i = 0
-        typewriterRef.current = setInterval(() => {
-          i++; setBoardText(text.slice(0, i))
-          if (i >= text.length) { clearInterval(typewriterRef.current!); setTyping(false) }
-        }, 40)
-      }
-    }, 800)
   }
 
   async function sendMsg(text?: string) {
