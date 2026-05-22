@@ -211,7 +211,7 @@ export default function AracipHome() {
       id: 'isj',
       icon: '🏫',
       tag: 'Portal ISJ',
-      title: 'Inspectorate &\nDirectori',
+      title: 'Inspectorate,\nDirectori & Diriginți',
       desc: 'Dashboard centralizat pentru toate unitățile din județ. Raportare, documente și comunicare în timp real.',
       color: '#6366f1',
       colorLight: 'rgba(99,102,241,0.1)',
@@ -244,6 +244,18 @@ export default function AracipHome() {
       colorHover: 'rgba(20,184,166,0.18)',
       route: '/edu',
       securizabil: true,
+    },
+    {
+      id: 'diriginte',
+      icon: '👨‍🏫',
+      tag: 'Portal Diriginte',
+      title: 'Ora de\nDirigenție AI',
+      desc: 'Loghează-te, bifează ziua orei tale și primești automat codul de sesiune la 8:00. 20 întrebări AI pentru clasa ta.',
+      color: '#22c55e',
+      colorLight: 'rgba(34,197,94,0.1)',
+      colorBorder: 'rgba(34,197,94,0.25)',
+      colorHover: 'rgba(34,197,94,0.18)',
+      route: '/edu/diriginte',
     },
     {
       id: 'examene',
@@ -389,9 +401,9 @@ export default function AracipHome() {
           {/* Cards */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)',
+            gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)',
             gap: isMobile ? '16px' : '20px',
-            maxWidth: '1200px',
+            maxWidth: '1000px',
             margin: '0 auto',
           }}>
             {cards.map(card => (
