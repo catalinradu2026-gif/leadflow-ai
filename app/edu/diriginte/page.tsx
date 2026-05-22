@@ -39,6 +39,8 @@ export default function DirigintePage() {
   const [codActiv, setCodActiv] = useState(false)
   const [minuteRamase, setMinuteRamase] = useState(60)
   const [ziDirigentie, setZiDirigentie] = useState('Joi')
+  const [oraDirigentie, setOraDirigentie] = useState('08:00')
+  const [orarSalvat, setOrarSalvat] = useState(false)
   const [codCopiat, setCodCopiat] = useState(false)
 
   const demoDashboard = {
@@ -319,6 +321,55 @@ export default function DirigintePage() {
                 ))}
               </div>
             </div>
+            {/* Orar */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px', flexWrap: 'wrap' }}>
+              <div style={{ fontSize: '12px', color: '#475569', fontWeight: 600, whiteSpace: 'nowrap' }}>Ora dirigenției:</div>
+              <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '2px', flex: 1 }}>
+                {['07:00','07:30','08:00','08:30','09:00','09:30','10:00','10:30','11:00','11:30','12:00','12:30','13:00','13:30','14:00'].map(h => (
+                  <button
+                    key={h}
+                    onClick={() => setOraDirigentie(h)}
+                    style={{
+                      background: oraDirigentie === h ? 'rgba(99,102,241,0.25)' : 'rgba(255,255,255,0.04)',
+                      border: `1px solid ${oraDirigentie === h ? 'rgba(99,102,241,0.6)' : 'rgba(255,255,255,0.08)'}`,
+                      borderRadius: '8px',
+                      padding: '5px 10px',
+                      fontSize: '12px',
+                      fontWeight: oraDirigentie === h ? 700 : 400,
+                      color: oraDirigentie === h ? '#a5b4fc' : '#475569',
+                      cursor: 'pointer',
+                      fontFamily: 'monospace',
+                      flexShrink: 0,
+                    }}
+                  >
+                    {h}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => {
+                  setOrarSalvat(true)
+                  setTimeout(() => setOrarSalvat(false), 2500)
+                }}
+                style={{
+                  background: orarSalvat ? 'rgba(34,197,94,0.2)' : 'linear-gradient(135deg, #4338ca, #6366f1)',
+                  border: `1px solid ${orarSalvat ? 'rgba(34,197,94,0.4)' : 'transparent'}`,
+                  borderRadius: '8px',
+                  padding: '6px 14px',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  color: orarSalvat ? '#4ade80' : '#fff',
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                  whiteSpace: 'nowrap',
+                  transition: 'all 0.2s',
+                  flexShrink: 0,
+                }}
+              >
+                {orarSalvat ? '✓ Salvat' : 'Salvează'}
+              </button>
+            </div>
+
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
               <div style={{
                 fontSize: isMobile ? '24px' : '32px',
