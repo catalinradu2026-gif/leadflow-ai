@@ -40,10 +40,19 @@ export default function DirigintePage() {
   const [minuteRamase, setMinuteRamase] = useState(60)
   const [ziDirigentie, setZiDirigentie] = useState('Joi')
   const [oraDirigentie, setOraDirigentie] = useState('08:00')
-  const [nrClasa, setNrClasa] = useState('10B')
+  const [nrClasa, setNrClasa] = useState('')
   const [modulClasa, setModulClasa] = useState<string[]>(['BAC Matematică M1'])
   const [orarSalvat, setOrarSalvat] = useState(false)
   const [codCopiat, setCodCopiat] = useState(false)
+
+  // Multi-clasa
+  const GRADE_DIR = ['5','6','7','8','9','10','11','12']
+  const LITERE_DIR = ['A','B','C','D','E','F']
+  const [clase, setClase] = useState<string[]>([])
+  const [adaugaClasaOpen, setAdaugaClasaOpen] = useState(false)
+  const [nouaGrada, setNouaGrada] = useState('10')
+  const [nouaLitera, setNouaLitera] = useState('A')
+  const [nouaLiteraCustom, setNouaLiteraCustom] = useState('')
 
   // Elevi
   type Elev = { nr: string; nume: string }
@@ -60,33 +69,6 @@ export default function DirigintePage() {
 
   const [hydrated, setHydrated] = useState(false)
 
-  // Incarcare din localStorage — o singura data la montare
-  useEffect(() => {
-    try {
-      const zi = localStorage.getItem('dir_zi')
-      const ora = localStorage.getItem('dir_ora')
-      const clasa = localStorage.getItem('dir_clasa')
-      const modul = localStorage.getItem('dir_modul')
-      const elevi = localStorage.getItem('dir_elevi')
-      const conturi = localStorage.getItem('dir_conturi')
-      if (zi) setZiDirigentie(zi)
-      if (ora) setOraDirigentie(ora)
-      if (clasa) setNrClasa(clasa)
-      if (modul) setModulClasa(JSON.parse(modul))
-      if (elevi) setEleviInput(JSON.parse(elevi))
-      if (conturi) setConturiGenerate(JSON.parse(conturi))
-    } catch {}
-    setHydrated(true)
-  }, [])
-
-  // Salvare — numai dupa ce incarcarea s-a terminat
-  useEffect(() => { if (hydrated) localStorage.setItem('dir_zi', ziDirigentie) }, [ziDirigentie, hydrated])
-  useEffect(() => { if (hydrated) localStorage.setItem('dir_ora', oraDirigentie) }, [oraDirigentie, hydrated])
-  useEffect(() => { if (hydrated) localStorage.setItem('dir_clasa', nrClasa) }, [nrClasa, hydrated])
-  useEffect(() => { if (hydrated) localStorage.setItem('dir_modul', JSON.stringify(modulClasa)) }, [modulClasa, hydrated])
-  useEffect(() => { if (hydrated) localStorage.setItem('dir_elevi', JSON.stringify(eleviInput)) }, [eleviInput, hydrated])
-  useEffect(() => { if (hydrated) localStorage.setItem('dir_conturi', JSON.stringify(conturiGenerate)) }, [conturiGenerate, hydrated])
-
   // Catalog note + absente
   type CatalogEntry = { elevNr: string; note: Record<string, string>; absMot: number; absNemot: number; observatii?: string }
   const [catalog, setCatalog] = useState<CatalogEntry[]>([])
@@ -97,16 +79,45 @@ export default function DirigintePage() {
   const [hydrated3, setHydrated3] = useState(false)
   const [catalogIdx, setCatalogIdx] = useState(0)
   const [importStatus, setImportStatus] = useState('')
+
+  // Incarcare din localStorage — o singura data la montare
   useEffect(() => {
-    try { const c = localStorage.getItem('dir_catalog'); if (c) setCatalog(JSON.parse(c)) } catch {}
-    setHydrated2(true)
+    try {
+      const cl = localStorage.getItem('dir_clase')
+      if (cl) setClase(JSON.parse(cl))
+      const clActiva = localStorage.getItem('dir_clasa') || ''
+      if (clActiva) {
+        setNrClasa(clActiva)
+        const data = localStorage.getItem(`dir_data_${clActiva}`)
+        if (data) {
+          const d = JSON.parse(data)
+          if (d.zi) setZiDirigentie(d.zi)
+          if (d.ora) setOraDirigentie(d.ora)
+          if (d.modul) setModulClasa(d.modul)
+          if (d.elevi) setEleviInput(d.elevi)
+          if (d.conturi) setConturiGenerate(d.conturi)
+        }
+        const catData = localStorage.getItem(`dir_catalog_${clActiva}`)
+        if (catData) setCatalog(JSON.parse(catData))
+      }
+      const pcData = localStorage.getItem('prof_catalogs')
+      if (pcData) setProfCatalogs(JSON.parse(pcData))
+    } catch {}
+    setHydrated(true); setHydrated2(true); setHydrated3(true)
   }, [])
-  useEffect(() => { if (hydrated2) localStorage.setItem('dir_catalog', JSON.stringify(catalog)) }, [catalog, hydrated2])
+
+  // Salvare combinata per-clasa
+  useEffect(() => {
+    if (!hydrated || !nrClasa) return
+    localStorage.setItem('dir_clasa', nrClasa)
+    localStorage.setItem('dir_clase', JSON.stringify(clase))
+    localStorage.setItem(`dir_data_${nrClasa}`, JSON.stringify({ zi: ziDirigentie, ora: oraDirigentie, modul: modulClasa, elevi: eleviInput, conturi: conturiGenerate }))
+  }, [ziDirigentie, oraDirigentie, nrClasa, modulClasa, eleviInput, conturiGenerate, clase, hydrated])
 
   useEffect(() => {
-    try { const p = localStorage.getItem('prof_catalogs'); if (p) setProfCatalogs(JSON.parse(p)) } catch {}
-    setHydrated3(true)
-  }, [])
+    if (hydrated2 && nrClasa) localStorage.setItem(`dir_catalog_${nrClasa}`, JSON.stringify(catalog))
+  }, [catalog, hydrated2, nrClasa])
+
   useEffect(() => { if (hydrated3) localStorage.setItem('prof_catalogs', JSON.stringify(profCatalogs)) }, [profCatalogs, hydrated3])
 
   function getCatalogEntry(nr: string): CatalogEntry {
@@ -118,6 +129,52 @@ export default function DirigintePage() {
       if (exists) return prev.map(e => e.elevNr === nr ? { ...e, ...patch } : e)
       return [...prev, { elevNr: nr, note: {}, absMot: 0, absNemot: 0, ...patch }]
     })
+  }
+
+  function loadClasaData(clasa: string) {
+    try {
+      const data = localStorage.getItem(`dir_data_${clasa}`)
+      if (data) {
+        const d = JSON.parse(data)
+        setZiDirigentie(d.zi || 'Joi')
+        setOraDirigentie(d.ora || '08:00')
+        setModulClasa(d.modul || ['BAC Matematică M1'])
+        setEleviInput(d.elevi || [{ nr: '', nume: '' }])
+        setConturiGenerate(d.conturi || [])
+      } else {
+        setZiDirigentie('Joi')
+        setOraDirigentie('08:00')
+        setModulClasa(['BAC Matematică M1'])
+        setEleviInput([{ nr: '', nume: '' }])
+        setConturiGenerate([])
+      }
+      const catData = localStorage.getItem(`dir_catalog_${clasa}`)
+      setCatalog(catData ? JSON.parse(catData) : [])
+    } catch {}
+    setCatalogIdx(0)
+    setTabElevi('adauga')
+  }
+
+  function switchClasa(nouaClasa: string) {
+    if (nrClasa) {
+      try {
+        localStorage.setItem(`dir_data_${nrClasa}`, JSON.stringify({ zi: ziDirigentie, ora: oraDirigentie, modul: modulClasa, elevi: eleviInput, conturi: conturiGenerate }))
+        localStorage.setItem(`dir_catalog_${nrClasa}`, JSON.stringify(catalog))
+      } catch {}
+    }
+    setNrClasa(nouaClasa)
+    loadClasaData(nouaClasa)
+  }
+
+  function addClasa() {
+    const litera = nouaLiteraCustom.trim().toUpperCase() || nouaLitera
+    const numeClasa = `${nouaGrada}${litera}`
+    const noua = clase.includes(numeClasa) ? clase : [...clase, numeClasa]
+    setClase(noua)
+    localStorage.setItem('dir_clase', JSON.stringify(noua))
+    setAdaugaClasaOpen(false)
+    setNouaLiteraCustom('')
+    switchClasa(numeClasa)
   }
 
   const [sectiuneElevi, setSectiuneElevi] = useState(false)
@@ -515,17 +572,88 @@ export default function DirigintePage() {
             padding: '24px',
             marginBottom: '16px',
           }}>
-            {/* Clasa si modul */}
-            <div style={{ display: 'flex', gap: '10px', marginBottom: '14px', flexWrap: 'wrap' }}>
-              <div style={{ flex: '0 0 auto' }}>
-                <div style={{ fontSize: '11px', color: '#475569', marginBottom: '5px', fontWeight: 600 }}>Nr. clasă</div>
-                <input
-                  value={nrClasa}
-                  onChange={e => setNrClasa(e.target.value)}
-                  placeholder="ex: 10B"
-                  style={{ ...inputStyle, width: '80px', padding: '8px 10px', fontSize: '14px', fontWeight: 700, textAlign: 'center' }}
-                />
+            {/* Selector clase */}
+            <div style={{ marginBottom: '14px' }}>
+              <div style={{ fontSize: '11px', color: '#475569', marginBottom: '8px', fontWeight: 600, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>Clase dirigate</span>
+                {nrClasa && <span style={{ color: '#22c55e', fontWeight: 700 }}>Activă: {nrClasa}</span>}
               </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '8px' }}>
+                {clase.map(cl => (
+                  <button key={cl} onClick={() => switchClasa(cl)} style={{
+                    background: nrClasa === cl ? 'rgba(34,197,94,0.2)' : 'rgba(255,255,255,0.04)',
+                    border: `1.5px solid ${nrClasa === cl ? '#22c55e' : 'rgba(255,255,255,0.12)'}`,
+                    borderRadius: '10px', padding: '6px 14px', cursor: 'pointer', fontFamily: 'inherit',
+                    fontSize: '14px', fontWeight: 800, color: nrClasa === cl ? '#4ade80' : '#94a3b8',
+                    transition: 'all 0.15s',
+                  }}>{cl}</button>
+                ))}
+                <button onClick={() => setAdaugaClasaOpen(v => !v)} style={{
+                  background: adaugaClasaOpen ? 'rgba(99,102,241,0.2)' : 'rgba(255,255,255,0.04)',
+                  border: `1.5px dashed ${adaugaClasaOpen ? 'rgba(99,102,241,0.6)' : 'rgba(255,255,255,0.15)'}`,
+                  borderRadius: '10px', padding: '6px 14px', cursor: 'pointer', fontFamily: 'inherit',
+                  fontSize: '13px', fontWeight: 700, color: adaugaClasaOpen ? '#a5b4fc' : '#475569',
+                }}>+ Clasă</button>
+              </div>
+
+              {/* Panel adauga clasa */}
+              {adaugaClasaOpen && (
+                <div style={{ background: 'rgba(99,102,241,0.07)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '12px', padding: '14px', marginBottom: '6px' }}>
+                  <div style={{ fontSize: '11px', color: '#475569', fontWeight: 600, marginBottom: '8px' }}>Clasa nouă:</div>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                    <div>
+                      <div style={{ fontSize: '10px', color: '#475569', marginBottom: '4px' }}>An</div>
+                      <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                        {GRADE_DIR.map(g => (
+                          <button key={g} onClick={() => setNouaGrada(g)} style={{
+                            background: nouaGrada === g ? 'rgba(99,102,241,0.25)' : 'rgba(255,255,255,0.04)',
+                            border: `1px solid ${nouaGrada === g ? 'rgba(99,102,241,0.6)' : 'rgba(255,255,255,0.1)'}`,
+                            borderRadius: '8px', padding: '4px 10px', cursor: 'pointer', fontFamily: 'inherit',
+                            fontSize: '13px', fontWeight: nouaGrada === g ? 700 : 400,
+                            color: nouaGrada === g ? '#a5b4fc' : '#475569',
+                          }}>{g}</button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '10px', color: '#475569', marginBottom: '4px' }}>Literă</div>
+                      <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginBottom: '6px' }}>
+                        {LITERE_DIR.map(l => (
+                          <button key={l} onClick={() => { setNouaLitera(l); setNouaLiteraCustom('') }} style={{
+                            background: nouaLitera === l && !nouaLiteraCustom ? 'rgba(34,197,94,0.2)' : 'rgba(255,255,255,0.04)',
+                            border: `1px solid ${nouaLitera === l && !nouaLiteraCustom ? 'rgba(34,197,94,0.5)' : 'rgba(255,255,255,0.1)'}`,
+                            borderRadius: '8px', padding: '4px 10px', cursor: 'pointer', fontFamily: 'inherit',
+                            fontSize: '13px', fontWeight: nouaLitera === l && !nouaLiteraCustom ? 700 : 400,
+                            color: nouaLitera === l && !nouaLiteraCustom ? '#4ade80' : '#475569',
+                          }}>{l}</button>
+                        ))}
+                      </div>
+                      <input placeholder="Altă literă..." value={nouaLiteraCustom}
+                        onChange={e => setNouaLiteraCustom(e.target.value.toUpperCase().slice(0, 3))}
+                        style={{ ...inputStyle, width: '120px', padding: '6px 10px', fontSize: '13px' }} />
+                    </div>
+                  </div>
+                  <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{ fontSize: '18px', fontWeight: 900, color: '#a5b4fc', fontFamily: 'monospace' }}>
+                      Previzualizare: <span style={{ color: '#f1f5f9' }}>{nouaGrada}{nouaLiteraCustom.trim().toUpperCase() || nouaLitera}</span>
+                    </div>
+                    <button onClick={addClasa} style={{ background: 'linear-gradient(135deg, #4338ca, #6366f1)', border: 'none', borderRadius: '10px', padding: '8px 20px', fontSize: '13px', fontWeight: 700, color: '#fff', cursor: 'pointer', fontFamily: 'inherit' }}>
+                      Confirmă →
+                    </button>
+                    <button onClick={() => { setAdaugaClasaOpen(false); setNouaLiteraCustom('') }} style={{ background: 'none', border: 'none', color: '#475569', cursor: 'pointer', fontSize: '13px', fontFamily: 'inherit' }}>
+                      Anulează
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {!nrClasa && clase.length === 0 && (
+                <div style={{ fontSize: '12px', color: '#475569', fontStyle: 'italic' }}>Adaugă prima clasă dirigată folosind butonul „+ Clasă"</div>
+              )}
+            </div>
+
+            {/* Module */}
+            <div style={{ display: 'flex', gap: '10px', marginBottom: '14px', flexWrap: 'wrap' }}>
               <div style={{ flex: 1, minWidth: '200px' }}>
                 <div style={{ fontSize: '11px', color: '#475569', marginBottom: '5px', fontWeight: 600 }}>Module active</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
