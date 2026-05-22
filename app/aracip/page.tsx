@@ -211,7 +211,7 @@ export default function AracipHome() {
       id: 'isj',
       icon: '🏫',
       tag: 'Portal ISJ',
-      title: 'Inspectorate,\nDirectori & Diriginți',
+      title: 'Inspectorate, Directori,\nDiriginți & Profesori',
       desc: 'Dashboard centralizat pentru toate unitățile din județ. Raportare, documente și comunicare în timp real.',
       color: '#6366f1',
       colorLight: 'rgba(99,102,241,0.1)',
