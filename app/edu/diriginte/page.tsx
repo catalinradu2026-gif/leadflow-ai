@@ -7,7 +7,7 @@ type View = 'login' | 'register' | 'dashboard'
 
 const ZILE = ['Luni', 'Marți', 'Miercuri', 'Joi', 'Vineri']
 const TIP_SCOALA = ['Liceu', 'Colegiu Național', 'Colegiu Tehnic', 'Școală Gimnazială', 'Școală Primară']
-const MODULE = ['BAC Matematică M1', 'BAC Matematică M2', 'BAC Română', 'Capacitate Matematică', 'Capacitate Română', 'Cursuri AI']
+const MODULE = ['BAC Matematică M1', 'BAC Matematică M2', 'BAC Română', 'Capacitate Matematică', 'Capacitate Română']
 
 export default function DirigintePage() {
   const router = useRouter()
@@ -41,7 +41,7 @@ export default function DirigintePage() {
   const [ziDirigentie, setZiDirigentie] = useState('Joi')
   const [oraDirigentie, setOraDirigentie] = useState('08:00')
   const [nrClasa, setNrClasa] = useState('10B')
-  const [modulClasa, setModulClasa] = useState('BAC Matematică M1')
+  const [modulClasa, setModulClasa] = useState<string[]>(['BAC Matematică M1'])
   const [orarSalvat, setOrarSalvat] = useState(false)
   const [codCopiat, setCodCopiat] = useState(false)
 
@@ -63,7 +63,7 @@ export default function DirigintePage() {
       if (zi) setZiDirigentie(zi)
       if (ora) setOraDirigentie(ora)
       if (clasa) setNrClasa(clasa)
-      if (modul) setModulClasa(modul)
+      if (modul) setModulClasa(JSON.parse(modul))
       if (elevi) setEleviInput(JSON.parse(elevi))
       if (conturi) setConturiGenerate(JSON.parse(conturi))
     } catch {}
@@ -73,7 +73,7 @@ export default function DirigintePage() {
   useEffect(() => { localStorage.setItem('dir_zi', ziDirigentie) }, [ziDirigentie])
   useEffect(() => { localStorage.setItem('dir_ora', oraDirigentie) }, [oraDirigentie])
   useEffect(() => { localStorage.setItem('dir_clasa', nrClasa) }, [nrClasa])
-  useEffect(() => { localStorage.setItem('dir_modul', modulClasa) }, [modulClasa])
+  useEffect(() => { localStorage.setItem('dir_modul', JSON.stringify(modulClasa)) }, [modulClasa])
   useEffect(() => { localStorage.setItem('dir_elevi', JSON.stringify(eleviInput)) }, [eleviInput])
   useEffect(() => { localStorage.setItem('dir_conturi', JSON.stringify(conturiGenerate)) }, [conturiGenerate])
   const [sectiuneElevi, setSectiuneElevi] = useState(false)
@@ -394,7 +394,7 @@ export default function DirigintePage() {
               {[
                 { label: 'Clasa', val: nrClasa },
                 { label: 'Ora de dirigenție', val: `${ziDirigentie} · ${oraDirigentie}` },
-                { label: 'Modul', val: modulClasa },
+                { label: 'Module', val: modulClasa.length ? modulClasa.join(', ') : '—' },
               ].map(r => (
                 <div key={r.label} style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '10px', padding: '10px 14px' }}>
                   <div style={{ color: '#475569', marginBottom: '2px' }}>{r.label}</div>
@@ -423,15 +423,32 @@ export default function DirigintePage() {
                   style={{ ...inputStyle, width: '80px', padding: '8px 10px', fontSize: '14px', fontWeight: 700, textAlign: 'center' }}
                 />
               </div>
-              <div style={{ flex: 1, minWidth: '160px' }}>
-                <div style={{ fontSize: '11px', color: '#475569', marginBottom: '5px', fontWeight: 600 }}>Modul</div>
-                <select
-                  value={modulClasa}
-                  onChange={e => setModulClasa(e.target.value)}
-                  style={{ ...selectStyle, padding: '8px 10px', fontSize: '13px' }}
-                >
-                  {MODULE.map(m => <option key={m} value={m}>{m}</option>)}
-                </select>
+              <div style={{ flex: 1, minWidth: '200px' }}>
+                <div style={{ fontSize: '11px', color: '#475569', marginBottom: '5px', fontWeight: 600 }}>Module active</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                  {MODULE.map(m => {
+                    const activ = modulClasa.includes(m)
+                    return (
+                      <button
+                        key={m}
+                        onClick={() => setModulClasa(prev => activ ? prev.filter(x => x !== m) : [...prev, m])}
+                        style={{
+                          background: activ ? 'rgba(99,102,241,0.25)' : 'rgba(255,255,255,0.04)',
+                          border: `1px solid ${activ ? 'rgba(99,102,241,0.6)' : 'rgba(255,255,255,0.1)'}`,
+                          borderRadius: '8px',
+                          padding: '5px 10px',
+                          fontSize: '12px',
+                          fontWeight: activ ? 700 : 400,
+                          color: activ ? '#a5b4fc' : '#475569',
+                          cursor: 'pointer',
+                          fontFamily: 'inherit',
+                        }}
+                      >
+                        {activ ? '✓ ' : ''}{m}
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
             </div>
 
