@@ -165,6 +165,45 @@ export default function EleviPage() {
             </div>
           </div>
 
+          {/* Gamification */}
+          {(() => {
+            const coins = 127; const nivel = 3; const streak = 7
+            const badges = ['🌟 Primul pas','📐 Matematician','🔥 Dedicat','⚡ Rapid']
+            const nivelLabel = ['Nou','Începător','Mediu','Avansat','Expert','Master'][nivel]
+            const coinsPentruNivel = [0,30,80,150,250,400]
+            const progres = Math.round(((coins - coinsPentruNivel[nivel]) / (coinsPentruNivel[nivel+1] - coinsPentruNivel[nivel])) * 100)
+            return (
+              <div style={{ background: 'rgba(251,191,36,0.04)', border: '1px solid rgba(251,191,36,0.15)', borderRadius: '20px', padding: '18px 20px', marginBottom: '20px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                      <span style={{ fontSize: '20px' }}>🪙</span>
+                      <span style={{ fontSize: '22px', fontWeight: 900, color: '#fbbf24' }}>{coins}</span>
+                      <span style={{ fontSize: '12px', color: '#94a3b8' }}>AI Coins</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '11px', fontWeight: 700, color: '#6366f1', background: 'rgba(99,102,241,0.15)', borderRadius: '6px', padding: '2px 8px' }}>Nivel {nivel} · {nivelLabel}</span>
+                      {streak > 0 && <span style={{ fontSize: '11px', color: '#f97316' }}>🔥 {streak} zile streak</span>}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: '11px', color: '#475569', marginBottom: '4px' }}>Progres nivel {nivel + 1}</div>
+                    <div style={{ width: 80, height: 6, background: 'rgba(255,255,255,0.08)', borderRadius: '3px', overflow: 'hidden' }}>
+                      <div style={{ width: `${progres}%`, height: '100%', background: 'linear-gradient(90deg, #6366f1, #fbbf24)', borderRadius: '3px' }} />
+                    </div>
+                    <div style={{ fontSize: '10px', color: '#475569', marginTop: '3px' }}>{progres}%</div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                  {badges.map(b => (
+                    <div key={b} style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '8px', padding: '4px 10px', fontSize: '11px', color: '#a5b4fc' }}>{b}</div>
+                  ))}
+                  <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', padding: '4px 10px', fontSize: '11px', color: '#334155' }}>+3 de deblocat</div>
+                </div>
+              </div>
+            )
+          })()}
+
           {/* Materii */}
           <div style={{ fontSize: '11px', fontWeight: 700, color: '#334155', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '12px', paddingLeft: '4px' }}>
             Materiile tale

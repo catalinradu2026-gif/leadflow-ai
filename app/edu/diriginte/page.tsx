@@ -47,7 +47,14 @@ export default function DirigintePage() {
 
   // Elevi
   type Elev = { nr: string; nume: string }
-  type ContElev = { nr: string; nume: string; user: string; parola: string; minutePlatforma: number; ultimaConectare: string | null; activitateModul?: Record<string, number> }
+  type RiscNivel = 'ridicat' | 'mediu' | 'ok'
+  type ContElev = {
+    nr: string; nume: string; user: string; parola: string
+    minutePlatforma: number; ultimaConectare: string | null
+    activitateModul?: Record<string, number>
+    riscNivel: RiscNivel; riscCategorie: string[]
+    coins: number; nivel: number; streak: number; badges: string[]
+  }
   const [eleviInput, setEleviInput] = useState<Elev[]>([{ nr: '', nume: '' }])
   const [conturiGenerate, setConturiGenerate] = useState<ContElev[]>([])
 
@@ -80,7 +87,7 @@ export default function DirigintePage() {
   useEffect(() => { if (hydrated) localStorage.setItem('dir_elevi', JSON.stringify(eleviInput)) }, [eleviInput, hydrated])
   useEffect(() => { if (hydrated) localStorage.setItem('dir_conturi', JSON.stringify(conturiGenerate)) }, [conturiGenerate, hydrated])
   const [sectiuneElevi, setSectiuneElevi] = useState(false)
-  const [tabElevi, setTabElevi] = useState<'adauga' | 'conturi' | 'activitate'>('adauga')
+  const [tabElevi, setTabElevi] = useState<'adauga' | 'conturi' | 'activitate' | 'alerte' | 'clasament'>('adauga')
 
   function slugNume(nume: string) {
     return nume.toLowerCase()
@@ -156,21 +163,29 @@ export default function DirigintePage() {
   function genereazaConturi() {
     const DEMO_MIN = [0, 14, 0, 31, 8, 22, 5, 47, 3, 19, 12, 0, 7, 25, 0, 11]
     const DEMO_DATA = ['ieri 18:42','azi 09:15',null,'ieri 20:03','ieri 16:30',null,'azi 08:55','acum 3 zile',null,'ieri 22:10','azi 11:20',null,'ieri 21:05','acum 2 zile',null,'ieri 16:55']
+    const DEMO_STREAK = [0,3,0,12,2,7,1,14,0,5,4,0,2,9,0,6]
+    const ALL_BADGES = ['🌟 Primul pas','📐 Matematician','📖 Cititor','🔥 Dedicat','⚡ Rapid','🎯 Precis','🤖 AI Fan','💎 Top 3']
+    const CATEGORII_RISC = [['Abandon'],['Performanță'],['Abandon','Emoțional'],['Performanță','Emoțional'],['Abandon']]
+
     const conturi = eleviInput.filter(e => e.nume.trim()).map((e, i) => {
       const activitateModul: Record<string, number> = {}
       modulClasa.forEach((m, mi) => {
-        const base = DEMO_MIN[(i + mi * 3) % DEMO_MIN.length]
-        activitateModul[m] = base
+        activitateModul[m] = DEMO_MIN[(i + mi * 3) % DEMO_MIN.length]
       })
       const totalMin = Object.values(activitateModul).reduce((s, v) => s + v, 0)
+      const conectat = DEMO_DATA[i % DEMO_DATA.length]
+      const streak = DEMO_STREAK[i % DEMO_STREAK.length]
+      const coins = Math.round(totalMin * 3 + streak * 10)
+      const nivel = coins === 0 ? 0 : coins < 30 ? 1 : coins < 80 ? 2 : coins < 150 ? 3 : coins < 250 ? 4 : 5
+      const badges = totalMin === 0 ? [] : ALL_BADGES.filter((_, bi) => (i + bi) % 3 === 0).slice(0, nivel + 1)
+      const riscNivel: 'ridicat' | 'mediu' | 'ok' = totalMin === 0 || !conectat ? 'ridicat' : totalMin < 8 ? 'mediu' : 'ok'
+      const riscCategorie = riscNivel !== 'ok' ? CATEGORII_RISC[i % CATEGORII_RISC.length] : []
       return {
-        nr: e.nr || String(i + 1),
-        nume: e.nume.trim(),
-        user: slugNume(e.nume.trim()),
-        parola: randPass(),
-        minutePlatforma: totalMin,
-        ultimaConectare: DEMO_DATA[i % DEMO_DATA.length],
-        activitateModul,
+        nr: e.nr || String(i + 1), nume: e.nume.trim(),
+        user: slugNume(e.nume.trim()), parola: randPass(),
+        minutePlatforma: totalMin, ultimaConectare: conectat,
+        activitateModul, riscNivel, riscCategorie,
+        coins, nivel, streak, badges,
       }
     })
     setConturiGenerate(conturi)
@@ -690,17 +705,28 @@ export default function DirigintePage() {
             {sectiuneElevi && (
               <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '0' }}>
                 {/* Tabs */}
-                <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                  {(['adauga', 'conturi', 'activitate'] as const).map(t => (
-                    <button key={t} onClick={() => setTabElevi(t)} style={{
-                      flex: 1, background: 'none', border: 'none', borderBottom: `2px solid ${tabElevi === t ? '#6366f1' : 'transparent'}`,
-                      padding: '12px 8px', cursor: 'pointer', fontFamily: 'inherit',
-                      fontSize: '12px', fontWeight: tabElevi === t ? 700 : 400,
-                      color: tabElevi === t ? '#a5b4fc' : '#475569',
-                    }}>
-                      {t === 'adauga' ? '✏️ Adaugă elevi' : t === 'conturi' ? '🔑 Conturi' : '📊 Activitate'}
-                    </button>
-                  ))}
+                <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.06)', overflowX: 'auto' }}>
+                  {([
+                    ['adauga','✏️ Adaugă'],
+                    ['conturi','🔑 Conturi'],
+                    ['activitate','📊 Activitate'],
+                    ['alerte','⚠️ Alerte'],
+                    ['clasament','🏆 Clasament'],
+                  ] as [typeof tabElevi, string][]).map(([t, label]) => {
+                    const alertCount = t === 'alerte' ? conturiGenerate.filter(c => c.riscNivel === 'ridicat').length : 0
+                    return (
+                      <button key={t} onClick={() => setTabElevi(t)} style={{
+                        flex: '0 0 auto', background: 'none', border: 'none', borderBottom: `2px solid ${tabElevi === t ? '#6366f1' : 'transparent'}`,
+                        padding: '12px 10px', cursor: 'pointer', fontFamily: 'inherit',
+                        fontSize: '12px', fontWeight: tabElevi === t ? 700 : 400,
+                        color: tabElevi === t ? '#a5b4fc' : '#475569',
+                        position: 'relative' as const,
+                      }}>
+                        {label}
+                        {alertCount > 0 && <span style={{ marginLeft: '4px', background: '#ef4444', color: '#fff', borderRadius: '50%', width: 16, height: 16, fontSize: '10px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{alertCount}</span>}
+                      </button>
+                    )
+                  })}
                 </div>
 
                 {/* Tab: Adauga */}
@@ -824,6 +850,102 @@ export default function DirigintePage() {
                     )}
                   </div>
                 )}
+
+                {/* Tab: Alerte */}
+                {tabElevi === 'alerte' && (
+                  <div style={{ padding: '16px' }}>
+                    {conturiGenerate.length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '24px', color: '#475569', fontSize: '13px' }}>Generează conturi pentru a vedea alertele</div>
+                    ) : (() => {
+                      const ridicat = conturiGenerate.filter(c => c.riscNivel === 'ridicat')
+                      const mediu = conturiGenerate.filter(c => c.riscNivel === 'mediu')
+                      return (
+                        <>
+                          <div style={{ display: 'flex', gap: '8px', marginBottom: '14px', flexWrap: 'wrap' }}>
+                            <div style={{ flex: 1, minWidth: '80px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: '10px', padding: '10px', textAlign: 'center' }}>
+                              <div style={{ fontSize: '22px', fontWeight: 800, color: '#f87171' }}>{ridicat.length}</div>
+                              <div style={{ fontSize: '10px', color: '#ef4444', fontWeight: 600 }}>RISC RIDICAT</div>
+                            </div>
+                            <div style={{ flex: 1, minWidth: '80px', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.25)', borderRadius: '10px', padding: '10px', textAlign: 'center' }}>
+                              <div style={{ fontSize: '22px', fontWeight: 800, color: '#fbbf24' }}>{mediu.length}</div>
+                              <div style={{ fontSize: '10px', color: '#f59e0b', fontWeight: 600 }}>RISC MEDIU</div>
+                            </div>
+                            <div style={{ flex: 1, minWidth: '80px', background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: '10px', padding: '10px', textAlign: 'center' }}>
+                              <div style={{ fontSize: '22px', fontWeight: 800, color: '#4ade80' }}>{conturiGenerate.length - ridicat.length - mediu.length}</div>
+                              <div style={{ fontSize: '10px', color: '#22c55e', fontWeight: 600 }}>OK</div>
+                            </div>
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '300px', overflowY: 'auto' }}>
+                            {[...ridicat, ...mediu].map((c, i) => (
+                              <div key={i} style={{ background: c.riscNivel === 'ridicat' ? 'rgba(239,68,68,0.07)' : 'rgba(245,158,11,0.07)', border: `1px solid ${c.riscNivel === 'ridicat' ? 'rgba(239,68,68,0.25)' : 'rgba(245,158,11,0.25)'}`, borderRadius: '12px', padding: '12px 14px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
+                                  <div style={{ fontSize: '18px' }}>{c.riscNivel === 'ridicat' ? '🔴' : '🟡'}</div>
+                                  <div style={{ flex: 1 }}>
+                                    <div style={{ fontSize: '13px', fontWeight: 700, color: '#f1f5f9' }}>{c.nr}. {c.nume}</div>
+                                    <div style={{ fontSize: '11px', color: c.riscNivel === 'ridicat' ? '#f87171' : '#fbbf24', fontWeight: 600 }}>{c.riscNivel === 'ridicat' ? 'RISC RIDICAT' : 'RISC MEDIU'}</div>
+                                  </div>
+                                </div>
+                                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                                  {c.riscCategorie.map(cat => (
+                                    <div key={cat} style={{ background: 'rgba(255,255,255,0.06)', borderRadius: '6px', padding: '3px 8px', fontSize: '11px', color: '#94a3b8' }}>
+                                      {cat === 'Abandon' ? '🚪 Risc abandon' : cat === 'Performanță' ? '📉 Performanță scăzută' : '💙 Emoțional'}
+                                    </div>
+                                  ))}
+                                  <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: '6px', padding: '3px 8px', fontSize: '11px', color: '#94a3b8' }}>
+                                    ⏱ {c.minutePlatforma} min platformă
+                                  </div>
+                                  {!c.ultimaConectare && <div style={{ background: 'rgba(239,68,68,0.1)', borderRadius: '6px', padding: '3px 8px', fontSize: '11px', color: '#f87171' }}>Niciodată conectat</div>}
+                                </div>
+                              </div>
+                            ))}
+                            {ridicat.length === 0 && mediu.length === 0 && (
+                              <div style={{ textAlign: 'center', padding: '24px', color: '#4ade80', fontSize: '13px' }}>✅ Niciun elev cu risc detectat</div>
+                            )}
+                          </div>
+                        </>
+                      )
+                    })()}
+                  </div>
+                )}
+
+                {/* Tab: Clasament */}
+                {tabElevi === 'clasament' && (
+                  <div style={{ padding: '16px' }}>
+                    {conturiGenerate.length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '24px', color: '#475569', fontSize: '13px' }}>Generează conturi pentru a vedea clasamentul</div>
+                    ) : (() => {
+                      const sorted = [...conturiGenerate].sort((a, b) => b.coins - a.coins)
+                      return (
+                        <>
+                          <div style={{ fontSize: '11px', color: '#475569', marginBottom: '10px' }}>Clasament anonim · elevii nu văd numele colegilor</div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '320px', overflowY: 'auto' }}>
+                            {sorted.map((c, i) => {
+                              const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`
+                              const nivelLabel = ['Nou','Începător','Mediu','Avansat','Expert','Master'][c.nivel] || 'Nou'
+                              return (
+                                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', background: i < 3 ? 'rgba(99,102,241,0.08)' : 'rgba(255,255,255,0.02)', borderRadius: '10px', border: `1px solid ${i < 3 ? 'rgba(99,102,241,0.2)' : 'rgba(255,255,255,0.05)'}` }}>
+                                  <div style={{ fontSize: i < 3 ? '20px' : '13px', fontWeight: 700, color: '#94a3b8', width: 28, textAlign: 'center', flexShrink: 0 }}>{medal}</div>
+                                  <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ fontSize: '13px', fontWeight: 600, color: '#f1f5f9' }}>{c.nr}. {c.nume}</div>
+                                    <div style={{ display: 'flex', gap: '6px', marginTop: '3px', flexWrap: 'wrap' }}>
+                                      {c.badges.slice(0, 3).map(b => <span key={b} style={{ fontSize: '11px' }}>{b}</span>)}
+                                    </div>
+                                  </div>
+                                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                                    <div style={{ fontSize: '13px', fontWeight: 800, color: '#fbbf24' }}>🪙 {c.coins}</div>
+                                    <div style={{ fontSize: '10px', color: '#6366f1', fontWeight: 600 }}>{nivelLabel}</div>
+                                    {c.streak > 0 && <div style={{ fontSize: '10px', color: '#f97316' }}>🔥 {c.streak} zile</div>}
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </>
+                      )
+                    })()}
+                  </div>
+                )}
+
               </div>
             )}
           </div>
