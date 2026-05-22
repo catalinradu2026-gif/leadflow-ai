@@ -1,6 +1,6 @@
 'use client'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useIsMobile } from '../../hooks/useIsMobile'
 
 type View = 'login' | 'register' | 'dashboard'
@@ -48,6 +48,26 @@ export default function DirigintePage() {
   type ContElev = { nr: string; nume: string; user: string; parola: string; minutePlatforma: number; ultimaConectare: string | null }
   const [eleviInput, setEleviInput] = useState<Elev[]>([{ nr: '', nume: '' }])
   const [conturiGenerate, setConturiGenerate] = useState<ContElev[]>([])
+
+  // Incarcare din localStorage la pornire
+  useEffect(() => {
+    try {
+      const zi = localStorage.getItem('dir_zi')
+      const ora = localStorage.getItem('dir_ora')
+      const elevi = localStorage.getItem('dir_elevi')
+      const conturi = localStorage.getItem('dir_conturi')
+      if (zi) setZiDirigentie(zi)
+      if (ora) setOraDirigentie(ora)
+      if (elevi) setEleviInput(JSON.parse(elevi))
+      if (conturi) setConturiGenerate(JSON.parse(conturi))
+    } catch {}
+  }, [])
+
+  // Salvare automata in localStorage la orice modificare
+  useEffect(() => { localStorage.setItem('dir_zi', ziDirigentie) }, [ziDirigentie])
+  useEffect(() => { localStorage.setItem('dir_ora', oraDirigentie) }, [oraDirigentie])
+  useEffect(() => { localStorage.setItem('dir_elevi', JSON.stringify(eleviInput)) }, [eleviInput])
+  useEffect(() => { localStorage.setItem('dir_conturi', JSON.stringify(conturiGenerate)) }, [conturiGenerate])
   const [sectiuneElevi, setSectiuneElevi] = useState(false)
   const [tabElevi, setTabElevi] = useState<'adauga' | 'conturi' | 'activitate'>('adauga')
 
