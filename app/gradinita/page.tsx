@@ -31,10 +31,11 @@ export default function PortalGradinita() {
       id: 'parinti',
       icon: '👨‍👩‍👧',
       tag: 'Părinți',
-      title: 'Părinți & Copii',
-      desc: 'Activitățile săptămânii, comunicare directă cu educatoarea și resurse pentru acasă.',
-      color: '#f59e0b',
-      route: '/edu/elevi',
+      title: 'Părinți și Copii',
+      desc: 'Vezi activitățile grupei, comunicare cu educatoarea și progresul copilului tău.',
+      color: '#64748b',
+      route: '',
+      inactiv: true,
     },
   ]
 
@@ -94,28 +95,39 @@ export default function PortalGradinita() {
         {sectiuni.map(s => (
           <button
             key={s.id}
-            onClick={() => router.push(s.route)}
-            onMouseEnter={() => setHovered(s.id)}
+            onClick={() => !(s as any).inactiv && s.route && router.push(s.route)}
+            onMouseEnter={() => !(s as any).inactiv && setHovered(s.id)}
             onMouseLeave={() => setHovered(null)}
             style={{
-              background: hovered === s.id ? `${s.color}18` : 'rgba(255,255,255,0.03)',
-              border: `1.5px solid ${hovered === s.id ? s.color : 'rgba(255,255,255,0.08)'}`,
+              background: (s as any).inactiv ? 'rgba(255,255,255,0.02)' : hovered === s.id ? `${s.color}18` : 'rgba(255,255,255,0.03)',
+              border: `1.5px solid ${(s as any).inactiv ? 'rgba(255,255,255,0.05)' : hovered === s.id ? s.color : 'rgba(255,255,255,0.08)'}`,
               borderRadius: '20px',
               padding: '28px 24px',
-              cursor: 'pointer',
+              cursor: (s as any).inactiv ? 'default' : 'pointer',
               textAlign: 'left',
               transition: 'all 0.22s cubic-bezier(0.4,0,0.2,1)',
               transform: hovered === s.id ? 'translateY(-4px)' : 'translateY(0)',
               fontFamily: 'inherit',
+              opacity: (s as any).inactiv ? 0.55 : 1,
+              position: 'relative' as const,
             }}
           >
-            <div style={{ fontSize: '36px', marginBottom: '14px' }}>{s.icon}</div>
+            {(s as any).inactiv && (
+              <div style={{ position: 'absolute', top: 12, right: 12, background: 'rgba(100,116,139,0.2)', border: '1px solid rgba(100,116,139,0.4)', borderRadius: '20px', padding: '2px 10px', fontSize: '10px', fontWeight: 800, color: '#94a3b8', letterSpacing: '0.5px' }}>
+                🌐 Includere Națională
+              </div>
+            )}
+            <div style={{ fontSize: '36px', marginBottom: '14px', filter: (s as any).inactiv ? 'grayscale(1)' : 'none' }}>{s.icon}</div>
             <div style={{ display: 'inline-flex', background: `${s.color}22`, border: `1px solid ${s.color}44`, borderRadius: '20px', padding: '3px 12px', fontSize: '10px', fontWeight: 800, color: s.color, letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '12px' }}>{s.tag}</div>
-            <div style={{ fontSize: '18px', fontWeight: 800, color: '#f1f5f9', marginBottom: '8px' }}>{s.title}</div>
+            <div style={{ fontSize: '18px', fontWeight: 800, color: (s as any).inactiv ? '#475569' : '#f1f5f9', marginBottom: '8px' }}>{s.title}</div>
             <div style={{ fontSize: '13px', color: '#475569', lineHeight: 1.65, marginBottom: '20px' }}>{s.desc}</div>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 700, color: s.color }}>
-              Accesează <span style={{ transform: hovered === s.id ? 'translateX(4px)' : 'translateX(0)', transition: 'transform 0.2s', display: 'inline-block' }}>→</span>
-            </div>
+            {!(s as any).inactiv ? (
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 700, color: s.color }}>
+                Accesează <span style={{ transform: hovered === s.id ? 'translateX(4px)' : 'translateX(0)', transition: 'transform 0.2s', display: 'inline-block' }}>→</span>
+              </div>
+            ) : (
+              <div style={{ fontSize: '12px', color: '#334155', fontStyle: 'italic' }}>Disponibil la lansarea națională</div>
+            )}
           </button>
         ))}
       </div>
