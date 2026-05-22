@@ -116,7 +116,11 @@ export default function ProfesoriPage() {
     setHydrated(true)
   }, [])
 
-  useEffect(() => { if (hydrated) localStorage.setItem('prof_catalogs', JSON.stringify(profCatalogs)) }, [profCatalogs, hydrated])
+  useEffect(() => {
+    if (!hydrated) return
+    if (Object.keys(profCatalogs).length === 0 && localStorage.getItem('prof_catalogs')) return
+    localStorage.setItem('prof_catalogs', JSON.stringify(profCatalogs))
+  }, [profCatalogs, hydrated])
 
   function saveClase(mat: string, cl: ClasaConf[]) {
     setClasePerMaterie(prev => {
@@ -151,16 +155,19 @@ export default function ProfesoriPage() {
     return profCatalogs[clasa]?.[materie]?.[elevNr] || { nota: '', absMot: 0, absNemot: 0, observatii: '' }
   }
   function updateEntry(elevNr: string, patch: Partial<ProfEntry>) {
-    setProfCatalogs(prev => ({
-      ...prev,
-      [clasa]: {
-        ...(prev[clasa] || {}),
-        [materie]: {
-          ...(prev[clasa]?.[materie] || {}),
-          [elevNr]: { ...getEntry(elevNr), ...patch },
+    setProfCatalogs(prev => {
+      const base = prev[clasa]?.[materie]?.[elevNr] || { nota: '', absMot: 0, absNemot: 0, observatii: '' }
+      return {
+        ...prev,
+        [clasa]: {
+          ...(prev[clasa] || {}),
+          [materie]: {
+            ...(prev[clasa]?.[materie] || {}),
+            [elevNr]: { ...base, ...patch },
+          },
         },
-      },
-    }))
+      }
+    })
     setSavedFlash(true)
     setTimeout(() => setSavedFlash(false), 1500)
   }
@@ -509,13 +516,20 @@ export default function ProfesoriPage() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', padding: '12px 14px', border: '1px solid rgba(255,255,255,0.05)' }}>
                           <div style={{ fontSize: '11px', color: '#475569', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', minWidth: '40px' }}>Notă</div>
                           <input
-                            type="number" min="1" max="10" placeholder="—" value={e.nota}
-                            onChange={ev => { const v = ev.target.value; if (v === '' || (parseFloat(v) >= 1 && parseFloat(v) <= 10)) updateEntry(s.nr, { nota: v }) }}
+                            type="text" inputMode="numeric" placeholder="—" value={e.nota}
+                            onChange={ev => {
+                              const v = ev.target.value
+                              if (v === '') { updateEntry(s.nr, { nota: '' }); return }
+                              if (!/^\d{1,2}(\.\d{0,2})?$/.test(v)) return
+                              const n = parseFloat(v)
+                              if (!isNaN(n) && n >= 1 && n <= 10) updateEntry(s.nr, { nota: v })
+                              else if (v === '1' || v === '1.' || v.startsWith('1.')) updateEntry(s.nr, { nota: v })
+                            }}
                             style={{ ...inputStyle, width: '80px', fontSize: '28px', fontWeight: 900, textAlign: 'center', padding: '8px', color: notaColor }}
                           />
-                          {e.nota && (
+                          {e.nota && notaVal !== null && (
                             <div style={{ fontSize: '12px', fontWeight: 700, color: notaColor }}>
-                              {notaVal! < 5 ? '⚠️ Sub medie' : notaVal! < 7 ? '📈 Satisfăcător' : notaVal! < 9 ? '✅ Bine' : '⭐ Excelent'}
+                              {notaVal < 5 ? '⚠️ Sub medie' : notaVal < 7 ? '📈 Satisfăcător' : notaVal < 9 ? '✅ Bine' : '⭐ Excelent'}
                             </div>
                           )}
                           {savedFlash && selectedNr === s.nr && <div style={{ fontSize: '11px', color: '#4ade80', fontWeight: 700, marginLeft: 'auto' }}>✓ Salvat</div>}
