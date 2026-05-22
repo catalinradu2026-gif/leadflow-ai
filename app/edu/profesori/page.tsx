@@ -1,6 +1,6 @@
 'use client'
 import { useRouter } from 'next/navigation'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useIsMobile } from '../../hooks/useIsMobile'
 
 type Nota = { id: string; v: string }
@@ -29,6 +29,9 @@ export default function ProfesoriPage() {
   const [password, setPassword] = useState('')
   const [loginErr, setLoginErr] = useState('')
   const [logging, setLogging] = useState(false)
+  const [loggedEmail, setLoggedEmail] = useState('')
+  const [cloudSyncStatus, setCloudSyncStatus] = useState<'idle'|'saving'|'saved'|'error'>('idle')
+  const saveToCloudTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Login — materii
   const [materiiSelectate, setMateriiSelectate] = useState<string[]>([])
@@ -130,6 +133,12 @@ export default function ProfesoriPage() {
     localStorage.setItem('prof_catalogs', JSON.stringify(profCatalogs))
   }, [profCatalogs, hydrated])
 
+  // Cloud save (debounced 2s) — triggers on any catalog/class/subject change after login
+  useEffect(() => {
+    if (!hydrated || !loggedEmail || view !== 'catalog') return
+    saveToCloud(loggedEmail, profCatalogs, clasePerMaterie, clasaPerMaterie, materiiProf)
+  }, [profCatalogs, clasePerMaterie, clasaPerMaterie, materiiProf, hydrated, loggedEmail, view])
+
   function saveClase(mat: string, cl: ClasaConf[]) {
     setClasePerMaterie(prev => {
       const updated = { ...prev, [mat]: cl }
@@ -147,6 +156,55 @@ export default function ProfesoriPage() {
   function saveMaterii(m: string[]) {
     setMateriiProf(m)
     localStorage.setItem('prof_materii', JSON.stringify(m))
+  }
+
+  async function loadFromCloud(em: string): Promise<string[] | null> {
+    const key = em.replace(/[@.]/g, '-')
+    try {
+      const res = await fetch(`/api/prof-catalog?key=${key}`)
+      const json = await res.json()
+      const d = json.data
+      if (!d) return null
+      if (d.prof_catalogs) {
+        setProfCatalogs(d.prof_catalogs)
+        try { localStorage.setItem('prof_catalogs', JSON.stringify(d.prof_catalogs)) } catch {}
+      }
+      if (d.prof_clase) {
+        setClasePerMaterie(d.prof_clase)
+        try { localStorage.setItem('prof_clase', JSON.stringify(d.prof_clase)) } catch {}
+      }
+      if (d.prof_clasa_activa) {
+        setClasaPerMaterie(d.prof_clasa_activa)
+        try { localStorage.setItem('prof_clasa_activa', JSON.stringify(d.prof_clasa_activa)) } catch {}
+      }
+      if (d.prof_materii?.length) {
+        setMateriiSelectate(d.prof_materii)
+        try { localStorage.setItem('prof_materii', JSON.stringify(d.prof_materii)) } catch {}
+        return d.prof_materii as string[]
+      }
+    } catch {}
+    return null
+  }
+
+  function saveToCloud(em: string, cats: ProfCatalogs, clase: Record<string, ClasaConf[]>, clasaAct: Record<string, string>, mat: string[]) {
+    if (!em) return
+    if (saveToCloudTimer.current) clearTimeout(saveToCloudTimer.current)
+    saveToCloudTimer.current = setTimeout(async () => {
+      setCloudSyncStatus('saving')
+      const key = em.replace(/[@.]/g, '-')
+      try {
+        const r = await fetch('/api/prof-catalog', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key, data: { prof_catalogs: cats, prof_clase: clase, prof_clasa_activa: clasaAct, prof_materii: mat } }),
+        })
+        setCloudSyncStatus(r.ok ? 'saved' : 'error')
+        setTimeout(() => setCloudSyncStatus('idle'), 2000)
+      } catch {
+        setCloudSyncStatus('error')
+        setTimeout(() => setCloudSyncStatus('idle'), 2000)
+      }
+    }, 2000)
   }
 
   function toggleMaterie(m: string) {
@@ -212,17 +270,24 @@ export default function ProfesoriPage() {
     e.preventDefault()
     if (!email || !password) { setLoginErr('Completați email și parolă.'); return }
     setLogging(true); setLoginErr('')
-    await new Promise(r => setTimeout(r, 800))
-    setLogging(false)
+    await new Promise(r => setTimeout(r, 500))
     if (email.trim().toLowerCase() !== 'contact@aicraiova.ro' || password !== 'ARACIP') {
-      setLoginErr('Email sau parolă incorectă.'); return
+      setLogging(false); setLoginErr('Email sau parolă incorectă.'); return
     }
+    const em = email.trim().toLowerCase()
+    setLoggedEmail(em)
+
+    // Load from cloud — overrides localStorage on new device
+    const cloudMaterii = await loadFromCloud(em)
+    setLogging(false)
     setSelectedNr(null)
-    if (materiiSelectate.length === 0) {
+
+    const effectiveMat = cloudMaterii ?? materiiSelectate
+    if (effectiveMat.length === 0) {
       setView('materii')
     } else {
-      saveMaterii(materiiSelectate)
-      setMaterie(materiiSelectate[0])
+      saveMaterii(effectiveMat)
+      setMaterie(effectiveMat[0])
       setView('catalog')
     }
   }
@@ -333,6 +398,11 @@ export default function ProfesoriPage() {
         <div style={{ width: 44, height: 44, borderRadius: '13px', background: 'linear-gradient(135deg, #c2410c, #f97316)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', margin: '0 auto 8px', boxShadow: '0 6px 20px rgba(249,115,22,0.3)' }}>🧑‍💻</div>
         <div style={{ fontSize: '16px', fontWeight: 800 }}>Catalog Profesor</div>
         <div style={{ fontSize: '11px', color: '#334155', marginTop: '2px' }}>EDU DIGITAL · AIcraiova</div>
+        {cloudSyncStatus !== 'idle' && (
+          <div style={{ fontSize: '10px', color: cloudSyncStatus === 'saving' ? '#fbbf24' : cloudSyncStatus === 'saved' ? '#4ade80' : '#f87171', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', padding: '3px 10px', marginTop: '4px' }}>
+            {cloudSyncStatus === 'saving' ? '☁ Sincronizare...' : cloudSyncStatus === 'saved' ? '☁ Salvat în cloud ✓' : '☁ Eroare sync'}
+          </div>
+        )}
       </div>
 
       <div style={{ width: '100%', maxWidth: '540px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -357,15 +427,15 @@ export default function ProfesoriPage() {
               <div style={{ maxHeight: '100px', overflowY: 'auto', display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '8px' }}>
                 {MATERII_LISTA.filter(m => !materiiProf.includes(m)).map(m => (
                   <button key={m} type="button"
-                    onClick={() => { const u = [...materiiProf, m]; saveMaterii(u); setMaterie(m); setIdx(0); setAdaugaMaterieOpen(false) }}
+                    onClick={() => { const u = [...materiiProf, m]; saveMaterii(u); setMaterie(m); setSelectedNr(null); setAdaugaMaterieOpen(false) }}
                     style={{ background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.2)', borderRadius: '8px', padding: '4px 10px', fontSize: '11px', color: '#fb923c', cursor: 'pointer', fontFamily: 'inherit' }}>{m}</button>
                 ))}
               </div>
               <div style={{ display: 'flex', gap: '8px' }}>
                 <input type="text" placeholder="Altă materie..." value={nouaMaterie} onChange={e => setNouaMaterie(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter' && nouaMaterie.trim()) { const u=[...materiiProf,nouaMaterie.trim()]; saveMaterii(u); setMaterie(nouaMaterie.trim()); setIdx(0); setAdaugaMaterieOpen(false); setNouaMaterie('') } }}
+                  onKeyDown={e => { if (e.key === 'Enter' && nouaMaterie.trim()) { const u=[...materiiProf,nouaMaterie.trim()]; saveMaterii(u); setMaterie(nouaMaterie.trim()); setSelectedNr(null); setAdaugaMaterieOpen(false); setNouaMaterie('') } }}
                   autoFocus style={{ ...inputStyle, flex: 1, padding: '7px 12px', fontSize: '12px' }} />
-                <button onClick={() => { if (!nouaMaterie.trim()) return; const u=[...materiiProf,nouaMaterie.trim()]; saveMaterii(u); setMaterie(nouaMaterie.trim()); setIdx(0); setAdaugaMaterieOpen(false); setNouaMaterie('') }}
+                <button onClick={() => { if (!nouaMaterie.trim()) return; const u=[...materiiProf,nouaMaterie.trim()]; saveMaterii(u); setMaterie(nouaMaterie.trim()); setSelectedNr(null); setAdaugaMaterieOpen(false); setNouaMaterie('') }}
                   style={{ ...btnOrange, padding: '0 14px', fontSize: '13px', boxShadow: 'none' }}>✓</button>
               </div>
             </div>
