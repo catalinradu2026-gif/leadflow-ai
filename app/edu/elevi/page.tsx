@@ -150,7 +150,7 @@ export default function EleviPage() {
             </div>
             {/* Toggle clasă */}
             <div style={{ display: 'flex', gap: '6px' }}>
-              {(['8', '12'] as Clasa[]).map(c => (
+              {([['8', 'Capacitate'], ['12', 'Bacalaureat']] as [Clasa, string][]).map(([c, label]) => (
                 <button key={c} onClick={() => setClasa(c)} style={{
                   background: clasa === c ? 'rgba(99,102,241,0.3)' : 'rgba(255,255,255,0.04)',
                   border: `1px solid ${clasa === c ? '#6366f1' : 'rgba(255,255,255,0.1)'}`,
@@ -159,7 +159,7 @@ export default function EleviPage() {
                   cursor: 'pointer', fontSize: '12px', fontWeight: 700,
                   fontFamily: 'inherit',
                 }}>
-                  Cls. {c}
+                  {label}
                 </button>
               ))}
             </div>
