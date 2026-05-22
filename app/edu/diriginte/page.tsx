@@ -51,7 +51,9 @@ export default function DirigintePage() {
   const [eleviInput, setEleviInput] = useState<Elev[]>([{ nr: '', nume: '' }])
   const [conturiGenerate, setConturiGenerate] = useState<ContElev[]>([])
 
-  // Incarcare din localStorage la pornire
+  const [hydrated, setHydrated] = useState(false)
+
+  // Incarcare din localStorage — o singura data la montare
   useEffect(() => {
     try {
       const zi = localStorage.getItem('dir_zi')
@@ -67,15 +69,16 @@ export default function DirigintePage() {
       if (elevi) setEleviInput(JSON.parse(elevi))
       if (conturi) setConturiGenerate(JSON.parse(conturi))
     } catch {}
+    setHydrated(true)
   }, [])
 
-  // Salvare automata in localStorage la orice modificare
-  useEffect(() => { localStorage.setItem('dir_zi', ziDirigentie) }, [ziDirigentie])
-  useEffect(() => { localStorage.setItem('dir_ora', oraDirigentie) }, [oraDirigentie])
-  useEffect(() => { localStorage.setItem('dir_clasa', nrClasa) }, [nrClasa])
-  useEffect(() => { localStorage.setItem('dir_modul', JSON.stringify(modulClasa)) }, [modulClasa])
-  useEffect(() => { localStorage.setItem('dir_elevi', JSON.stringify(eleviInput)) }, [eleviInput])
-  useEffect(() => { localStorage.setItem('dir_conturi', JSON.stringify(conturiGenerate)) }, [conturiGenerate])
+  // Salvare — numai dupa ce incarcarea s-a terminat
+  useEffect(() => { if (hydrated) localStorage.setItem('dir_zi', ziDirigentie) }, [ziDirigentie, hydrated])
+  useEffect(() => { if (hydrated) localStorage.setItem('dir_ora', oraDirigentie) }, [oraDirigentie, hydrated])
+  useEffect(() => { if (hydrated) localStorage.setItem('dir_clasa', nrClasa) }, [nrClasa, hydrated])
+  useEffect(() => { if (hydrated) localStorage.setItem('dir_modul', JSON.stringify(modulClasa)) }, [modulClasa, hydrated])
+  useEffect(() => { if (hydrated) localStorage.setItem('dir_elevi', JSON.stringify(eleviInput)) }, [eleviInput, hydrated])
+  useEffect(() => { if (hydrated) localStorage.setItem('dir_conturi', JSON.stringify(conturiGenerate)) }, [conturiGenerate, hydrated])
   const [sectiuneElevi, setSectiuneElevi] = useState(false)
   const [tabElevi, setTabElevi] = useState<'adauga' | 'conturi' | 'activitate'>('adauga')
 
