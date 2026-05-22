@@ -21,9 +21,14 @@ const PAGE_LABELS: Record<string, string> = {
   '/edu/bac/romana': 'BAC Română',
   '/edu/cursuri-ai': 'Cursuri AI Elevi',
   '/edu/cursuri-profesori': 'Formare Profesori',
-  '/demo': 'Demo ISJ',
-  '/demo/director': 'Portal Director ISJ',
-  '/demo/isj': 'Dashboard ISJ',
+  '/edu/diriginte': 'Portal Diriginte — EDU Digital',
+  '/edu/elevi': 'Portal Elevi — Pregătire Examene',
+  '/scoala': 'Portal Școală',
+  '/gradinita': 'Portal Grădiniță',
+  '/demo': 'Portal ISJ',
+  '/demo/inspector': 'Platformă ARACIP — Inspector Național',
+  '/demo/director': 'Portal Director',
+  '/demo/isj': 'Portal ISJ Dolj',
 }
 
 const QUICK_QUESTIONS: Record<string, string[]> = {
@@ -51,11 +56,47 @@ const QUICK_QUESTIONS: Record<string, string[]> = {
     'Ce cariere există în AI?',
     'Ce instrumente AI pot folosi?',
   ],
-  demo: [
-    'Ce documente am de transmis?',
-    'Termenul pentru raportare absențe',
-    'Când sunt examenele naționale 2026?',
-    'Dotări PNRR — ce unități beneficiază?',
+  diriginte: [
+    'Cum activez sesiunea cu codul?',
+    'Cum adaug elevii în sistem?',
+    'Cum printez activitatea clasei?',
+    'Ce module pot selecta pentru clasa mea?',
+  ],
+  elevi: [
+    'Ajutor la matematică BAC',
+    'Cum mă pregătesc pentru Evaluare Națională?',
+    'Structura subiectului la română',
+    'Dă-mi un exercițiu de exersat',
+  ],
+  scoala: [
+    'Cum accesez portalul Director?',
+    'Ce poate face un diriginte pe platformă?',
+    'Cum se înregistrează un profesor?',
+    'Pregătire BAC pentru elevii mei',
+  ],
+  gradinita: [
+    'Resurse digitale pentru educatoare',
+    'Planuri de activitate cu AI',
+    'Documente necesare pentru director',
+    'Cum integrez AI în grupă?',
+  ],
+  inspector: [
+    'Cum caut o unitate școlară?',
+    'Procedura de evaluare ARACIP',
+    'Criterii evaluare A1, A2, A3',
+    'Calendarul evaluărilor 2026',
+  ],
+  isj: [
+    'Circular raportare absențe mai 2026',
+    'Examene naționale — termene 2026',
+    'Dotări PNRR — unități beneficiare',
+    'Termen situație statistică finalizare an',
+  ],
+  director: [
+    'Termen raportare absențe',
+    'Procedura evaluare ARACIP',
+    'Dotări PNRR — ce trebuie să fac?',
+    'Examene naționale 2026 — comisii',
   ],
 }
 
@@ -69,20 +110,32 @@ function getGreeting(pathname: string): string {
   if (pathname === '/acreditare/legislatie') return 'Bună ziua! Sunt ARA. Pe această pagină găsiți legislația ARACIP centralizată — legi, hotărâri de guvern și ordine ministeriale. Vă pot explica orice act normativ. Ce doriți să aflați?'
   if (pathname === '/acreditare/faq') return 'Bună ziua! Sunt ARA. Aceasta este pagina cu întrebările frecvente ARACIP. Dacă nu găsiți răspunsul în listă, întrebați-mă direct — știu tot ce trebuie despre procesele noastre.'
   if (pathname === '/aracip') return 'Bună ziua! Sunt ARA, asistentul digital oficial al ARACIP — Agenția Română de Asigurare a Calității în Învățământul Preuniversitar. Sunt aici să vă ghidez prin procesele de autorizare, acreditare și evaluare externă. Cum vă pot ajuta?'
-  if (pathname.includes('/bac/matematica')) return 'Salut! Sunt ARA, profesorul tău AI de matematică BAC. Suntem pe pagina de pregătire matematică. Poți să-mi pui orice exercițiu sau să-mi ceri să explic un concept. De unde începem?'
-  if (pathname.includes('/bac/romana')) return 'Salut! Sunt ARA, profesorul tău AI de română BAC. Suntem pe pagina de pregătire pentru examen. Te ajut cu eseuri, figuri de stil, autori sau structura probei. Ce vrei să exersăm?'
-  if (pathname.includes('/cursuri-ai')) return 'Salut! Sunt ARA, profesorul tău de inteligență artificială. Suntem în modulul de cursuri AI pentru elevi. Îți explic orice concept, de la ce este AI până la cum funcționează rețelele neuronale. Cu ce începem?'
-  if (pathname.includes('/cursuri-profesori')) return 'Bună ziua! Sunt ARA, mentorul tău AI pentru formare continuă. Pe această pagină explorăm cum puteți integra AI-ul în activitatea didactică. Ce aspect vă interesează cel mai mult?'
-  if (pathname.includes('/demo/director') || pathname.includes('/demo/isj')) return 'Bună ziua! Sunt ARA, asistentul platformei ISJ. Vă pot ajuta cu documentele circulare, termenele de raportare sau procedurile active din sistem. Cu ce vă ajut?'
-  if (pathname.includes('/demo')) return 'Bună ziua! Sunt ARA, asistentul platformei ISJ Dolj. Navigați prin demo-ul platformei de transparență școlară. Vă pot explica orice funcționalitate sau document. Cu ce vă ajut?'
+  if (pathname === '/edu/diriginte') return 'Bună ziua! Sunt ARA, asistenta ta pentru ora de dirigenție digitală. Te pot ajuta să activezi sesiunea cu codul zilei, să adaugi elevii în sistem, să urmărești activitatea lor pe platformă sau să printezi rapoartele. Cu ce începem?'
+  if (pathname === '/edu/elevi') return 'Salut! Sunt ARA, profesorul tău AI de acasă. Sunt aici să te ajut cu pregătirea pentru Bacalaureat sau Evaluare Națională — matematică, română, orice exercițiu sau concept. Spune-mi la ce materie vrei să lucrăm!'
+  if (pathname === '/scoala') return 'Bună ziua! Sunt ARA, asistenta Portalului Școală. Te pot ghida spre secțiunea potrivită — Director, Profesori, Diriginți sau pregătire examene pentru elevi — sau răspund direct la orice întrebare despre platformă. Cu ce te ajut?'
+  if (pathname === '/gradinita') return 'Bună ziua! Sunt ARA, asistenta Portalului Grădiniță. Vă pot ajuta cu resurse digitale pentru educatoare, planuri de activitate generate cu AI, documente administrative pentru director sau orice întrebare despre unitățile preșcolare. Cum vă pot fi de folos?'
+  if (pathname === '/demo/inspector') return 'Bună ziua! Sunt ARA, asistenta platformei ARACIP pentru inspectori naționali. Vă pot ajuta să monitorizați calitatea unităților școlare, să interpretați rezultatele evaluărilor, să verificați statusul acreditărilor sau să accesați procedurile de inspecție. Cu ce vă ajut?'
+  if (pathname === '/demo/isj') return 'Bună ziua! Sunt ARA, asistenta ISJ Dolj. Vă pot ajuta cu documentele și circularele active, termenele de raportare, procedurile pentru examenele naționale 2026 sau orice comunicare cu unitățile din județ. Cu ce vă ajut?'
+  if (pathname === '/demo/director') return 'Bună ziua! Sunt ARA, asistenta dumneavoastră în portalul Director. Vă pot ajuta cu documentele primite de la ISJ, termenele de raportare, procedurile ARACIP pentru acreditare sau orice situație administrativă urgentă. Cu ce vă ajut?'
+  if (pathname.includes('/bac/matematica')) return 'Salut! Sunt ARA, profesorul tău AI de matematică BAC. Poți să-mi pui orice exercițiu sau să-mi ceri să explic un concept. De unde începem?'
+  if (pathname.includes('/bac/romana')) return 'Salut! Sunt ARA, profesorul tău AI de română BAC. Te ajut cu eseuri, figuri de stil, autori sau structura probei. Ce vrei să exersăm?'
+  if (pathname.includes('/cursuri-ai')) return 'Salut! Sunt ARA, profesorul tău de inteligență artificială. Îți explic orice concept, de la ce este AI până la cum funcționează rețelele neuronale. Cu ce începem?'
+  if (pathname.includes('/cursuri-profesori')) return 'Bună ziua! Sunt ARA, mentorul tău AI pentru formare continuă. Explorăm cum puteți integra AI-ul în activitatea didactică. Ce aspect vă interesează cel mai mult?'
+  if (pathname.includes('/demo')) return 'Bună ziua! Sunt ARA, asistenta platformei ISJ. Vă pot ajuta cu documentele, termenele sau procedurile active. Cu ce vă ajut?'
   return 'Bună ziua! Sunt ARA, asistentul digital ARACIP. Cu ce vă pot ajuta?'
 }
 
 function getQuickQuestions(pathname: string): string[] {
   if (pathname.includes('bac/matematica')) return QUICK_QUESTIONS.bac_mat
   if (pathname.includes('bac/romana')) return QUICK_QUESTIONS.bac_ro
-  if (pathname.includes('cursuri') || pathname.includes('edu')) return QUICK_QUESTIONS.edu
-  if (pathname.includes('demo')) return QUICK_QUESTIONS.demo
+  if (pathname === '/edu/diriginte') return QUICK_QUESTIONS.diriginte
+  if (pathname === '/edu/elevi') return QUICK_QUESTIONS.elevi
+  if (pathname === '/scoala') return QUICK_QUESTIONS.scoala
+  if (pathname === '/gradinita') return QUICK_QUESTIONS.gradinita
+  if (pathname === '/demo/inspector') return QUICK_QUESTIONS.inspector
+  if (pathname === '/demo/isj') return QUICK_QUESTIONS.isj
+  if (pathname === '/demo/director') return QUICK_QUESTIONS.director
+  if (pathname.includes('cursuri-ai')) return QUICK_QUESTIONS.edu
   return QUICK_QUESTIONS.default
 }
 
