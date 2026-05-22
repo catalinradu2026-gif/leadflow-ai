@@ -38,6 +38,7 @@ export default function DirigintePage() {
   const [codIntro, setCodIntro] = useState('')
   const [codActiv, setCodActiv] = useState(false)
   const [minuteRamase, setMinuteRamase] = useState(60)
+  const [ziDirigentie, setZiDirigentie] = useState('Joi')
 
   const demoDashboard = {
     nume: 'Prof. Maria Ionescu',
@@ -291,8 +292,31 @@ export default function DirigintePage() {
             padding: '24px',
             marginBottom: '16px',
           }}>
-            <div style={{ fontSize: '13px', color: '#475569', marginBottom: '8px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              Codul sesiunii de azi · {demoDashboard.zi}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+              <div style={{ fontSize: '13px', color: '#475569', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                Codul sesiunii · {ziDirigentie}
+              </div>
+              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                {ZILE.map(z => (
+                  <button
+                    key={z}
+                    onClick={() => { setZiDirigentie(z); setCodActiv(false); setCodIntro('') }}
+                    style={{
+                      background: ziDirigentie === z ? 'rgba(34,197,94,0.2)' : 'rgba(255,255,255,0.04)',
+                      border: `1px solid ${ziDirigentie === z ? 'rgba(34,197,94,0.5)' : 'rgba(255,255,255,0.1)'}`,
+                      borderRadius: '8px',
+                      padding: '4px 10px',
+                      fontSize: '12px',
+                      fontWeight: ziDirigentie === z ? 700 : 400,
+                      color: ziDirigentie === z ? '#4ade80' : '#475569',
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                    }}
+                  >
+                    {z}
+                  </button>
+                ))}
+              </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
               <div style={{
