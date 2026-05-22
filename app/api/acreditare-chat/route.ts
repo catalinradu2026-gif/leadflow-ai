@@ -224,7 +224,7 @@ export async function POST(req: NextRequest) {
 
     const { messages, pagina, systemPrompt: customSystemPrompt } = await req.json()
 
-    if (customSystemPrompt && !rateLimitDaily(ip, 5)) {
+    if (customSystemPrompt && !rateLimitDaily(ip, 10)) {
       return NextResponse.json({ text: 'DAILY_LIMIT' }, { status: 429 })
     }
     if (!messages || !Array.isArray(messages)) {

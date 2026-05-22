@@ -227,7 +227,7 @@ function MatematicaChat() {
   const [showHistory, setShowHistory] = useState(false)
   const [showUpgrade, setShowUpgrade] = useState(false)
 
-  const DAILY_LIMIT = 5
+  const DAILY_LIMIT = 10
   const storageKey = `edu_bac_${new Date().toDateString()}`
 
   function getDailyCount(): number {
@@ -499,13 +499,13 @@ function MatematicaChat() {
               VERSIUNE BETA
             </div>
             <h2 style={{ fontSize: '22px', fontWeight: 800, color: '#f1f5f9', marginBottom: '10px', lineHeight: 1.3 }}>
-              Ai folosit cele 5 întrebări ale zilei
+              Școala ta a folosit cele 10 întrebări ale zilei
             </h2>
             <p style={{ fontSize: '14px', color: '#64748b', lineHeight: 1.7, marginBottom: '8px' }}>
-              În versiunea Beta EDU DIGITAL, fiecare elev beneficiază de <strong style={{ color: '#f1f5f9' }}>5 întrebări gratuite pe zi</strong>. Contorul se resetează automat la miezul nopții.
+              În versiunea Beta EDU DIGITAL, fiecare școală beneficiază de <strong style={{ color: '#f1f5f9' }}>10 întrebări gratuite pe zi</strong>, partajate între toți elevii. Contorul se resetează automat la miezul nopții.
             </p>
             <p style={{ fontSize: '14px', color: '#94a3b8', lineHeight: 1.7, marginBottom: '28px' }}>
-              Pentru acces nelimitat, <strong style={{ color: '#a5b4fc' }}>școala ta poate activa platforma completă</strong> — fără niciun cost pentru tine ca elev.
+              Pentru acces nelimitat pentru toată școala, <strong style={{ color: '#a5b4fc' }}>directorul sau ISJ-ul poate activa platforma completă</strong> — fără niciun cost pentru tine ca elev.
             </p>
             <a
               href={`mailto:contact@aicraiova.ro?subject=Acces complet EDU DIGITAL&body=Buna ziua, sunt elev si as dori ca scoala mea sa activeze accesul complet la platforma EDU DIGITAL BAC.`}
@@ -537,7 +537,7 @@ function MatematicaChat() {
             onClick={() => getDailyCount() >= DAILY_LIMIT && setShowUpgrade(true)}
             style={{ fontSize: '11px', color: getDailyCount() >= DAILY_LIMIT ? '#ef4444' : '#475569', background: 'rgba(255,255,255,0.04)', border: '1px solid #1e293b', borderRadius: '6px', padding: '4px 10px', cursor: getDailyCount() >= DAILY_LIMIT ? 'pointer' : 'default', whiteSpace: 'nowrap' }}
           >
-            {DAILY_LIMIT - getDailyCount() > 0 ? `${DAILY_LIMIT - getDailyCount()}/${DAILY_LIMIT} întrebări` : '0 întrebări rămase'}
+            {DAILY_LIMIT - getDailyCount() > 0 ? `${DAILY_LIMIT - getDailyCount()}/${DAILY_LIMIT} întrebări azi` : '0 întrebări rămase'}
           </div>
           <button
             onClick={() => { if (voiceEnabled) { window.speechSynthesis?.cancel(); setSpeaking(false) }; setVoiceEnabled(v => !v) }}
