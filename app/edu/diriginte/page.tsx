@@ -339,6 +339,52 @@ export default function DirigintePage() {
             )}
           </div>
 
+          {/* Card EDU Digital */}
+          <button
+            onClick={() => router.push('/edu')}
+            style={{
+              width: '100%',
+              background: 'rgba(20,184,166,0.06)',
+              border: '1.5px solid rgba(20,184,166,0.25)',
+              borderRadius: '20px',
+              padding: '24px',
+              cursor: 'pointer',
+              textAlign: 'left',
+              marginBottom: '16px',
+              fontFamily: "'Segoe UI', Arial, sans-serif",
+              transition: 'all 0.2s',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = 'rgba(20,184,166,0.12)'
+              e.currentTarget.style.borderColor = '#14b8a6'
+              e.currentTarget.style.transform = 'translateY(-2px)'
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = 'rgba(20,184,166,0.06)'
+              e.currentTarget.style.borderColor = 'rgba(20,184,166,0.25)'
+              e.currentTarget.style.transform = 'translateY(0)'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <div style={{
+                width: 48, height: 48, borderRadius: '14px', flexShrink: 0,
+                background: 'linear-gradient(135deg, #0d9488, #14b8a6)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '24px', boxShadow: '0 4px 14px rgba(20,184,166,0.3)',
+              }}>🤖</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'inline-block', background: 'rgba(20,184,166,0.15)', border: '1px solid rgba(20,184,166,0.3)', borderRadius: '20px', padding: '2px 10px', fontSize: '10px', fontWeight: 800, color: '#14b8a6', letterSpacing: '1px', marginBottom: '6px' }}>
+                  EDU DIGITAL
+                </div>
+                <div style={{ fontSize: '16px', fontWeight: 700, color: '#f1f5f9', marginBottom: '4px' }}>Educație Digitală</div>
+                <div style={{ fontSize: '12px', color: '#475569', lineHeight: 1.5 }}>
+                  Accesează cursurile AI, pregătirea BAC și Capacitate pentru clasa ta.
+                </div>
+              </div>
+              <div style={{ color: '#14b8a6', fontSize: '20px', flexShrink: 0 }}>→</div>
+            </div>
+          </button>
+
           {/* Info */}
           <div style={{ fontSize: '12px', color: '#1e293b', textAlign: 'center', lineHeight: 1.6 }}>
             Codul apare automat la 8:00 în ziua orei tale de dirigenție.<br />
