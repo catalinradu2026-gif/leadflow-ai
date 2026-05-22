@@ -233,6 +233,18 @@ export default function AracipHome() {
       route: '/edu/elevi',
     },
     {
+      id: 'acreditare',
+      icon: '🏅',
+      tag: 'Calitate',
+      title: 'Autorizare,\nAcreditare & Evaluare',
+      desc: 'Dosare digitale, vizite comisii ARACIP și evaluare externă periodică — fără hârtii, 100% online.',
+      color: '#a855f7',
+      colorLight: 'rgba(168,85,247,0.1)',
+      colorBorder: 'rgba(168,85,247,0.25)',
+      colorHover: 'rgba(168,85,247,0.18)',
+      route: '/acreditare',
+    },
+    {
       id: 'examene',
       icon: '🎯',
       tag: 'Pregătire Examene',
@@ -243,6 +255,18 @@ export default function AracipHome() {
       colorBorder: 'rgba(245,158,11,0.25)',
       colorHover: 'rgba(245,158,11,0.18)',
       route: '/edu/examene',
+    },
+    {
+      id: 'profesori',
+      icon: '🧑‍💻',
+      tag: 'Portal Profesori',
+      title: 'Profesori\n& Formare',
+      desc: 'Resurse AI pentru profesori, formare continuă digitală și instrumente pentru ora de curs.',
+      color: '#f97316',
+      colorLight: 'rgba(249,115,22,0.1)',
+      colorBorder: 'rgba(249,115,22,0.25)',
+      colorHover: 'rgba(249,115,22,0.18)',
+      route: '/edu/cursuri-profesori',
     },
   ]
 
