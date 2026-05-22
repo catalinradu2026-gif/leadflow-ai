@@ -495,14 +495,17 @@ function MatematicaChat() {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
           <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: '20px', padding: '40px 36px', maxWidth: '440px', width: '100%', textAlign: 'center' }}>
             <div style={{ fontSize: '52px', marginBottom: '16px' }}>🎓</div>
+            <div style={{ display: 'inline-block', background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: '20px', padding: '3px 14px', fontSize: '11px', fontWeight: 700, color: '#a5b4fc', letterSpacing: '0.5px', marginBottom: '16px' }}>
+              VERSIUNE BETA
+            </div>
             <h2 style={{ fontSize: '22px', fontWeight: 800, color: '#f1f5f9', marginBottom: '10px', lineHeight: 1.3 }}>
-              Ai folosit cele 5 întrebări gratuite ale zilei
+              Ai folosit cele 5 întrebări ale zilei
             </h2>
             <p style={{ fontSize: '14px', color: '#64748b', lineHeight: 1.7, marginBottom: '8px' }}>
-              Versiunea Beta EDU DIGITAL îți oferă 5 întrebări pe zi. Revino mâine — contorul se resetează automat la miezul nopții.
+              În versiunea Beta EDU DIGITAL, fiecare elev beneficiază de <strong style={{ color: '#f1f5f9' }}>5 întrebări gratuite pe zi</strong>. Contorul se resetează automat la miezul nopții.
             </p>
             <p style={{ fontSize: '14px', color: '#94a3b8', lineHeight: 1.7, marginBottom: '28px' }}>
-              Dacă vrei acces nelimitat, <strong style={{ color: '#a5b4fc' }}>școala ta poate activa platforma complet</strong> — fără niciun cost pentru tine.
+              Pentru acces nelimitat, <strong style={{ color: '#a5b4fc' }}>școala ta poate activa platforma completă</strong> — fără niciun cost pentru tine ca elev.
             </p>
             <a
               href={`mailto:contact@aicraiova.ro?subject=Acces complet EDU DIGITAL&body=Buna ziua, sunt elev si as dori ca scoala mea sa activeze accesul complet la platforma EDU DIGITAL BAC.`}
