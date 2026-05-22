@@ -43,6 +43,38 @@ export default function DirigintePage() {
   const [orarSalvat, setOrarSalvat] = useState(false)
   const [codCopiat, setCodCopiat] = useState(false)
 
+  // Elevi
+  type Elev = { nr: string; nume: string }
+  type ContElev = { nr: string; nume: string; user: string; parola: string; minutePlatforma: number; ultimaConectare: string | null }
+  const [eleviInput, setEleviInput] = useState<Elev[]>([{ nr: '', nume: '' }])
+  const [conturiGenerate, setConturiGenerate] = useState<ContElev[]>([])
+  const [sectiuneElevi, setSectiuneElevi] = useState(false)
+  const [tabElevi, setTabElevi] = useState<'adauga' | 'conturi' | 'activitate'>('adauga')
+
+  function slugNume(nume: string) {
+    return nume.toLowerCase()
+      .replace(/ă/g,'a').replace(/â/g,'a').replace(/î/g,'i').replace(/ș/g,'s').replace(/ț/g,'t')
+      .replace(/\s+/g, '.').replace(/[^a-z0-9.]/g, '')
+  }
+  function randPass() {
+    const c = 'abcdefghjkmnpqrstuvwxyz23456789'
+    return Array.from({length:7}, () => c[Math.floor(Math.random()*c.length)]).join('')
+  }
+  function genereazaConturi() {
+    const DEMO_ACTIVITATE = ['2 min','14 min','0 min','31 min','8 min','22 min','5 min','47 min','3 min','19 min']
+    const DEMO_DATA = ['ieri 18:42','azi 09:15',null,'ieri 20:03','ieri 16:30',null,'azi 08:55','acum 3 zile',null,'ieri 22:10']
+    const conturi = eleviInput.filter(e => e.nume.trim()).map((e, i) => ({
+      nr: e.nr || String(i + 1),
+      nume: e.nume.trim(),
+      user: slugNume(e.nume.trim()),
+      parola: randPass(),
+      minutePlatforma: parseInt(DEMO_ACTIVITATE[i % DEMO_ACTIVITATE.length]) || 0,
+      ultimaConectare: DEMO_DATA[i % DEMO_DATA.length],
+    }))
+    setConturiGenerate(conturi)
+    setTabElevi('conturi')
+  }
+
   const demoDashboard = {
     nume: 'Prof. Maria Ionescu',
     scoala: 'Colegiul Național "Elena Cuza"',
@@ -495,6 +527,136 @@ export default function DirigintePage() {
           <div style={{ fontSize: '12px', color: '#1e293b', textAlign: 'center', lineHeight: 1.6 }}>
             Codul apare automat la 8:00 în ziua orei tale de dirigenție.<br />
             Expiră la 60 min după activare sau la miezul nopții.
+          </div>
+
+          {/* Sectiunea Elevi */}
+          <div style={{ marginTop: '16px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '20px', overflow: 'hidden' }}>
+            <button
+              onClick={() => setSectiuneElevi(v => !v)}
+              style={{ width: '100%', background: 'none', border: 'none', padding: '16px 20px', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ fontSize: '20px' }}>👥</span>
+                <div style={{ textAlign: 'left' }}>
+                  <div style={{ fontSize: '14px', fontWeight: 700, color: '#f1f5f9' }}>Elevi & Activitate</div>
+                  <div style={{ fontSize: '11px', color: '#475569' }}>Gestionează conturi și monitorizează timpul pe platformă</div>
+                </div>
+              </div>
+              <span style={{ color: '#475569', fontSize: '18px', transform: sectiuneElevi ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>▾</span>
+            </button>
+
+            {sectiuneElevi && (
+              <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '0' }}>
+                {/* Tabs */}
+                <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                  {(['adauga', 'conturi', 'activitate'] as const).map(t => (
+                    <button key={t} onClick={() => setTabElevi(t)} style={{
+                      flex: 1, background: 'none', border: 'none', borderBottom: `2px solid ${tabElevi === t ? '#6366f1' : 'transparent'}`,
+                      padding: '12px 8px', cursor: 'pointer', fontFamily: 'inherit',
+                      fontSize: '12px', fontWeight: tabElevi === t ? 700 : 400,
+                      color: tabElevi === t ? '#a5b4fc' : '#475569',
+                    }}>
+                      {t === 'adauga' ? '✏️ Adaugă elevi' : t === 'conturi' ? '🔑 Conturi' : '📊 Activitate'}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Tab: Adauga */}
+                {tabElevi === 'adauga' && (
+                  <div style={{ padding: '16px' }}>
+                    <div style={{ fontSize: '12px', color: '#475569', marginBottom: '12px' }}>
+                      Scrie numărul și numele fiecărui elev din catalog:
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '280px', overflowY: 'auto', marginBottom: '12px' }}>
+                      {eleviInput.map((elev, i) => (
+                        <div key={i} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                          <input
+                            placeholder="Nr."
+                            value={elev.nr}
+                            onChange={e => setEleviInput(prev => prev.map((el, idx) => idx === i ? { ...el, nr: e.target.value } : el))}
+                            style={{ ...inputStyle, width: '52px', flexShrink: 0, textAlign: 'center', padding: '10px 8px' }}
+                          />
+                          <input
+                            placeholder={`Elev ${i + 1} — Nume Prenume`}
+                            value={elev.nume}
+                            onChange={e => setEleviInput(prev => prev.map((el, idx) => idx === i ? { ...el, nume: e.target.value } : el))}
+                            style={{ ...inputStyle, flex: 1, padding: '10px 12px' }}
+                          />
+                          {eleviInput.length > 1 && (
+                            <button onClick={() => setEleviInput(prev => prev.filter((_, idx) => idx !== i))}
+                              style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '16px', flexShrink: 0 }}>✕</button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button
+                        onClick={() => setEleviInput(prev => [...prev, { nr: String(prev.length + 1), nume: '' }])}
+                        style={{ flex: 1, background: 'rgba(255,255,255,0.04)', border: '1px dashed rgba(255,255,255,0.15)', borderRadius: '10px', padding: '10px', color: '#475569', cursor: 'pointer', fontSize: '12px', fontFamily: 'inherit' }}
+                      >+ Adaugă elev</button>
+                      <button
+                        onClick={genereazaConturi}
+                        disabled={!eleviInput.some(e => e.nume.trim())}
+                        style={{ flex: 2, background: 'linear-gradient(135deg, #4338ca, #6366f1)', border: 'none', borderRadius: '10px', padding: '10px', color: '#fff', cursor: 'pointer', fontSize: '13px', fontWeight: 700, fontFamily: 'inherit' }}
+                      >Generează conturi →</button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Tab: Conturi */}
+                {tabElevi === 'conturi' && (
+                  <div style={{ padding: '16px' }}>
+                    {conturiGenerate.length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '24px', color: '#475569', fontSize: '13px' }}>
+                        Adaugă elevii și apasă „Generează conturi"
+                      </div>
+                    ) : (
+                      <>
+                        <div style={{ fontSize: '11px', color: '#475569', marginBottom: '10px' }}>{conturiGenerate.length} conturi generate · de printat și distribuit</div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '320px', overflowY: 'auto' }}>
+                          {conturiGenerate.map((c, i) => (
+                            <div key={i} style={{ background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.15)', borderRadius: '10px', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                              <div style={{ width: 28, height: 28, borderRadius: '8px', background: 'rgba(99,102,241,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 700, color: '#a5b4fc', flexShrink: 0 }}>{c.nr}</div>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontSize: '13px', fontWeight: 600, color: '#f1f5f9', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.nume}</div>
+                                <div style={{ fontSize: '11px', color: '#475569', fontFamily: 'monospace' }}>{c.user} · {c.parola}</div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {/* Tab: Activitate */}
+                {tabElevi === 'activitate' && (
+                  <div style={{ padding: '16px' }}>
+                    {conturiGenerate.length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '24px', color: '#475569', fontSize: '13px' }}>
+                        Generează conturi pentru a vedea activitatea
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '320px', overflowY: 'auto' }}>
+                        {conturiGenerate.map((c, i) => (
+                          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', background: 'rgba(255,255,255,0.02)', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                            <div style={{ width: 28, height: 28, borderRadius: '8px', background: c.ultimaConectare ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 700, color: c.ultimaConectare ? '#4ade80' : '#334155', flexShrink: 0 }}>{c.nr}</div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: '13px', fontWeight: 600, color: '#e2e8f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.nume}</div>
+                              <div style={{ fontSize: '11px', color: '#475569' }}>{c.ultimaConectare ? `Ultima conectare: ${c.ultimaConectare}` : 'Niciodată conectat'}</div>
+                            </div>
+                            <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                              <div style={{ fontSize: '13px', fontWeight: 700, color: c.minutePlatforma > 10 ? '#4ade80' : c.minutePlatforma > 0 ? '#f59e0b' : '#334155' }}>{c.minutePlatforma} min</div>
+                              <div style={{ fontSize: '10px', color: '#334155' }}>pe platformă</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <button
