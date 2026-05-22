@@ -98,7 +98,7 @@ export default function DemoLanding() {
             NIVEL NAȚIONAL
           </div>
           <h3 style={{ fontSize: '20px', fontWeight: 700, color: '#fff', marginBottom: '10px' }}>
-            Inspector Național
+            Titlu ARACIP
           </h3>
           <p style={{ fontSize: '13px', color: '#94a3b8', lineHeight: 1.7, marginBottom: '24px' }}>
             Vedere completă asupra tuturor județelor și școlinor din România. Statistici naționale în timp real.
