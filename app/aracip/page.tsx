@@ -218,7 +218,7 @@ export default function AracipHome() {
       colorBorder: 'rgba(99,102,241,0.25)',
       colorHover: 'rgba(99,102,241,0.18)',
       route: '/demo',
-      securizabil: true,
+      securizat: true,
     },
     {
       id: 'acreditare',
@@ -243,6 +243,7 @@ export default function AracipHome() {
       colorBorder: 'rgba(14,165,233,0.25)',
       colorHover: 'rgba(14,165,233,0.18)',
       route: '/scoala',
+      securizat: true,
     },
     {
       id: 'gradinita',
@@ -255,6 +256,7 @@ export default function AracipHome() {
       colorBorder: 'rgba(244,63,94,0.25)',
       colorHover: 'rgba(244,63,94,0.18)',
       route: '/gradinita',
+      securizat: true,
     },
   ]
 
@@ -425,7 +427,7 @@ export default function AracipHome() {
                   opacity: hovered === card.id ? 1 : 0.5,
                 }} />
 
-                {(card as any).securizabil && (
+                {(card as any).securizat && (
                   <div style={{
                     position: 'absolute', top: 12, right: 12,
                     background: 'rgba(239,68,68,0.12)',
@@ -434,7 +436,7 @@ export default function AracipHome() {
                     fontSize: '10px', fontWeight: 800, color: '#ef4444',
                     textTransform: 'uppercase', letterSpacing: '0.5px',
                   }}>
-                    🔒 Securizabil
+                    🔒 Securizat
                   </div>
                 )}
 
