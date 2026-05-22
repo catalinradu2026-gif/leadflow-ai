@@ -88,9 +88,11 @@ export default function DirigintePage() {
   useEffect(() => { if (hydrated) localStorage.setItem('dir_conturi', JSON.stringify(conturiGenerate)) }, [conturiGenerate, hydrated])
 
   // Catalog note + absente
-  type CatalogEntry = { elevNr: string; note: Record<string, string>; absMot: number; absNemot: number }
+  type CatalogEntry = { elevNr: string; note: Record<string, string>; absMot: number; absNemot: number; observatii?: string }
   const [catalog, setCatalog] = useState<CatalogEntry[]>([])
   const [hydrated2, setHydrated2] = useState(false)
+  const [catalogIdx, setCatalogIdx] = useState(0)
+  const [importStatus, setImportStatus] = useState('')
   useEffect(() => {
     try { const c = localStorage.getItem('dir_catalog'); if (c) setCatalog(JSON.parse(c)) } catch {}
     setHydrated2(true)
@@ -212,6 +214,39 @@ export default function DirigintePage() {
     })
     setConturiGenerate(conturi)
     setTabElevi('conturi')
+  }
+
+  async function handleImportExcel(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    try {
+      const XLSX = await import('xlsx')
+      const data = await file.arrayBuffer()
+      const wb = XLSX.read(data)
+      const ws = wb.Sheets[wb.SheetNames[0]]
+      const rows = XLSX.utils.sheet_to_json<Record<string, string>>(ws)
+      let imported = 0
+      rows.forEach(row => {
+        const numeRaw = row['Nume'] || row['nume'] || ''
+        if (!numeRaw) return
+        const elev = conturiGenerate.find(c => c.nume.toLowerCase().trim() === numeRaw.toLowerCase().trim())
+        if (!elev) return
+        const note: Record<string, string> = {}
+        modulClasa.forEach(m => { if (row[m]) note[m] = row[m] })
+        updateCatalog(elev.nr, {
+          note,
+          absMot: parseInt(row['Abs.Motivate'] || row['Absente Motivate'] || row['abs_mot'] || '0') || 0,
+          absNemot: parseInt(row['Abs.Nemotivate'] || row['Absente Nemotivate'] || row['abs_nemot'] || '0') || 0,
+          observatii: row['Observatii'] || row['Observații'] || row['observatii'] || '',
+        })
+        imported++
+      })
+      setImportStatus(`✅ ${imported} elevi importați`)
+    } catch {
+      setImportStatus('❌ Eroare import')
+    }
+    setTimeout(() => setImportStatus(''), 3000)
+    e.target.value = ''
   }
 
   const demoDashboard = {
@@ -875,77 +910,120 @@ export default function DirigintePage() {
                 )}
 
                 {/* Tab: Catalog */}
-                {tabElevi === 'catalog' && (
-                  <div style={{ padding: '16px' }}>
-                    {/* Status badges */}
-                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '14px' }}>
-                      <div style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: '8px', padding: '4px 10px', fontSize: '11px', color: '#4ade80', fontWeight: 700 }}>✅ Funcțional — se salvează local</div>
-                      <div style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: '8px', padding: '4px 10px', fontSize: '11px', color: '#fbbf24', fontWeight: 700 }}>⚠️ Parțial — nu sincronizează cu profesorii de materie</div>
-                      <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '8px', padding: '4px 10px', fontSize: '11px', color: '#f87171', fontWeight: 700 }}>🔴 Nefuncțional — nu se conectează la SIIIR</div>
-                    </div>
+                {tabElevi === 'catalog' && (() => {
+                  const elevi = conturiGenerate
+                  const [idx, setIdx] = [catalogIdx, setCatalogIdx]
+                  const c = elevi[idx]
+                  const entry = c ? getCatalogEntry(c.nr) : null
+                  const medieNote = c && modulClasa.length > 0
+                    ? (() => { const vals = modulClasa.filter(m => entry!.note[m]); return vals.length ? vals.reduce((s,m) => s + parseFloat(entry!.note[m]||'0'), 0) / vals.length : null })()
+                    : null
 
-                    {conturiGenerate.length === 0 ? (
-                      <div style={{ textAlign: 'center', padding: '24px', color: '#475569', fontSize: '13px' }}>Generează conturi elevi mai întâi</div>
-                    ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '400px', overflowY: 'auto' }}>
-                        {conturiGenerate.map((c) => {
-                          const entry = getCatalogEntry(c.nr)
-                          const medieNote = modulClasa.length > 0
-                            ? modulClasa.filter(m => entry.note[m] && entry.note[m] !== '').reduce((s, m, _, arr) => s + parseFloat(entry.note[m] || '0') / arr.length, 0)
-                            : null
-                          return (
-                            <div key={c.nr} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '12px 14px' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
-                                <div style={{ width: 28, height: 28, borderRadius: '8px', background: 'rgba(99,102,241,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 700, color: '#a5b4fc', flexShrink: 0 }}>{c.nr}</div>
-                                <div style={{ flex: 1, fontSize: '13px', fontWeight: 600, color: '#f1f5f9' }}>{c.nume}</div>
-                                {medieNote !== null && medieNote > 0 && (
-                                  <div style={{ fontSize: '12px', fontWeight: 700, color: medieNote >= 5 ? '#4ade80' : '#f87171', background: medieNote >= 5 ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)', borderRadius: '6px', padding: '2px 8px' }}>
-                                    Medie: {medieNote.toFixed(2)}
-                                  </div>
-                                )}
-                              </div>
+                  return (
+                    <div style={{ padding: '16px' }}>
+                      {/* Status */}
+                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '14px' }}>
+                        <div style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: '6px', padding: '3px 8px', fontSize: '10px', color: '#4ade80', fontWeight: 700 }}>✅ Salvare locală funcțională</div>
+                        <div style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: '6px', padding: '3px 8px', fontSize: '10px', color: '#fbbf24', fontWeight: 700 }}>⚠️ Parțial — doar diriginte, nu profesori materie</div>
+                        <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '6px', padding: '3px 8px', fontSize: '10px', color: '#f87171', fontWeight: 700 }}>🔴 Fără conexiune SIIIR</div>
+                      </div>
 
-                              {/* Note per modul */}
+                      {/* Import Excel */}
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(99,102,241,0.08)', border: '1px dashed rgba(99,102,241,0.3)', borderRadius: '10px', padding: '10px 14px', cursor: 'pointer', marginBottom: '14px' }}>
+                        <span style={{ fontSize: '16px' }}>📂</span>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: '12px', fontWeight: 700, color: '#a5b4fc' }}>Importă Excel / CSV</div>
+                          <div style={{ fontSize: '10px', color: '#475569' }}>Coloane: Nume, {modulClasa.join(', ')}{modulClasa.length ? ', ' : ''}Abs.Motivate, Abs.Nemotivate, Observatii</div>
+                        </div>
+                        {importStatus && <span style={{ fontSize: '11px', color: importStatus.includes('✅') ? '#4ade80' : '#f87171', fontWeight: 700 }}>{importStatus}</span>}
+                        <input type="file" accept=".xlsx,.xls,.csv" style={{ display: 'none' }} onChange={handleImportExcel} />
+                      </label>
+
+                      {elevi.length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: '24px', color: '#475569', fontSize: '13px' }}>Adaugă elevi mai întâi din tab-ul ✏️</div>
+                      ) : (
+                        <>
+                          {/* Navigare */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+                            <button onClick={() => setIdx(Math.max(0, idx - 1))} disabled={idx === 0}
+                              style={{ background: idx === 0 ? 'rgba(255,255,255,0.03)' : 'rgba(99,102,241,0.15)', border: `1px solid ${idx === 0 ? 'rgba(255,255,255,0.06)' : 'rgba(99,102,241,0.4)'}`, borderRadius: '10px', width: 40, height: 40, cursor: idx === 0 ? 'not-allowed' : 'pointer', color: idx === 0 ? '#334155' : '#a5b4fc', fontSize: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>←</button>
+                            <div style={{ flex: 1, textAlign: 'center' }}>
+                              <div style={{ fontSize: '18px', fontWeight: 800, color: '#f1f5f9' }}>{c?.nr}. {c?.nume}</div>
+                              <div style={{ fontSize: '11px', color: '#475569', marginTop: '2px' }}>Elev {idx + 1} din {elevi.length}</div>
+                            </div>
+                            <button onClick={() => setIdx(Math.min(elevi.length - 1, idx + 1))} disabled={idx === elevi.length - 1}
+                              style={{ background: idx === elevi.length - 1 ? 'rgba(255,255,255,0.03)' : 'rgba(99,102,241,0.15)', border: `1px solid ${idx === elevi.length - 1 ? 'rgba(255,255,255,0.06)' : 'rgba(99,102,241,0.4)'}`, borderRadius: '10px', width: 40, height: 40, cursor: idx === elevi.length - 1 ? 'not-allowed' : 'pointer', color: idx === elevi.length - 1 ? '#334155' : '#a5b4fc', fontSize: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>→</button>
+                          </div>
+
+                          {entry && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                              {/* Note */}
                               {modulClasa.length > 0 && (
-                                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '10px' }}>
-                                  {modulClasa.map(m => (
-                                    <div key={m} style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                                      <div style={{ fontSize: '10px', color: '#475569', whiteSpace: 'nowrap' }}>{m.replace('BAC ','').replace('Capacitate ','Cap. ')}</div>
-                                      <input
-                                        type="number" min="1" max="10"
-                                        placeholder="—"
-                                        value={entry.note[m] || ''}
-                                        onChange={e => updateCatalog(c.nr, { note: { ...entry.note, [m]: e.target.value } })}
-                                        style={{ ...inputStyle, width: '52px', padding: '6px 8px', fontSize: '14px', fontWeight: 700, textAlign: 'center', color: parseFloat(entry.note[m]) < 5 ? '#f87171' : '#4ade80' }}
-                                      />
-                                    </div>
-                                  ))}
+                                <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '12px', padding: '14px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                                  <div style={{ fontSize: '11px', color: '#475569', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '10px', display: 'flex', justifyContent: 'space-between' }}>
+                                    <span>Note</span>
+                                    {medieNote !== null && <span style={{ color: medieNote >= 5 ? '#4ade80' : '#f87171', fontWeight: 800 }}>Medie: {medieNote.toFixed(2)}</span>}
+                                  </div>
+                                  <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                                    {modulClasa.map(m => (
+                                      <div key={m} style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: '1', minWidth: '90px' }}>
+                                        <div style={{ fontSize: '10px', color: '#475569' }}>{m.replace('BAC ','').replace('Capacitate ','')}</div>
+                                        <input type="number" min="1" max="10" placeholder="—"
+                                          value={entry.note[m] || ''}
+                                          onChange={e => updateCatalog(c.nr, { note: { ...entry.note, [m]: e.target.value } })}
+                                          style={{ ...inputStyle, padding: '8px', fontSize: '20px', fontWeight: 800, textAlign: 'center', color: entry.note[m] ? (parseFloat(entry.note[m]) < 5 ? '#f87171' : '#4ade80') : '#475569' }}
+                                        />
+                                      </div>
+                                    ))}
+                                  </div>
                                 </div>
                               )}
 
                               {/* Absente */}
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                                <div style={{ fontSize: '11px', color: '#475569', fontWeight: 600 }}>Absențe:</div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                  <span style={{ fontSize: '11px', color: '#4ade80' }}>Motivate</span>
-                                  <button onClick={() => updateCatalog(c.nr, { absMot: Math.max(0, entry.absMot - 1) })} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', width: 24, height: 24, cursor: 'pointer', color: '#94a3b8', fontSize: '14px', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>−</button>
-                                  <span style={{ fontSize: '14px', fontWeight: 700, color: '#f1f5f9', minWidth: '20px', textAlign: 'center' }}>{entry.absMot}</span>
-                                  <button onClick={() => updateCatalog(c.nr, { absMot: entry.absMot + 1 })} style={{ background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: '6px', width: 24, height: 24, cursor: 'pointer', color: '#4ade80', fontSize: '14px', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
-                                </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                  <span style={{ fontSize: '11px', color: '#f87171' }}>Nemotivate</span>
-                                  <button onClick={() => updateCatalog(c.nr, { absNemot: Math.max(0, entry.absNemot - 1) })} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', width: 24, height: 24, cursor: 'pointer', color: '#94a3b8', fontSize: '14px', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>−</button>
-                                  <span style={{ fontSize: '14px', fontWeight: 700, color: entry.absNemot > 5 ? '#f87171' : '#f1f5f9', minWidth: '20px', textAlign: 'center' }}>{entry.absNemot}</span>
-                                  <button onClick={() => updateCatalog(c.nr, { absNemot: entry.absNemot + 1 })} style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '6px', width: 24, height: 24, cursor: 'pointer', color: '#f87171', fontSize: '14px', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
+                              <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '12px', padding: '14px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                                <div style={{ fontSize: '11px', color: '#475569', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '10px' }}>Absențe</div>
+                                <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+                                  {[['absMot','Motivate','#4ade80','rgba(34,197,94,0.15)','rgba(34,197,94,0.3)'],['absNemot','Nemotivate','#f87171','rgba(239,68,68,0.15)','rgba(239,68,68,0.3)']] .map(([field, label, color, bg, border]) => (
+                                    <div key={field} style={{ flex: 1, minWidth: '100px', textAlign: 'center' }}>
+                                      <div style={{ fontSize: '11px', marginBottom: '8px', color: color as string }}>{label}</div>
+                                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+                                        <button onClick={() => updateCatalog(c.nr, { [field]: Math.max(0, (entry[field as keyof typeof entry] as number) - 1) })}
+                                          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', width: 32, height: 32, cursor: 'pointer', color: '#94a3b8', fontSize: '18px', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>−</button>
+                                        <span style={{ fontSize: '28px', fontWeight: 800, color: color as string, minWidth: '40px', textAlign: 'center' }}>{entry[field as keyof typeof entry] as number}</span>
+                                        <button onClick={() => updateCatalog(c.nr, { [field]: (entry[field as keyof typeof entry] as number) + 1 })}
+                                          style={{ background: bg as string, border: `1px solid ${border}`, borderRadius: '8px', width: 32, height: 32, cursor: 'pointer', color: color as string, fontSize: '18px', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
+                                      </div>
+                                    </div>
+                                  ))}
                                 </div>
                               </div>
+
+                              {/* Observatii */}
+                              <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '12px', padding: '14px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                                <div style={{ fontSize: '11px', color: '#475569', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>Observații</div>
+                                <textarea
+                                  placeholder="Notează orice observație relevantă despre acest elev..."
+                                  value={entry.observatii || ''}
+                                  onChange={e => updateCatalog(c.nr, { observatii: e.target.value } as any)}
+                                  rows={3}
+                                  style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.6, fontSize: '13px' }}
+                                />
+                              </div>
+
+                              {/* Puncte de navigare */}
+                              <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', paddingTop: '4px' }}>
+                                {elevi.map((_, i) => (
+                                  <button key={i} onClick={() => setIdx(i)}
+                                    style={{ width: i === idx ? 20 : 8, height: 8, borderRadius: '4px', background: i === idx ? '#6366f1' : 'rgba(255,255,255,0.12)', border: 'none', cursor: 'pointer', transition: 'all 0.2s', padding: 0 }} />
+                                ))}
+                              </div>
                             </div>
-                          )
-                        })}
-                      </div>
-                    )}
-                  </div>
-                )}
+                          )}
+                        </>
+                      )}
+                    </div>
+                  )
+                })()}
 
                 {/* Tab: Alerte */}
                 {tabElevi === 'alerte' && (
