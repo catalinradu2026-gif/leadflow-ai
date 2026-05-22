@@ -86,8 +86,30 @@ export default function DirigintePage() {
   useEffect(() => { if (hydrated) localStorage.setItem('dir_modul', JSON.stringify(modulClasa)) }, [modulClasa, hydrated])
   useEffect(() => { if (hydrated) localStorage.setItem('dir_elevi', JSON.stringify(eleviInput)) }, [eleviInput, hydrated])
   useEffect(() => { if (hydrated) localStorage.setItem('dir_conturi', JSON.stringify(conturiGenerate)) }, [conturiGenerate, hydrated])
+
+  // Catalog note + absente
+  type CatalogEntry = { elevNr: string; note: Record<string, string>; absMot: number; absNemot: number }
+  const [catalog, setCatalog] = useState<CatalogEntry[]>([])
+  const [hydrated2, setHydrated2] = useState(false)
+  useEffect(() => {
+    try { const c = localStorage.getItem('dir_catalog'); if (c) setCatalog(JSON.parse(c)) } catch {}
+    setHydrated2(true)
+  }, [])
+  useEffect(() => { if (hydrated2) localStorage.setItem('dir_catalog', JSON.stringify(catalog)) }, [catalog, hydrated2])
+
+  function getCatalogEntry(nr: string): CatalogEntry {
+    return catalog.find(e => e.elevNr === nr) || { elevNr: nr, note: {}, absMot: 0, absNemot: 0 }
+  }
+  function updateCatalog(nr: string, patch: Partial<CatalogEntry>) {
+    setCatalog(prev => {
+      const exists = prev.find(e => e.elevNr === nr)
+      if (exists) return prev.map(e => e.elevNr === nr ? { ...e, ...patch } : e)
+      return [...prev, { elevNr: nr, note: {}, absMot: 0, absNemot: 0, ...patch }]
+    })
+  }
+
   const [sectiuneElevi, setSectiuneElevi] = useState(false)
-  const [tabElevi, setTabElevi] = useState<'adauga' | 'conturi' | 'activitate' | 'alerte' | 'clasament'>('adauga')
+  const [tabElevi, setTabElevi] = useState<'adauga' | 'conturi' | 'activitate' | 'catalog' | 'alerte' | 'clasament'>('adauga')
 
   function slugNume(nume: string) {
     return nume.toLowerCase()
@@ -710,6 +732,7 @@ export default function DirigintePage() {
                     ['adauga','✏️ Adaugă'],
                     ['conturi','🔑 Conturi'],
                     ['activitate','📊 Activitate'],
+                    ['catalog','📋 Catalog'],
                     ['alerte','⚠️ Alerte'],
                     ['clasament','🏆 Clasament'],
                   ] as [typeof tabElevi, string][]).map(([t, label]) => {
@@ -851,14 +874,107 @@ export default function DirigintePage() {
                   </div>
                 )}
 
+                {/* Tab: Catalog */}
+                {tabElevi === 'catalog' && (
+                  <div style={{ padding: '16px' }}>
+                    {/* Status badges */}
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '14px' }}>
+                      <div style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: '8px', padding: '4px 10px', fontSize: '11px', color: '#4ade80', fontWeight: 700 }}>✅ Funcțional — se salvează local</div>
+                      <div style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: '8px', padding: '4px 10px', fontSize: '11px', color: '#fbbf24', fontWeight: 700 }}>⚠️ Parțial — nu sincronizează cu profesorii de materie</div>
+                      <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '8px', padding: '4px 10px', fontSize: '11px', color: '#f87171', fontWeight: 700 }}>🔴 Nefuncțional — nu se conectează la SIIIR</div>
+                    </div>
+
+                    {conturiGenerate.length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '24px', color: '#475569', fontSize: '13px' }}>Generează conturi elevi mai întâi</div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '400px', overflowY: 'auto' }}>
+                        {conturiGenerate.map((c) => {
+                          const entry = getCatalogEntry(c.nr)
+                          const medieNote = modulClasa.length > 0
+                            ? modulClasa.filter(m => entry.note[m] && entry.note[m] !== '').reduce((s, m, _, arr) => s + parseFloat(entry.note[m] || '0') / arr.length, 0)
+                            : null
+                          return (
+                            <div key={c.nr} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '12px 14px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                                <div style={{ width: 28, height: 28, borderRadius: '8px', background: 'rgba(99,102,241,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 700, color: '#a5b4fc', flexShrink: 0 }}>{c.nr}</div>
+                                <div style={{ flex: 1, fontSize: '13px', fontWeight: 600, color: '#f1f5f9' }}>{c.nume}</div>
+                                {medieNote !== null && medieNote > 0 && (
+                                  <div style={{ fontSize: '12px', fontWeight: 700, color: medieNote >= 5 ? '#4ade80' : '#f87171', background: medieNote >= 5 ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)', borderRadius: '6px', padding: '2px 8px' }}>
+                                    Medie: {medieNote.toFixed(2)}
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Note per modul */}
+                              {modulClasa.length > 0 && (
+                                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '10px' }}>
+                                  {modulClasa.map(m => (
+                                    <div key={m} style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                                      <div style={{ fontSize: '10px', color: '#475569', whiteSpace: 'nowrap' }}>{m.replace('BAC ','').replace('Capacitate ','Cap. ')}</div>
+                                      <input
+                                        type="number" min="1" max="10"
+                                        placeholder="—"
+                                        value={entry.note[m] || ''}
+                                        onChange={e => updateCatalog(c.nr, { note: { ...entry.note, [m]: e.target.value } })}
+                                        style={{ ...inputStyle, width: '52px', padding: '6px 8px', fontSize: '14px', fontWeight: 700, textAlign: 'center', color: parseFloat(entry.note[m]) < 5 ? '#f87171' : '#4ade80' }}
+                                      />
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+
+                              {/* Absente */}
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                                <div style={{ fontSize: '11px', color: '#475569', fontWeight: 600 }}>Absențe:</div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  <span style={{ fontSize: '11px', color: '#4ade80' }}>Motivate</span>
+                                  <button onClick={() => updateCatalog(c.nr, { absMot: Math.max(0, entry.absMot - 1) })} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', width: 24, height: 24, cursor: 'pointer', color: '#94a3b8', fontSize: '14px', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>−</button>
+                                  <span style={{ fontSize: '14px', fontWeight: 700, color: '#f1f5f9', minWidth: '20px', textAlign: 'center' }}>{entry.absMot}</span>
+                                  <button onClick={() => updateCatalog(c.nr, { absMot: entry.absMot + 1 })} style={{ background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: '6px', width: 24, height: 24, cursor: 'pointer', color: '#4ade80', fontSize: '14px', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  <span style={{ fontSize: '11px', color: '#f87171' }}>Nemotivate</span>
+                                  <button onClick={() => updateCatalog(c.nr, { absNemot: Math.max(0, entry.absNemot - 1) })} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', width: 24, height: 24, cursor: 'pointer', color: '#94a3b8', fontSize: '14px', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>−</button>
+                                  <span style={{ fontSize: '14px', fontWeight: 700, color: entry.absNemot > 5 ? '#f87171' : '#f1f5f9', minWidth: '20px', textAlign: 'center' }}>{entry.absNemot}</span>
+                                  <button onClick={() => updateCatalog(c.nr, { absNemot: entry.absNemot + 1 })} style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '6px', width: 24, height: 24, cursor: 'pointer', color: '#f87171', fontSize: '14px', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Tab: Alerte */}
                 {tabElevi === 'alerte' && (
                   <div style={{ padding: '16px' }}>
+                    {/* Status funcționalitate */}
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '12px' }}>
+                      <div style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: '8px', padding: '4px 10px', fontSize: '11px', color: '#4ade80', fontWeight: 700 }}>✅ Timp platformă — funcțional</div>
+                      <div style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: '8px', padding: '4px 10px', fontSize: '11px', color: '#4ade80', fontWeight: 700 }}>✅ Absențe din catalog — funcțional</div>
+                      <div style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: '8px', padding: '4px 10px', fontSize: '11px', color: '#fbbf24', fontWeight: 700 }}>⚠️ Note — parțial (doar diriginte, nu profesori)</div>
+                      <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '8px', padding: '4px 10px', fontSize: '11px', color: '#f87171', fontWeight: 700 }}>🔴 Alertă automată consilier — nefuncțional</div>
+                    </div>
                     {conturiGenerate.length === 0 ? (
                       <div style={{ textAlign: 'center', padding: '24px', color: '#475569', fontSize: '13px' }}>Generează conturi pentru a vedea alertele</div>
                     ) : (() => {
-                      const ridicat = conturiGenerate.filter(c => c.riscNivel === 'ridicat')
-                      const mediu = conturiGenerate.filter(c => c.riscNivel === 'mediu')
+                      const eleviiCuRisc = conturiGenerate.map(c => {
+                        const entry = getCatalogEntry(c.nr)
+                        const medieNote = modulClasa.length > 0
+                          ? modulClasa.filter(m => entry.note[m]).reduce((s, m, _, arr) => s + parseFloat(entry.note[m] || '0') / arr.length, 0)
+                          : null
+                        const catRisc: string[] = []
+                        if (c.minutePlatforma === 0 || !c.ultimaConectare) catRisc.push('Abandon')
+                        if (medieNote !== null && medieNote > 0 && medieNote < 5) catRisc.push('Performanță')
+                        if (entry.absNemot >= 5) catRisc.push('Abandon')
+                        if (entry.absNemot >= 3 && c.minutePlatforma === 0) catRisc.push('Emoțional')
+                        const riscNivel: 'ridicat' | 'mediu' | 'ok' = catRisc.length >= 2 || entry.absNemot >= 5 ? 'ridicat' : catRisc.length === 1 || c.minutePlatforma < 8 ? 'mediu' : 'ok'
+                        return { ...c, riscNivel, riscCategorie: [...new Set(catRisc)], medieNote, absMot: entry.absMot, absNemot: entry.absNemot }
+                      })
+                      const ridicat = eleviiCuRisc.filter(c => c.riscNivel === 'ridicat')
+                      const mediu = eleviiCuRisc.filter(c => c.riscNivel === 'mediu')
                       return (
                         <>
                           <div style={{ display: 'flex', gap: '8px', marginBottom: '14px', flexWrap: 'wrap' }}>
@@ -875,10 +991,10 @@ export default function DirigintePage() {
                               <div style={{ fontSize: '10px', color: '#22c55e', fontWeight: 600 }}>OK</div>
                             </div>
                           </div>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '300px', overflowY: 'auto' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '320px', overflowY: 'auto' }}>
                             {[...ridicat, ...mediu].map((c, i) => (
                               <div key={i} style={{ background: c.riscNivel === 'ridicat' ? 'rgba(239,68,68,0.07)' : 'rgba(245,158,11,0.07)', border: `1px solid ${c.riscNivel === 'ridicat' ? 'rgba(239,68,68,0.25)' : 'rgba(245,158,11,0.25)'}`, borderRadius: '12px', padding: '12px 14px' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
                                   <div style={{ fontSize: '18px' }}>{c.riscNivel === 'ridicat' ? '🔴' : '🟡'}</div>
                                   <div style={{ flex: 1 }}>
                                     <div style={{ fontSize: '13px', fontWeight: 700, color: '#f1f5f9' }}>{c.nr}. {c.nume}</div>
@@ -886,14 +1002,14 @@ export default function DirigintePage() {
                                   </div>
                                 </div>
                                 <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                                  {c.riscCategorie.map(cat => (
+                                  {c.riscCategorie.map((cat: string) => (
                                     <div key={cat} style={{ background: 'rgba(255,255,255,0.06)', borderRadius: '6px', padding: '3px 8px', fontSize: '11px', color: '#94a3b8' }}>
-                                      {cat === 'Abandon' ? '🚪 Risc abandon' : cat === 'Performanță' ? '📉 Performanță scăzută' : '💙 Emoțional'}
+                                      {cat === 'Abandon' ? '🚪 Abandon' : cat === 'Performanță' ? '📉 Performanță' : '💙 Emoțional'}
                                     </div>
                                   ))}
-                                  <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: '6px', padding: '3px 8px', fontSize: '11px', color: '#94a3b8' }}>
-                                    ⏱ {c.minutePlatforma} min platformă
-                                  </div>
+                                  <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: '6px', padding: '3px 8px', fontSize: '11px', color: '#94a3b8' }}>⏱ {c.minutePlatforma} min</div>
+                                  {(c as any).absNemot > 0 && <div style={{ background: 'rgba(239,68,68,0.1)', borderRadius: '6px', padding: '3px 8px', fontSize: '11px', color: '#f87171' }}>🚫 {(c as any).absNemot} abs. nemot.</div>}
+                                  {(c as any).medieNote !== null && (c as any).medieNote > 0 && <div style={{ background: 'rgba(239,68,68,0.1)', borderRadius: '6px', padding: '3px 8px', fontSize: '11px', color: '#f87171' }}>📉 Medie {(c as any).medieNote.toFixed(1)}</div>}
                                   {!c.ultimaConectare && <div style={{ background: 'rgba(239,68,68,0.1)', borderRadius: '6px', padding: '3px 8px', fontSize: '11px', color: '#f87171' }}>Niciodată conectat</div>}
                                 </div>
                               </div>
