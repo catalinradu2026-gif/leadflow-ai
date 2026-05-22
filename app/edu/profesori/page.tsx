@@ -178,7 +178,7 @@ export default function ProfesoriPage() {
     saveMaterii(materiiSelectate)
     const primaMaterie = materiiSelectate[0]
     setMaterie(primaMaterie)
-    setIdx(0)
+    setSelectedNr(null)
     setView('catalog')
   }
 
