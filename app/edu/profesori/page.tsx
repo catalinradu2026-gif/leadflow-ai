@@ -38,7 +38,6 @@ export default function ProfesoriPage() {
   // Per-subject class lists and active class
   const [clasePerMaterie, setClasePerMaterie] = useState<Record<string, ClasaConf[]>>({})
   const [clasaPerMaterie, setClasaPerMaterie] = useState<Record<string, string>>({})
-  const [idx, setIdx] = useState(0)
 
   // Derived: current subject's classes and active class
   const clase = clasePerMaterie[materie] || []
@@ -59,7 +58,7 @@ export default function ProfesoriPage() {
   const [hydrated, setHydrated] = useState(false)
   const [savedFlash, setSavedFlash] = useState(false)
   const [searchElev, setSearchElev] = useState('')
-  const [searchOpen, setSearchOpen] = useState(false)
+  const [selectedNr, setSelectedNr] = useState<string | null>(null)
 
   // Students from diriginte, keyed by class name
   const [dirStudentsMap, setDirStudentsMap] = useState<Record<string, {nr:string;nume:string}[]>>({})
@@ -186,12 +185,12 @@ export default function ProfesoriPage() {
   function adaugaClasa() {
     const litera = nouaLiteraCustom.trim() || nouaLitera
     const numeClasa = `${nouaGrada}${litera}`
-    if (clase.find(c => c.nume === numeClasa)) { setClasa(numeClasa); setIdx(0); setAdaugaClasaOpen(false); return }
+    if (clase.find(c => c.nume === numeClasa)) { setClasa(numeClasa); setSelectedNr(null); setAdaugaClasaOpen(false); return }
     const dirCount = dirStudentsMap[numeClasa]?.length || nrEleviNou
     const updated = [...clase, { nume: numeClasa, nrElevi: dirCount }]
     saveClase(materie, updated)
     setClasa(numeClasa)
-    setIdx(0)
+    setSelectedNr(null)
     setAdaugaClasaOpen(false)
     setNouaLiteraCustom('')
   }
@@ -203,10 +202,6 @@ export default function ProfesoriPage() {
   const students: { nr: string; nume: string }[] = studentsFromDir
     ? dirStudents
     : Array.from({ length: clasaConf?.nrElevi || 0 }, (_, i) => ({ nr: String(i + 1), nume: '' }))
-
-  const elev = students[idx]
-  const entry = elev ? getEntry(elev.nr) : null
-  const totalAbs = entry ? entry.absMot + entry.absNemot : 0
 
   // ---- LOGIN ----
   if (view === 'login') return (
@@ -288,7 +283,7 @@ export default function ProfesoriPage() {
         <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '16px', overflow: 'hidden' }}>
           <div style={{ display: 'flex', overflowX: 'auto', borderBottom: '1px solid rgba(255,255,255,0.06)', alignItems: 'stretch' }}>
             {materiiProf.map(m => (
-              <button key={m} onClick={() => { setMaterie(m); setIdx(0); setAdaugaClasaOpen(false); setSearchOpen(false); setSearchElev('') }}
+              <button key={m} onClick={() => { setMaterie(m); setSelectedNr(null); setSearchElev(''); setAdaugaClasaOpen(false) }}
                 style={{ flex: '0 0 auto', background: 'none', border: 'none', borderBottom: `2px solid ${m === materie ? '#f97316' : 'transparent'}`, padding: '11px 15px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: m === materie ? 700 : 400, color: m === materie ? '#fb923c' : '#475569', whiteSpace: 'nowrap', transition: 'all 0.15s' }}>
                 {m}
               </button>
@@ -323,7 +318,7 @@ export default function ProfesoriPage() {
             <div style={{ fontSize: '10px', color: '#334155', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>Clasele la {materie}</div>
             <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '4px', alignItems: 'center' }}>
               {clase.map(c => (
-                <button key={c.nume} onClick={() => { setClasa(c.nume); setIdx(0); setSearchOpen(false); setSearchElev('') }}
+                <button key={c.nume} onClick={() => { setClasa(c.nume); setSelectedNr(null); setSearchElev('') }}
                   style={{ flex: '0 0 auto', background: c.nume === clasa ? 'rgba(249,115,22,0.22)' : 'rgba(255,255,255,0.04)', border: `1px solid ${c.nume === clasa ? 'rgba(249,115,22,0.55)' : 'rgba(255,255,255,0.09)'}`, borderRadius: '10px', padding: '7px 14px', fontSize: '13px', fontWeight: c.nume === clasa ? 800 : 400, color: c.nume === clasa ? '#fb923c' : '#475569', cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s' }}>
                   {c.nume}
                   <span style={{ fontSize: '10px', color: c.nume === clasa ? '#f97316' : '#334155', marginLeft: '5px' }}>{c.nrElevi}el</span>
@@ -429,148 +424,140 @@ export default function ProfesoriPage() {
             <div style={{ fontSize: '32px', marginBottom: '12px' }}>📋</div>
             Niciun elev configurat pentru clasa {clasa}.
           </div>
-        ) : (
-          <>
-            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '20px', overflow: 'hidden' }}>
-              {/* Navigare */}
-              <div style={{ padding: '14px 18px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: searchOpen ? '10px' : 0 }}>
-                  <button onClick={() => { setIdx(Math.max(0, idx - 1)); setSearchOpen(false); setSearchElev('') }} disabled={idx === 0}
-                    style={navBtn(idx === 0, false)}>←</button>
-                  <div style={{ flex: 1, textAlign: 'center', cursor: 'pointer' }} onClick={() => { setSearchOpen(v => !v); setSearchElev('') }}>
-                    <div style={{ fontSize: '17px', fontWeight: 800, color: '#f1f5f9' }}>
-                      {elev.nr}. {elev.nume || `Elevul ${elev.nr}`}
-                    </div>
-                    <div style={{ fontSize: '11px', color: '#475569', marginTop: '2px' }}>
-                      {searchOpen ? '▲ închide căutare' : `Elev ${idx + 1} din ${students.length} · ${clasa} · tap pentru căutare`}
-                    </div>
-                  </div>
-                  <button onClick={() => { setIdx(Math.min(students.length - 1, idx + 1)); setSearchOpen(false); setSearchElev('') }} disabled={idx === students.length - 1}
-                    style={navBtn(idx === students.length - 1, false)}>→</button>
-                </div>
+        ) : (() => {
+          const cuNote = students.filter(s => getEntry(s.nr).nota)
+          const medie = cuNote.length ? cuNote.reduce((s, e) => s + parseFloat(getEntry(e.nr).nota), 0) / cuNote.length : null
+          const sub = cuNote.filter(s => parseFloat(getEntry(s.nr).nota) < 5).length
+          const absNemot = students.reduce((s, e) => s + getEntry(e.nr).absNemot, 0)
 
-                {searchOpen && (
-                  <div>
-                    <input
-                      autoFocus
-                      type="text"
-                      placeholder="Caută după nume sau număr..."
-                      value={searchElev}
-                      onChange={e => setSearchElev(e.target.value)}
-                      style={{ ...inputStyle, padding: '9px 14px', fontSize: '13px', marginBottom: '6px' }}
-                    />
-                    {searchElev.trim() && (() => {
-                      const q = searchElev.trim().toLowerCase()
-                      const rezultate = students
-                        .map((s, i) => ({ s, i }))
-                        .filter(({ s }) => s.nume.toLowerCase().includes(q) || s.nr.includes(q))
-                        .slice(0, 8)
-                      return rezultate.length === 0 ? (
-                        <div style={{ fontSize: '12px', color: '#475569', textAlign: 'center', padding: '8px' }}>Niciun elev găsit</div>
-                      ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '200px', overflowY: 'auto' }}>
-                          {rezultate.map(({ s, i }) => {
-                            const e = getEntry(s.nr)
-                            const areDate = e.nota || e.absMot > 0 || e.absNemot > 0
-                            return (
-                              <button key={s.nr} onClick={() => { setIdx(i); setSearchOpen(false); setSearchElev('') }}
-                                style={{ background: areDate ? 'rgba(249,115,22,0.1)' : 'rgba(255,255,255,0.04)', border: `1px solid ${areDate ? 'rgba(249,115,22,0.3)' : 'rgba(255,255,255,0.08)'}`, borderRadius: '10px', padding: '10px 14px', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'space-between', textAlign: 'left' }}>
-                                <span style={{ fontSize: '14px', fontWeight: 700, color: '#f1f5f9' }}>{s.nr}. {s.nume || `Elevul ${s.nr}`}</span>
-                                <span style={{ fontSize: '12px', color: areDate ? '#fb923c' : '#334155' }}>
-                                  {e.nota ? `nota ${e.nota}` : 'fără notă'}
-                                  {(e.absMot + e.absNemot) > 0 ? ` · ${e.absMot + e.absNemot} abs` : ''}
-                                </span>
-                              </button>
-                            )
-                          })}
-                        </div>
-                      )
-                    })()}
-                  </div>
-                )}
+          const q = searchElev.trim().toLowerCase()
+          const listaVizibila = q
+            ? students.filter(s => s.nume.toLowerCase().includes(q) || s.nr.includes(q))
+            : students
+
+          return (
+          <>
+            {/* Sumar rapid */}
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <div style={statCard('#6366f1')}><div style={{ fontSize: '17px', fontWeight: 800 }}>{cuNote.length}/{students.length}</div><div style={{ fontSize: '10px' }}>notate</div></div>
+              <div style={statCard('#f97316')}><div style={{ fontSize: '17px', fontWeight: 800 }}>{students.length - cuNote.length}</div><div style={{ fontSize: '10px' }}>fără notă</div></div>
+              {medie !== null && <div style={statCard('#4ade80')}><div style={{ fontSize: '17px', fontWeight: 800 }}>{medie.toFixed(2)}</div><div style={{ fontSize: '10px' }}>medie clasă</div></div>}
+              {sub > 0 && <div style={statCard('#f87171')}><div style={{ fontSize: '17px', fontWeight: 800 }}>{sub}</div><div style={{ fontSize: '10px' }}>sub medie</div></div>}
+              {absNemot > 0 && <div style={statCard('#fbbf24')}><div style={{ fontSize: '17px', fontWeight: 800 }}>{absNemot}</div><div style={{ fontSize: '10px' }}>abs. nemot.</div></div>}
+            </div>
+
+            {/* Search */}
+            <input
+              type="text"
+              placeholder="Caută elev după nume sau număr..."
+              value={searchElev}
+              onChange={e => setSearchElev(e.target.value)}
+              style={{ ...inputStyle, padding: '9px 14px', fontSize: '13px' }}
+            />
+
+            {/* Lista elevi */}
+            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '16px', overflow: 'hidden' }}>
+              <div style={{ padding: '10px 14px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '11px', color: '#475569', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  {materie} · {clasa} {q ? `· ${listaVizibila.length} rezultate` : ''}
+                </span>
+                {studentsFromDir && <span style={{ fontSize: '10px', color: '#4ade80' }}>· liste din diriginte</span>}
               </div>
 
-              {elev && entry && (
-                <div style={{ padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                  {/* Nota */}
-                  <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '14px', padding: '16px', border: '1px solid rgba(255,255,255,0.06)' }}>
-                    <div style={{ fontSize: '11px', color: '#475569', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '12px' }}>Notă · {materie}</div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <input type="number" min="1" max="10" placeholder="—" value={entry.nota}
-                        onChange={e => { const v = e.target.value; if (v === '' || (parseFloat(v) >= 1 && parseFloat(v) <= 10)) updateEntry(elev.nr, { nota: v }) }}
-                        style={{ ...inputStyle, width: '90px', fontSize: '36px', fontWeight: 900, textAlign: 'center', padding: '12px', color: entry.nota ? (parseFloat(entry.nota) < 5 ? '#f87171' : parseFloat(entry.nota) < 7 ? '#fbbf24' : '#4ade80') : '#334155' }} />
-                      <div style={{ flex: 1 }}>
-                        {entry.nota && <div style={{ fontSize: '13px', fontWeight: 700, color: parseFloat(entry.nota) < 5 ? '#f87171' : parseFloat(entry.nota) < 7 ? '#fbbf24' : '#4ade80' }}>
-                          {parseFloat(entry.nota) < 5 ? '⚠️ Sub medie' : parseFloat(entry.nota) < 7 ? '📈 Satisfăcător' : parseFloat(entry.nota) < 9 ? '✅ Bine' : '⭐ Excelent'}
-                        </div>}
-                        <div style={{ fontSize: '11px', color: '#334155', marginTop: '4px' }}>Notă 1–10</div>
-                      </div>
-                      {savedFlash && <div style={{ fontSize: '11px', color: '#4ade80', fontWeight: 700 }}>✓ Salvat</div>}
-                    </div>
-                  </div>
-
-                  {/* Absente */}
-                  <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '14px', padding: '16px', border: '1px solid rgba(255,255,255,0.06)' }}>
-                    <div style={{ fontSize: '11px', color: '#475569', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '12px' }}>Absențe · {materie}</div>
-                    <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-                      {([['absMot','Motivate','#4ade80','rgba(34,197,94,0.15)','rgba(34,197,94,0.3)'],
-                        ['absNemot','Nemotivate','#f87171','rgba(239,68,68,0.15)','rgba(239,68,68,0.3)']] as const).map(([field, label, color, bg, border]) => (
-                        <div key={field} style={{ flex: 1, minWidth: '100px', textAlign: 'center' }}>
-                          <div style={{ fontSize: '11px', marginBottom: '8px', color }}>{label}</div>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
-                            <button onClick={() => updateEntry(elev.nr, { [field]: Math.max(0, entry[field] - 1) })}
-                              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', width: 32, height: 32, cursor: 'pointer', color: '#94a3b8', fontSize: '18px', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>−</button>
-                            <span style={{ fontSize: '28px', fontWeight: 800, color, minWidth: '40px', textAlign: 'center' }}>{entry[field]}</span>
-                            <button onClick={() => updateEntry(elev.nr, { [field]: entry[field] + 1 })}
-                              style={{ background: bg, border: `1px solid ${border}`, borderRadius: '8px', width: 32, height: 32, cursor: 'pointer', color, fontSize: '18px', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    {totalAbs > 0 && <div style={{ marginTop: '10px', fontSize: '12px', color: '#475569', textAlign: 'center' }}>Total: {totalAbs} absențe</div>}
-                  </div>
-
-                  {/* Observatii */}
-                  <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '14px', padding: '16px', border: '1px solid rgba(255,255,255,0.06)' }}>
-                    <div style={{ fontSize: '11px', color: '#475569', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>Observații</div>
-                    <textarea placeholder="Comportament, participare, observații speciale..." value={entry.observatii}
-                      onChange={e => updateEntry(elev.nr, { observatii: e.target.value })} rows={3}
-                      style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.6, fontSize: '13px' }} />
-                  </div>
-                </div>
+              {listaVizibila.length === 0 && (
+                <div style={{ padding: '20px', textAlign: 'center', fontSize: '13px', color: '#475569' }}>Niciun elev găsit</div>
               )}
 
-              {/* Dots */}
-              <div style={{ display: 'flex', justifyContent: 'center', gap: '5px', paddingBottom: '14px', flexWrap: 'wrap', padding: '0 16px 14px' }}>
-                {students.map((_, i) => {
-                  const e = getEntry(students[i].nr)
-                  const areDate = e.nota || e.absMot > 0 || e.absNemot > 0 || e.observatii
-                  return <button key={i} onClick={() => setIdx(i)}
-                    style={{ width: i === idx ? 20 : 8, height: 8, borderRadius: '4px', background: i === idx ? '#f97316' : areDate ? 'rgba(249,115,22,0.4)' : 'rgba(255,255,255,0.12)', border: 'none', cursor: 'pointer', transition: 'all 0.2s', padding: 0, flexShrink: 0 }} />
-                })}
-              </div>
-            </div>
+              {listaVizibila.map((s, listIdx) => {
+                const e = getEntry(s.nr)
+                const isOpen = selectedNr === s.nr
+                const notaVal = e.nota ? parseFloat(e.nota) : null
+                const notaColor = notaVal === null ? '#334155' : notaVal < 5 ? '#f87171' : notaVal < 7 ? '#fbbf24' : '#4ade80'
+                const totalAbs = e.absMot + e.absNemot
 
-            {/* Sumar */}
-            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '16px', padding: '14px 16px' }}>
-              <div style={{ fontSize: '12px', fontWeight: 700, color: '#f1f5f9', marginBottom: '10px' }}>Sumar · {materie} · {clasa}</div>
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                {(() => {
-                  const cuNote = students.filter(s => getEntry(s.nr).nota)
-                  const medie = cuNote.length ? cuNote.reduce((s, e) => s + parseFloat(getEntry(e.nr).nota), 0) / cuNote.length : null
-                  const sub = cuNote.filter(s => parseFloat(getEntry(s.nr).nota) < 5).length
-                  const abs = students.reduce((s, e) => s + getEntry(e.nr).absNemot, 0)
-                  return (<>
-                    <div style={statCard('#6366f1')}><div style={{ fontSize: '17px', fontWeight: 800 }}>{cuNote.length}/{students.length}</div><div style={{ fontSize: '10px' }}>note introduse</div></div>
-                    {medie !== null && <div style={statCard('#4ade80')}><div style={{ fontSize: '17px', fontWeight: 800 }}>{medie.toFixed(2)}</div><div style={{ fontSize: '10px' }}>medie clasă</div></div>}
-                    {sub > 0 && <div style={statCard('#f87171')}><div style={{ fontSize: '17px', fontWeight: 800 }}>{sub}</div><div style={{ fontSize: '10px' }}>sub medie</div></div>}
-                    {abs > 0 && <div style={statCard('#fbbf24')}><div style={{ fontSize: '17px', fontWeight: 800 }}>{abs}</div><div style={{ fontSize: '10px' }}>abs. nemot.</div></div>}
-                  </>)
-                })()}
-              </div>
+                return (
+                  <div key={s.nr} style={{ borderBottom: listIdx < listaVizibila.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+                    {/* Rând elev */}
+                    <button
+                      onClick={() => setSelectedNr(isOpen ? null : s.nr)}
+                      style={{ width: '100%', background: isOpen ? 'rgba(249,115,22,0.06)' : 'transparent', border: 'none', padding: '12px 14px', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '10px', textAlign: 'left' }}
+                    >
+                      {/* Număr */}
+                      <span style={{ fontSize: '11px', color: '#334155', minWidth: '22px', fontWeight: 700 }}>{s.nr}.</span>
+                      {/* Nume */}
+                      <span style={{ flex: 1, fontSize: '14px', fontWeight: isOpen ? 800 : 500, color: isOpen ? '#f1f5f9' : '#cbd5e1' }}>
+                        {s.nume || `Elevul ${s.nr}`}
+                      </span>
+                      {/* Nota badge */}
+                      <span style={{ fontSize: '13px', fontWeight: 800, color: notaColor, minWidth: '32px', textAlign: 'right' }}>
+                        {e.nota || '—'}
+                      </span>
+                      {/* Absente */}
+                      {totalAbs > 0 && (
+                        <span style={{ fontSize: '11px', color: e.absNemot > 0 ? '#f87171' : '#475569', background: e.absNemot > 0 ? 'rgba(239,68,68,0.1)' : 'rgba(255,255,255,0.05)', borderRadius: '6px', padding: '2px 7px' }}>
+                          {totalAbs} abs
+                        </span>
+                      )}
+                      {/* Arrow */}
+                      <span style={{ fontSize: '11px', color: '#334155', transform: isOpen ? 'rotate(90deg)' : 'rotate(0)', transition: 'transform 0.2s', display: 'inline-block' }}>›</span>
+                    </button>
+
+                    {/* Formular expand */}
+                    {isOpen && (
+                      <div style={{ padding: '0 14px 16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        {/* Nota */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', padding: '12px 14px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                          <div style={{ fontSize: '11px', color: '#475569', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', minWidth: '40px' }}>Notă</div>
+                          <input
+                            type="number" min="1" max="10" placeholder="—" value={e.nota}
+                            onChange={ev => { const v = ev.target.value; if (v === '' || (parseFloat(v) >= 1 && parseFloat(v) <= 10)) updateEntry(s.nr, { nota: v }) }}
+                            style={{ ...inputStyle, width: '80px', fontSize: '28px', fontWeight: 900, textAlign: 'center', padding: '8px', color: notaColor }}
+                          />
+                          {e.nota && (
+                            <div style={{ fontSize: '12px', fontWeight: 700, color: notaColor }}>
+                              {notaVal! < 5 ? '⚠️ Sub medie' : notaVal! < 7 ? '📈 Satisfăcător' : notaVal! < 9 ? '✅ Bine' : '⭐ Excelent'}
+                            </div>
+                          )}
+                          {savedFlash && selectedNr === s.nr && <div style={{ fontSize: '11px', color: '#4ade80', fontWeight: 700, marginLeft: 'auto' }}>✓ Salvat</div>}
+                        </div>
+
+                        {/* Absente */}
+                        <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '12px', padding: '12px 14px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                          <div style={{ fontSize: '11px', color: '#475569', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '10px' }}>Absențe</div>
+                          <div style={{ display: 'flex', gap: '16px' }}>
+                            {([['absMot','Motivate','#4ade80','rgba(34,197,94,0.15)','rgba(34,197,94,0.3)'],
+                              ['absNemot','Nemotivate','#f87171','rgba(239,68,68,0.15)','rgba(239,68,68,0.3)']] as const).map(([field, label, color, bg, bdr]) => (
+                              <div key={field} style={{ flex: 1, textAlign: 'center' }}>
+                                <div style={{ fontSize: '11px', marginBottom: '6px', color }}>{label}</div>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                                  <button onClick={() => updateEntry(s.nr, { [field]: Math.max(0, e[field] - 1) })}
+                                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', width: 30, height: 30, cursor: 'pointer', color: '#94a3b8', fontSize: '16px', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>−</button>
+                                  <span style={{ fontSize: '22px', fontWeight: 800, color, minWidth: '32px', textAlign: 'center' }}>{e[field]}</span>
+                                  <button onClick={() => updateEntry(s.nr, { [field]: e[field] + 1 })}
+                                    style={{ background: bg, border: `1px solid ${bdr}`, borderRadius: '8px', width: 30, height: 30, cursor: 'pointer', color, fontSize: '16px', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Observatii */}
+                        <textarea
+                          placeholder="Observații (comportament, participare...)"
+                          value={e.observatii}
+                          onChange={ev => updateEntry(s.nr, { observatii: ev.target.value })}
+                          rows={2}
+                          style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.6, fontSize: '12px' }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
             </div>
           </>
-        )}
+          )
+        })()}
 
         <button onClick={() => { setView('login'); setEmail(''); setPassword('') }}
           style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '12px', color: '#475569', cursor: 'pointer', fontSize: '13px', fontFamily: 'inherit' }}>
@@ -582,9 +569,7 @@ export default function ProfesoriPage() {
   )
 }
 
-function navBtn(disabled: boolean, _: boolean): React.CSSProperties {
-  return { background: disabled ? 'rgba(255,255,255,0.03)' : 'rgba(249,115,22,0.15)', border: `1px solid ${disabled ? 'rgba(255,255,255,0.06)' : 'rgba(249,115,22,0.4)'}`, borderRadius: '10px', width: 40, height: 40, cursor: disabled ? 'not-allowed' : 'pointer', color: disabled ? '#334155' : '#fb923c', fontSize: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontFamily: 'inherit' }
-}
+
 function statCard(color: string): React.CSSProperties {
   return { flex: 1, minWidth: '70px', background: `${color}14`, border: `1px solid ${color}33`, borderRadius: '10px', padding: '10px', textAlign: 'center', color }
 }
