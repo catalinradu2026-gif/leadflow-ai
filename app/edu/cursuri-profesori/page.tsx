@@ -194,6 +194,10 @@ export default function CursuriProfesori() {
   const [speaking, setSpeaking] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages])
+
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
     if (!loginEmail || !loginPass) { setLoginErr('Completați email și parolă.'); return }
@@ -228,10 +232,6 @@ export default function CursuriProfesori() {
       </div>
     </div>
   )
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
 
   function deschideModul(id: number) {
     const modul = MODULE.find(m => m.id === id)!
