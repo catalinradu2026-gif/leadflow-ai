@@ -60,6 +60,63 @@ export default function DirigintePage() {
     const c = 'abcdefghjkmnpqrstuvwxyz23456789'
     return Array.from({length:7}, () => c[Math.floor(Math.random()*c.length)]).join('')
   }
+  function printConturi() {
+    const w = window.open('', '_blank')!
+    w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Conturi Elevi — ${demoDashboard.clasa}</title><style>
+      body{font-family:Arial,sans-serif;padding:32px;color:#111}
+      h2{margin:0 0 4px}p{margin:0 0 20px;color:#555;font-size:13px}
+      table{width:100%;border-collapse:collapse}
+      th{background:#f1f5f9;text-align:left;padding:10px 12px;font-size:12px;text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid #e2e8f0}
+      td{padding:10px 12px;border-bottom:1px solid #f1f5f9;font-size:14px}
+      tr:nth-child(even) td{background:#fafafa}
+      .mono{font-family:monospace;font-size:13px}
+      .footer{margin-top:32px;font-size:11px;color:#94a3b8;text-align:center}
+      @media print{body{padding:16px}}
+    </style></head><body>
+      <h2>Conturi Elevi — Clasa ${demoDashboard.clasa}</h2>
+      <p>${demoDashboard.scoala} · ${demoDashboard.judet} · Diriginte: ${demoDashboard.nume}</p>
+      <table>
+        <thead><tr><th>Nr.</th><th>Nume</th><th>Utilizator</th><th>Parolă</th></tr></thead>
+        <tbody>${conturiGenerate.map(c => `<tr><td>${c.nr}</td><td>${c.nume}</td><td class="mono">${c.user}</td><td class="mono">${c.parola}</td></tr>`).join('')}</tbody>
+      </table>
+      <div class="footer">Platformă EDU DIGITAL · aicraiova.ro · Păstrați aceste date în siguranță</div>
+    </body></html>`)
+    w.document.close()
+    w.print()
+  }
+
+  function printActivitate() {
+    const w = window.open('', '_blank')!
+    w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Raport Activitate — ${demoDashboard.clasa}</title><style>
+      body{font-family:Arial,sans-serif;padding:32px;color:#111}
+      h2{margin:0 0 4px}p{margin:0 0 20px;color:#555;font-size:13px}
+      table{width:100%;border-collapse:collapse}
+      th{background:#f1f5f9;text-align:left;padding:10px 12px;font-size:12px;text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid #e2e8f0}
+      td{padding:10px 12px;border-bottom:1px solid #f1f5f9;font-size:14px}
+      tr:nth-child(even) td{background:#fafafa}
+      .verde{color:#16a34a;font-weight:700}.galben{color:#d97706;font-weight:700}.gri{color:#94a3b8}
+      .obs{font-size:12px;color:#64748b;font-style:italic}
+      .footer{margin-top:32px;font-size:11px;color:#94a3b8;text-align:center}
+      @media print{body{padding:16px}}
+    </style></head><body>
+      <h2>Raport Activitate — Clasa ${demoDashboard.clasa}</h2>
+      <p>${demoDashboard.scoala} · ${demoDashboard.judet} · Diriginte: ${demoDashboard.nume} · Generat: ${new Date().toLocaleDateString('ro-RO')}</p>
+      <table>
+        <thead><tr><th>Nr.</th><th>Nume</th><th>Timp platformă</th><th>Ultima conectare</th><th>Observații</th></tr></thead>
+        <tbody>${conturiGenerate.map(c => `<tr>
+          <td>${c.nr}</td>
+          <td>${c.nume}</td>
+          <td class="${c.minutePlatforma > 10 ? 'verde' : c.minutePlatforma > 0 ? 'galben' : 'gri'}">${c.minutePlatforma} min</td>
+          <td>${c.ultimaConectare ?? '—'}</td>
+          <td class="obs">${c.minutePlatforma === 0 ? 'Nu a accesat platforma' : c.minutePlatforma < 5 ? 'Activitate redusă' : c.minutePlatforma > 20 ? 'Foarte activ' : 'Activitate normală'}</td>
+        </tr>`).join('')}</tbody>
+      </table>
+      <div class="footer">Platformă EDU DIGITAL · aicraiova.ro · Document generat automat pentru uz intern</div>
+    </body></html>`)
+    w.document.close()
+    w.print()
+  }
+
   function genereazaConturi() {
     const DEMO_ACTIVITATE = ['2 min','14 min','0 min','31 min','8 min','22 min','5 min','47 min','3 min','19 min']
     const DEMO_DATA = ['ieri 18:42','azi 09:15',null,'ieri 20:03','ieri 16:30',null,'azi 08:55','acum 3 zile',null,'ieri 22:10']
@@ -612,7 +669,10 @@ export default function DirigintePage() {
                       </div>
                     ) : (
                       <>
-                        <div style={{ fontSize: '11px', color: '#475569', marginBottom: '10px' }}>{conturiGenerate.length} conturi generate · de printat și distribuit</div>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                          <div style={{ fontSize: '11px', color: '#475569' }}>{conturiGenerate.length} conturi generate</div>
+                          <button onClick={printConturi} style={{ background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: '8px', padding: '6px 14px', fontSize: '12px', fontWeight: 700, color: '#a5b4fc', cursor: 'pointer', fontFamily: 'inherit' }}>🖨️ Printează</button>
+                        </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '320px', overflowY: 'auto' }}>
                           {conturiGenerate.map((c, i) => (
                             <div key={i} style={{ background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.15)', borderRadius: '10px', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -637,6 +697,10 @@ export default function DirigintePage() {
                         Generează conturi pentru a vedea activitatea
                       </div>
                     ) : (
+                      <>
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '10px' }}>
+                        <button onClick={printActivitate} style={{ background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: '8px', padding: '6px 14px', fontSize: '12px', fontWeight: 700, color: '#4ade80', cursor: 'pointer', fontFamily: 'inherit' }}>🖨️ Printează raport</button>
+                      </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '320px', overflowY: 'auto' }}>
                         {conturiGenerate.map((c, i) => (
                           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', background: 'rgba(255,255,255,0.02)', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.05)' }}>
@@ -652,6 +716,7 @@ export default function DirigintePage() {
                           </div>
                         ))}
                       </div>
+                      </>
                     )}
                   </div>
                 )}
