@@ -246,18 +246,6 @@ export default function AracipHome() {
       securizabil: true,
     },
     {
-      id: 'diriginte',
-      icon: '👨‍🏫',
-      tag: 'Portal Diriginte',
-      title: 'Ora de\nDirigenție AI',
-      desc: 'Loghează-te, bifează ziua orei tale și primești automat codul de sesiune la 8:00. 20 întrebări AI pentru clasa ta.',
-      color: '#22c55e',
-      colorLight: 'rgba(34,197,94,0.1)',
-      colorBorder: 'rgba(34,197,94,0.25)',
-      colorHover: 'rgba(34,197,94,0.18)',
-      route: '/edu/diriginte',
-    },
-    {
       id: 'examene',
       icon: '🎯',
       tag: 'Pregătire Examene',
@@ -401,9 +389,9 @@ export default function AracipHome() {
           {/* Cards */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)',
+            gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)',
             gap: isMobile ? '16px' : '20px',
-            maxWidth: '1000px',
+            maxWidth: '800px',
             margin: '0 auto',
           }}>
             {cards.map(card => (

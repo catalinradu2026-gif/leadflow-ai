@@ -55,9 +55,9 @@ export default function DemoLanding() {
       {/* Role Cards */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)',
+        gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)',
         gap: '20px',
-        maxWidth: '900px',
+        maxWidth: '760px',
         width: '100%',
       }}>
         {/* Inspector National */}
@@ -236,6 +236,61 @@ export default function DemoLanding() {
             fontWeight: 600,
           }}>
             Intră ca Director →
+          </div>
+        </div>
+
+        {/* Diriginte */}
+        <div
+          onClick={() => router.push('/edu/diriginte')}
+          style={{
+            background: 'rgba(255,255,255,0.05)',
+            border: '1px solid rgba(255,255,255,0.12)',
+            borderRadius: '16px',
+            padding: '32px 24px',
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+            textAlign: 'center',
+          }}
+          onMouseEnter={e => {
+            (e.currentTarget as HTMLDivElement).style.background = 'rgba(34,197,94,0.1)'
+            ;(e.currentTarget as HTMLDivElement).style.borderColor = '#22c55e'
+            ;(e.currentTarget as HTMLDivElement).style.transform = 'translateY(-4px)'
+          }}
+          onMouseLeave={e => {
+            (e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,0.05)'
+            ;(e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(255,255,255,0.12)'
+            ;(e.currentTarget as HTMLDivElement).style.transform = 'translateY(0)'
+          }}
+        >
+          <div style={{ fontSize: '48px', marginBottom: '16px' }}>👨‍🏫</div>
+          <div style={{
+            display: 'inline-block',
+            background: '#052e16',
+            color: '#86efac',
+            fontSize: '11px',
+            fontWeight: 700,
+            padding: '3px 12px',
+            borderRadius: '20px',
+            marginBottom: '12px',
+            letterSpacing: '0.5px',
+          }}>
+            ORA DE DIRIGENȚIE
+          </div>
+          <h3 style={{ fontSize: '20px', fontWeight: 700, color: '#fff', marginBottom: '10px' }}>
+            Diriginte
+          </h3>
+          <p style={{ fontSize: '13px', color: '#94a3b8', lineHeight: 1.7, marginBottom: '24px' }}>
+            Primești codul de sesiune la 8:00 în ziua orei tale. 20 întrebări AI pentru întreaga clasă, timp de 60 de minute.
+          </p>
+          <div style={{
+            background: '#16a34a',
+            color: '#fff',
+            padding: '12px 24px',
+            borderRadius: '10px',
+            fontSize: '14px',
+            fontWeight: 600,
+          }}>
+            Intră ca Diriginte →
           </div>
         </div>
       </div>
