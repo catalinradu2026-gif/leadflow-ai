@@ -24,7 +24,7 @@ export default function ProfesoriPage() {
   const router = useRouter()
   const isMobile = useIsMobile()
 
-  const [view, setView] = useState<'login' | 'catalog'>('login')
+  const [view, setView] = useState<'login' | 'materii' | 'catalog'>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loginErr, setLoginErr] = useState('')
@@ -217,12 +217,14 @@ export default function ProfesoriPage() {
     if (email.trim().toLowerCase() !== 'contact@aicraiova.ro' || password !== 'ARACIP') {
       setLoginErr('Email sau parolă incorectă.'); return
     }
-    if (materiiSelectate.length > 0) {
+    setSelectedNr(null)
+    if (materiiSelectate.length === 0) {
+      setView('materii')
+    } else {
       saveMaterii(materiiSelectate)
       setMaterie(materiiSelectate[0])
+      setView('catalog')
     }
-    setSelectedNr(null)
-    setView('catalog')
   }
 
   function adaugaClasa() {
@@ -275,6 +277,54 @@ export default function ProfesoriPage() {
     </div>
   )
 
+  // ---- SELECTARE MATERII (device nou) ----
+  if (view === 'materii') return (
+    <div style={pageWrap(isMobile)}>
+      <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+        <div style={{ width: 56, height: 56, borderRadius: '16px', background: 'linear-gradient(135deg, #c2410c, #f97316)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px', margin: '0 auto 14px', boxShadow: '0 8px 24px rgba(249,115,22,0.35)' }}>📚</div>
+        <div style={{ fontSize: '20px', fontWeight: 800 }}>Ce materii predai?</div>
+        <div style={{ fontSize: '12px', color: '#475569', marginTop: '6px' }}>Selectează o dată — salvate pe acest dispozitiv</div>
+      </div>
+
+      <div style={{ width: '100%', maxWidth: '420px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        {materiiSelectate.length > 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+            {materiiSelectate.map(m => (
+              <div key={m} style={{ display: 'flex', alignItems: 'center', gap: '5px', background: 'rgba(249,115,22,0.2)', border: '1px solid rgba(249,115,22,0.5)', borderRadius: '20px', padding: '5px 12px', fontSize: '13px', fontWeight: 700, color: '#fb923c' }}>
+                {m}
+                <button onClick={() => toggleMaterie(m)} style={{ background: 'none', border: 'none', color: '#fb923c', cursor: 'pointer', fontSize: '16px', lineHeight: 1, padding: 0 }}>×</button>
+              </div>
+            ))}
+          </div>
+        )}
+        <div style={{ maxHeight: '260px', overflowY: 'auto', display: 'flex', flexWrap: 'wrap', gap: '8px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '14px', padding: '14px' }}>
+          {MATERII_LISTA.map(m => {
+            const sel = materiiSelectate.includes(m)
+            return (
+              <button key={m} onClick={() => toggleMaterie(m)}
+                style={{ background: sel ? 'rgba(249,115,22,0.2)' : 'rgba(255,255,255,0.04)', border: `1px solid ${sel ? 'rgba(249,115,22,0.55)' : 'rgba(255,255,255,0.09)'}`, borderRadius: '10px', padding: '8px 14px', fontSize: '13px', fontWeight: sel ? 700 : 400, color: sel ? '#fb923c' : '#475569', cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s' }}>
+                {sel ? '✓ ' : ''}{m}
+              </button>
+            )
+          })}
+        </div>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <input type="text" placeholder="Altă materie..." value={altaMaterie} onChange={e => setAltaMaterie(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); adaugaAltaMaterie() } }}
+            style={{ ...inputStyle, flex: 1, padding: '10px 14px', fontSize: '13px' }} />
+          <button onClick={adaugaAltaMaterie}
+            style={{ background: altaMaterie.trim() ? 'rgba(249,115,22,0.2)' : 'rgba(255,255,255,0.04)', border: `1px solid ${altaMaterie.trim() ? 'rgba(249,115,22,0.4)' : 'rgba(255,255,255,0.1)'}`, borderRadius: '12px', padding: '0 18px', fontSize: '20px', cursor: 'pointer', color: altaMaterie.trim() ? '#fb923c' : '#334155', fontFamily: 'inherit' }}>+</button>
+        </div>
+        <button disabled={materiiSelectate.length === 0}
+          onClick={() => { saveMaterii(materiiSelectate); setMaterie(materiiSelectate[0]); setView('catalog') }}
+          style={{ ...btnOrange, opacity: materiiSelectate.length === 0 ? 0.4 : 1 }}>
+          Intră în catalog ({materiiSelectate.length} {materiiSelectate.length === 1 ? 'materie' : 'materii'}) →
+        </button>
+      </div>
+      <style>{`input::placeholder{color:#334155;}`}</style>
+    </div>
+  )
+
   // ---- CATALOG ----
   return (
     <div style={pageWrap(isMobile)}>
@@ -286,17 +336,6 @@ export default function ProfesoriPage() {
       </div>
 
       <div style={{ width: '100%', maxWidth: '540px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-
-        {/* Onboarding prima conectare */}
-        {materiiProf.length === 0 && (
-          <div style={{ background: 'rgba(249,115,22,0.06)', border: '1px solid rgba(249,115,22,0.2)', borderRadius: '16px', padding: '24px', textAlign: 'center' }}>
-            <div style={{ fontSize: '28px', marginBottom: '10px' }}>🧑‍💻</div>
-            <div style={{ fontSize: '14px', fontWeight: 700, color: '#f1f5f9', marginBottom: '6px' }}>Prima conectare pe acest dispozitiv</div>
-            <div style={{ fontSize: '12px', color: '#475569', marginBottom: '16px' }}>Adaugă materiile pe care le predai folosind butonul <strong style={{ color: '#fb923c' }}>+</strong> de mai jos</div>
-            <button onClick={() => setAdaugaMaterieOpen(true)}
-              style={{ ...btnOrange, padding: '10px 24px', fontSize: '13px', boxShadow: 'none' }}>+ Adaugă materie</button>
-          </div>
-        )}
 
         {/* ── Tabs materii ── */}
         <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '16px', overflow: 'hidden' }}>
