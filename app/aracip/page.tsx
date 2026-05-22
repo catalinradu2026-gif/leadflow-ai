@@ -221,18 +221,6 @@ export default function AracipHome() {
       securizabil: true,
     },
     {
-      id: 'elevi',
-      icon: '🎓',
-      tag: 'Portal Elevi',
-      title: 'Elevi\nClasa a 8-a & a 12-a',
-      desc: 'Autentifică-te cu datele clasei tale și accesează lecțiile AI pentru Capacitate și Bacalaureat.',
-      color: '#6366f1',
-      colorLight: 'rgba(99,102,241,0.1)',
-      colorBorder: 'rgba(99,102,241,0.25)',
-      colorHover: 'rgba(99,102,241,0.18)',
-      route: '/edu/elevi',
-    },
-    {
       id: 'acreditare',
       icon: '🏅',
       tag: 'Calitate',
@@ -400,9 +388,9 @@ export default function AracipHome() {
           {/* Cards */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)',
+            gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)',
             gap: isMobile ? '16px' : '20px',
-            maxWidth: '960px',
+            maxWidth: '760px',
             margin: '0 auto',
           }}>
             {cards.map(card => (
