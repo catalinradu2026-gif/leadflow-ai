@@ -40,6 +40,8 @@ export default function DirigintePage() {
   const [minuteRamase, setMinuteRamase] = useState(60)
   const [ziDirigentie, setZiDirigentie] = useState('Joi')
   const [oraDirigentie, setOraDirigentie] = useState('08:00')
+  const [nrClasa, setNrClasa] = useState('10B')
+  const [modulClasa, setModulClasa] = useState('BAC Matematică M1')
   const [orarSalvat, setOrarSalvat] = useState(false)
   const [codCopiat, setCodCopiat] = useState(false)
 
@@ -54,10 +56,14 @@ export default function DirigintePage() {
     try {
       const zi = localStorage.getItem('dir_zi')
       const ora = localStorage.getItem('dir_ora')
+      const clasa = localStorage.getItem('dir_clasa')
+      const modul = localStorage.getItem('dir_modul')
       const elevi = localStorage.getItem('dir_elevi')
       const conturi = localStorage.getItem('dir_conturi')
       if (zi) setZiDirigentie(zi)
       if (ora) setOraDirigentie(ora)
+      if (clasa) setNrClasa(clasa)
+      if (modul) setModulClasa(modul)
       if (elevi) setEleviInput(JSON.parse(elevi))
       if (conturi) setConturiGenerate(JSON.parse(conturi))
     } catch {}
@@ -66,6 +72,8 @@ export default function DirigintePage() {
   // Salvare automata in localStorage la orice modificare
   useEffect(() => { localStorage.setItem('dir_zi', ziDirigentie) }, [ziDirigentie])
   useEffect(() => { localStorage.setItem('dir_ora', oraDirigentie) }, [oraDirigentie])
+  useEffect(() => { localStorage.setItem('dir_clasa', nrClasa) }, [nrClasa])
+  useEffect(() => { localStorage.setItem('dir_modul', modulClasa) }, [modulClasa])
   useEffect(() => { localStorage.setItem('dir_elevi', JSON.stringify(eleviInput)) }, [eleviInput])
   useEffect(() => { localStorage.setItem('dir_conturi', JSON.stringify(conturiGenerate)) }, [conturiGenerate])
   const [sectiuneElevi, setSectiuneElevi] = useState(false)
@@ -384,9 +392,9 @@ export default function DirigintePage() {
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '12px' }}>
               {[
-                { label: 'Clasa', val: demoDashboard.clasa },
+                { label: 'Clasa', val: nrClasa },
                 { label: 'Ora de dirigenție', val: `${ziDirigentie} · ${oraDirigentie}` },
-                { label: 'Modul', val: demoDashboard.modul },
+                { label: 'Modul', val: modulClasa },
               ].map(r => (
                 <div key={r.label} style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '10px', padding: '10px 14px' }}>
                   <div style={{ color: '#475569', marginBottom: '2px' }}>{r.label}</div>
@@ -404,6 +412,29 @@ export default function DirigintePage() {
             padding: '24px',
             marginBottom: '16px',
           }}>
+            {/* Clasa si modul */}
+            <div style={{ display: 'flex', gap: '10px', marginBottom: '14px', flexWrap: 'wrap' }}>
+              <div style={{ flex: '0 0 auto' }}>
+                <div style={{ fontSize: '11px', color: '#475569', marginBottom: '5px', fontWeight: 600 }}>Nr. clasă</div>
+                <input
+                  value={nrClasa}
+                  onChange={e => setNrClasa(e.target.value)}
+                  placeholder="ex: 10B"
+                  style={{ ...inputStyle, width: '80px', padding: '8px 10px', fontSize: '14px', fontWeight: 700, textAlign: 'center' }}
+                />
+              </div>
+              <div style={{ flex: 1, minWidth: '160px' }}>
+                <div style={{ fontSize: '11px', color: '#475569', marginBottom: '5px', fontWeight: 600 }}>Modul</div>
+                <select
+                  value={modulClasa}
+                  onChange={e => setModulClasa(e.target.value)}
+                  style={{ ...selectStyle, padding: '8px 10px', fontSize: '13px' }}
+                >
+                  {MODULE.map(m => <option key={m} value={m}>{m}</option>)}
+                </select>
+              </div>
+            </div>
+
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
               <div style={{ fontSize: '13px', color: '#475569', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                 Codul sesiunii · {ziDirigentie}
