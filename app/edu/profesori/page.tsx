@@ -23,8 +23,17 @@ export default function ProfesoriPage() {
   const [loginErr, setLoginErr] = useState('')
   const [logging, setLogging] = useState(false)
 
-  const [materie, setMaterie] = useState('Biologie')
-  const [materieEdit, setMaterieEdit] = useState('Biologie')
+  const MATERII = [
+    'Matematică','Limba Română','Limba Engleză','Limba Franceză','Limba Germană',
+    'Fizică','Chimie','Biologie','Informatică','TIC',
+    'Istorie','Geografie','Educație Civică','Economie','Filosofie',
+    'Psihologie','Sociologie','Logică','Religie',
+    'Educație Fizică','Arte Vizuale','Muzică','Tehnologie',
+  ]
+
+  const [materie, setMaterie] = useState('')
+  const [materieLogin, setMaterieLogin] = useState('')
+  const [materieEdit, setMaterieEdit] = useState('')
   const [editingMaterie, setEditingMaterie] = useState(false)
   const [elevi, setElevi] = useState<ContElev[]>([])
   const [nrClasa, setNrClasa] = useState('')
@@ -65,6 +74,7 @@ export default function ProfesoriPage() {
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
     if (!email || !password) { setLoginErr('Completați email și parolă.'); return }
+    if (!materieLogin) { setLoginErr('Selectați materia predată.'); return }
     setLogging(true); setLoginErr('')
     await new Promise(r => setTimeout(r, 800))
     setLogging(false)
@@ -78,6 +88,8 @@ export default function ProfesoriPage() {
       setElevi(conturi)
       setNrClasa(clasa)
     } catch {}
+    setMaterie(materieLogin)
+    setMaterieEdit(materieLogin)
     setView('catalog')
   }
 
@@ -102,6 +114,34 @@ export default function ProfesoriPage() {
         <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           <input type="email" placeholder="Email școlar" value={email} onChange={e => setEmail(e.target.value)} style={inputStyle} autoComplete="email" />
           <input type="password" placeholder="Parolă" value={password} onChange={e => setPassword(e.target.value)} style={inputStyle} autoComplete="current-password" />
+
+          {/* Selector materie */}
+          <div>
+            <div style={{ fontSize: '11px', color: '#475569', fontWeight: 700, marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              Materia predată {materieLogin && <span style={{ color: '#f97316', marginLeft: '6px' }}>· {materieLogin}</span>}
+            </div>
+            <div style={{ maxHeight: '160px', overflowY: 'auto', display: 'flex', flexWrap: 'wrap', gap: '6px', padding: '2px' }}>
+              {MATERII.map(m => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setMaterieLogin(m)}
+                  style={{
+                    background: materieLogin === m ? 'rgba(249,115,22,0.25)' : 'rgba(255,255,255,0.04)',
+                    border: `1px solid ${materieLogin === m ? 'rgba(249,115,22,0.6)' : 'rgba(255,255,255,0.1)'}`,
+                    borderRadius: '8px', padding: '6px 12px',
+                    fontSize: '12px', fontWeight: materieLogin === m ? 700 : 400,
+                    color: materieLogin === m ? '#fb923c' : '#475569',
+                    cursor: 'pointer', fontFamily: 'inherit',
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  {materieLogin === m ? '✓ ' : ''}{m}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {loginErr && <div style={{ fontSize: '12px', color: '#ef4444', textAlign: 'center' }}>{loginErr}</div>}
           <button type="submit" disabled={logging} style={btnOrange}>{logging ? 'Se verifică...' : 'Intră în cont →'}</button>
         </form>
