@@ -45,11 +45,15 @@ export default function ProfesoriPage() {
   const [profCatalogs, setProfCatalogs] = useState<ProfCatalogs>({})
   const [hydrated, setHydrated] = useState(false)
   const [savedFlash, setSavedFlash] = useState(false)
+  const [adaugaMaterie, setAdaugaMaterie] = useState(false)
+  const [nouaMaterie, setNouaMaterie] = useState('')
 
   useEffect(() => {
     try {
       const pc = localStorage.getItem('prof_catalogs')
       if (pc) setProfCatalogs(JSON.parse(pc))
+      const pm = localStorage.getItem('prof_materii')
+      if (pm) setMateriiSelectate(JSON.parse(pm))
     } catch {}
     setHydrated(true)
   }, [])
@@ -104,6 +108,7 @@ export default function ProfesoriPage() {
       setElevi(conturi)
       setNrClasa(clasa)
     } catch {}
+    localStorage.setItem('prof_materii', JSON.stringify(materiiSelectate))
     setMateriiProf(materiiSelectate)
     setMaterie(materiiSelectate[0])
     setView('catalog')
@@ -211,14 +216,77 @@ export default function ProfesoriPage() {
         {/* Tab-uri materii */}
         {materiiProf.length > 0 && (
           <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '16px', overflow: 'hidden' }}>
-            <div style={{ display: 'flex', overflowX: 'auto', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+            <div style={{ display: 'flex', overflowX: 'auto', borderBottom: '1px solid rgba(255,255,255,0.06)', alignItems: 'stretch' }}>
               {materiiProf.map(m => (
                 <button key={m} onClick={() => { setMaterie(m); setIdx(0) }}
                   style={{ flex: '0 0 auto', background: 'none', border: 'none', borderBottom: `2px solid ${m === materie ? '#f97316' : 'transparent'}`, padding: '12px 16px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '13px', fontWeight: m === materie ? 700 : 400, color: m === materie ? '#fb923c' : '#475569', whiteSpace: 'nowrap', transition: 'all 0.15s' }}>
                   {m}
                 </button>
               ))}
+              <button onClick={() => { setAdaugaMaterie(v => !v); setNouaMaterie('') }}
+                style={{ flex: '0 0 auto', background: 'none', border: 'none', borderBottom: '2px solid transparent', padding: '12px 14px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '18px', color: '#334155', transition: 'color 0.15s' }}
+                title="Adaugă materie">+</button>
             </div>
+
+            {/* Panou adaugare materie noua */}
+            {adaugaMaterie && (
+              <div style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '12px 14px' }}>
+                <div style={{ fontSize: '11px', color: '#475569', marginBottom: '8px', fontWeight: 600 }}>Selectează sau scrie o materie nouă:</div>
+                <div style={{ maxHeight: '120px', overflowY: 'auto', display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '8px' }}>
+                  {MATERII_LISTA.filter(m => !materiiProf.includes(m)).map(m => (
+                    <button key={m} type="button"
+                      onClick={() => {
+                        const updated = [...materiiProf, m]
+                        setMateriiProf(updated)
+                        setMaterie(m)
+                        setIdx(0)
+                        setAdaugaMaterie(false)
+                        localStorage.setItem('prof_materii', JSON.stringify(updated))
+                      }}
+                      style={{ background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.2)', borderRadius: '8px', padding: '5px 11px', fontSize: '12px', color: '#fb923c', cursor: 'pointer', fontFamily: 'inherit' }}>
+                      {m}
+                    </button>
+                  ))}
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <input
+                    type="text"
+                    placeholder="Altă materie..."
+                    value={nouaMaterie}
+                    onChange={e => setNouaMaterie(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' && nouaMaterie.trim() && !materiiProf.includes(nouaMaterie.trim())) {
+                        const updated = [...materiiProf, nouaMaterie.trim()]
+                        setMateriiProf(updated)
+                        setMaterie(nouaMaterie.trim())
+                        setIdx(0)
+                        setAdaugaMaterie(false)
+                        setNouaMaterie('')
+                        localStorage.setItem('prof_materii', JSON.stringify(updated))
+                      }
+                    }}
+                    autoFocus
+                    style={{ ...inputStyle, flex: 1, padding: '7px 12px', fontSize: '12px' }}
+                  />
+                  <button
+                    onClick={() => {
+                      const m = nouaMaterie.trim()
+                      if (!m || materiiProf.includes(m)) return
+                      const updated = [...materiiProf, m]
+                      setMateriiProf(updated)
+                      setMaterie(m)
+                      setIdx(0)
+                      setAdaugaMaterie(false)
+                      setNouaMaterie('')
+                      localStorage.setItem('prof_materii', JSON.stringify(updated))
+                    }}
+                    style={{ ...btnOrange, padding: '0 16px', fontSize: '13px', boxShadow: 'none' }}>
+                    ✓
+                  </button>
+                </div>
+              </div>
+            )}
+
             <div style={{ padding: '10px 16px', fontSize: '12px', color: '#475569' }}>
               Introduceți situația elevilor pentru <span style={{ color: '#fb923c', fontWeight: 700 }}>{materie}</span>
             </div>
