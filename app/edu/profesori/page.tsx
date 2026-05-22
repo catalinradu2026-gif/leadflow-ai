@@ -139,6 +139,20 @@ export default function ProfesoriPage() {
                   {materieLogin === m ? '✓ ' : ''}{m}
                 </button>
               ))}
+              {/* Alta materie — editabila */}
+              <input
+                type="text"
+                placeholder="✏️ Alta materie..."
+                value={MATERII.includes(materieLogin) ? '' : materieLogin}
+                onChange={e => setMaterieLogin(e.target.value)}
+                style={{
+                  ...inputStyle,
+                  width: 'auto', flex: '1', minWidth: '140px',
+                  padding: '6px 12px', fontSize: '12px',
+                  border: `1px solid ${!MATERII.includes(materieLogin) && materieLogin ? 'rgba(249,115,22,0.6)' : 'rgba(255,255,255,0.1)'}`,
+                  color: !MATERII.includes(materieLogin) && materieLogin ? '#fb923c' : '#f1f5f9',
+                }}
+              />
             </div>
           </div>
 
