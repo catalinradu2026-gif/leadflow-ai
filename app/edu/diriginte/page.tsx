@@ -783,7 +783,14 @@ export default function DirigintePage() {
                       </div>
                     ) : (
                       <>
-                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '10px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', gap: '8px' }}>
+                        <button
+                          onClick={() => {
+                            if (!confirm('Resetezi activitatea tuturor elevilor? Conturile rămân, doar timpii se șterg.')) return
+                            setConturiGenerate(prev => prev.map(c => ({ ...c, minutePlatforma: 0, ultimaConectare: null, activitateModul: Object.fromEntries(Object.keys(c.activitateModul ?? {}).map(k => [k, 0])) })))
+                          }}
+                          style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: '8px', padding: '6px 14px', fontSize: '12px', fontWeight: 700, color: '#f87171', cursor: 'pointer', fontFamily: 'inherit' }}
+                        >↺ Resetează activitate</button>
                         <button onClick={printActivitate} style={{ background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: '8px', padding: '6px 14px', fontSize: '12px', fontWeight: 700, color: '#4ade80', cursor: 'pointer', fontFamily: 'inherit' }}>🖨️ Printează raport</button>
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '360px', overflowY: 'auto' }}>
