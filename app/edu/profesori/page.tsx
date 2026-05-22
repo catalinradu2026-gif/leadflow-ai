@@ -217,9 +217,10 @@ export default function ProfesoriPage() {
     if (email.trim().toLowerCase() !== 'contact@aicraiova.ro' || password !== 'ARACIP') {
       setLoginErr('Email sau parolă incorectă.'); return
     }
-    const materii = materiiSelectate.length > 0 ? materiiSelectate : (['Materie neconfigurată'] as string[])
-    saveMaterii(materii)
-    setMaterie(materii[0])
+    if (materiiSelectate.length > 0) {
+      saveMaterii(materiiSelectate)
+      setMaterie(materiiSelectate[0])
+    }
     setSelectedNr(null)
     setView('catalog')
   }
@@ -263,56 +264,6 @@ export default function ProfesoriPage() {
           <input type="email" placeholder="Email școlar" value={email} onChange={e => setEmail(e.target.value)} style={inputStyle} autoComplete="email" />
           <input type="password" placeholder="Parolă" value={password} onChange={e => setPassword(e.target.value)} style={inputStyle} autoComplete="current-password" />
 
-          {/* Materii salvate — quick login */}
-          {materiiSelectate.length > 0 && !showMateriiSelector ? (
-            <div style={{ background: 'rgba(249,115,22,0.06)', border: '1px solid rgba(249,115,22,0.2)', borderRadius: '12px', padding: '10px 14px' }}>
-              <div style={{ fontSize: '11px', color: '#fb923c', fontWeight: 700, marginBottom: '7px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span>Materii salvate</span>
-                <button type="button" onClick={() => setShowMateriiSelector(true)} style={{ background: 'none', border: 'none', color: '#475569', fontSize: '11px', cursor: 'pointer', fontFamily: 'inherit' }}>Schimbă →</button>
-              </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
-                {materiiSelectate.map(m => (
-                  <span key={m} style={{ background: 'rgba(249,115,22,0.15)', border: '1px solid rgba(249,115,22,0.35)', borderRadius: '16px', padding: '3px 10px', fontSize: '12px', fontWeight: 700, color: '#fb923c' }}>{m}</span>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <div>
-              <div style={{ fontSize: '11px', color: '#475569', fontWeight: 700, marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', justifyContent: 'space-between' }}>
-                <span>Materiile predate</span>
-                {materiiSelectate.length > 0 && <span style={{ color: '#f97316' }}>{materiiSelectate.length} selectate</span>}
-              </div>
-              {materiiSelectate.length > 0 && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '10px' }}>
-                  {materiiSelectate.map(m => (
-                    <div key={m} style={{ display: 'flex', alignItems: 'center', gap: '5px', background: 'rgba(249,115,22,0.2)', border: '1px solid rgba(249,115,22,0.5)', borderRadius: '20px', padding: '4px 10px', fontSize: '12px', fontWeight: 700, color: '#fb923c' }}>
-                      {m}
-                      <button type="button" onClick={() => toggleMaterie(m)} style={{ background: 'none', border: 'none', color: '#fb923c', cursor: 'pointer', fontSize: '14px', lineHeight: 1, padding: 0 }}>×</button>
-                    </div>
-                  ))}
-                </div>
-              )}
-              <div style={{ maxHeight: '140px', overflowY: 'auto', display: 'flex', flexWrap: 'wrap', gap: '6px', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '10px', padding: '10px' }}>
-                {MATERII_LISTA.map(m => {
-                  const sel = materiiSelectate.includes(m)
-                  return (
-                    <button key={m} type="button" onClick={() => toggleMaterie(m)}
-                      style={{ background: sel ? 'rgba(249,115,22,0.2)' : 'rgba(255,255,255,0.04)', border: `1px solid ${sel ? 'rgba(249,115,22,0.55)' : 'rgba(255,255,255,0.09)'}`, borderRadius: '8px', padding: '5px 11px', fontSize: '12px', fontWeight: sel ? 700 : 400, color: sel ? '#fb923c' : '#475569', cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s' }}>
-                      {sel ? '✓ ' : ''}{m}
-                    </button>
-                  )
-                })}
-              </div>
-              <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
-                <input type="text" placeholder="Altă materie..." value={altaMaterie} onChange={e => setAltaMaterie(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); adaugaAltaMaterie() } }}
-                  style={{ ...inputStyle, flex: 1, padding: '8px 12px', fontSize: '12px' }} />
-                <button type="button" onClick={adaugaAltaMaterie}
-                  style={{ background: altaMaterie.trim() ? 'rgba(249,115,22,0.2)' : 'rgba(255,255,255,0.04)', border: `1px solid ${altaMaterie.trim() ? 'rgba(249,115,22,0.4)' : 'rgba(255,255,255,0.1)'}`, borderRadius: '10px', padding: '0 14px', fontSize: '18px', cursor: 'pointer', color: altaMaterie.trim() ? '#fb923c' : '#334155', fontFamily: 'inherit' }}>+</button>
-              </div>
-            </div>
-          )}
-
           {loginErr && <div style={{ fontSize: '12px', color: '#ef4444', textAlign: 'center' }}>{loginErr}</div>}
           <button type="submit" disabled={logging} style={btnOrange}>{logging ? 'Se verifică...' : 'Intră în cont →'}</button>
         </form>
@@ -335,6 +286,17 @@ export default function ProfesoriPage() {
       </div>
 
       <div style={{ width: '100%', maxWidth: '540px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+
+        {/* Onboarding prima conectare */}
+        {materiiProf.length === 0 && (
+          <div style={{ background: 'rgba(249,115,22,0.06)', border: '1px solid rgba(249,115,22,0.2)', borderRadius: '16px', padding: '24px', textAlign: 'center' }}>
+            <div style={{ fontSize: '28px', marginBottom: '10px' }}>🧑‍💻</div>
+            <div style={{ fontSize: '14px', fontWeight: 700, color: '#f1f5f9', marginBottom: '6px' }}>Prima conectare pe acest dispozitiv</div>
+            <div style={{ fontSize: '12px', color: '#475569', marginBottom: '16px' }}>Adaugă materiile pe care le predai folosind butonul <strong style={{ color: '#fb923c' }}>+</strong> de mai jos</div>
+            <button onClick={() => setAdaugaMaterieOpen(true)}
+              style={{ ...btnOrange, padding: '10px 24px', fontSize: '13px', boxShadow: 'none' }}>+ Adaugă materie</button>
+          </div>
+        )}
 
         {/* ── Tabs materii ── */}
         <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '16px', overflow: 'hidden' }}>
