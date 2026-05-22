@@ -6,6 +6,7 @@ import { useIsMobile } from '../../hooks/useIsMobile'
 type View = 'login' | 'register' | 'dashboard'
 
 const ZILE = ['Luni', 'Marți', 'Miercuri', 'Joi', 'Vineri']
+const TIP_SCOALA = ['Liceu', 'Colegiu Național', 'Colegiu Tehnic', 'Școală Gimnazială', 'Școală Primară']
 const MODULE = ['BAC Matematică M1', 'BAC Matematică M2', 'BAC Română', 'Capacitate Matematică', 'Capacitate Română', 'Cursuri AI']
 
 export default function DirigintePage() {
@@ -28,6 +29,7 @@ export default function DirigintePage() {
   const [regPass, setRegPass] = useState('')
   const [regZi, setRegZi] = useState('')
   const [regOra, setRegOra] = useState('')
+  const [regTip, setRegTip] = useState('')
   const [regModul, setRegModul] = useState('')
   const [registering, setRegistering] = useState(false)
   const [regDone, setRegDone] = useState(false)
@@ -123,7 +125,7 @@ export default function DirigintePage() {
           boxShadow: '0 8px 24px rgba(34,197,94,0.35)',
         }}>👨‍🏫</div>
         <div style={{ fontSize: '20px', fontWeight: 800, color: '#f1f5f9' }}>Portal Diriginte</div>
-        <div style={{ fontSize: '12px', color: '#334155', marginTop: '4px' }}>EDU DIGITAL · AIcraiova</div>
+        <div style={{ fontSize: '12px', color: '#334155', marginTop: '4px' }}>Unități Școlare · EDU DIGITAL · AIcraiova</div>
       </div>
 
       {/* ---- LOGIN ---- */}
@@ -185,7 +187,11 @@ export default function DirigintePage() {
           </p>
           <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <input placeholder="Nume complet" value={regNume} onChange={e => setRegNume(e.target.value)} style={inputStyle} required />
-            <input placeholder="Școala (denumire completă)" value={regScoala} onChange={e => setRegScoala(e.target.value)} style={inputStyle} required />
+            <select value={regTip} onChange={e => setRegTip(e.target.value)} style={selectStyle} required>
+              <option value="">Tipul unității școlare</option>
+              {TIP_SCOALA.map(t => <option key={t} value={t}>{t}</option>)}
+            </select>
+            <input placeholder="Denumirea școlii" value={regScoala} onChange={e => setRegScoala(e.target.value)} style={inputStyle} required />
             <input placeholder="Județul" value={regJudet} onChange={e => setRegJudet(e.target.value)} style={inputStyle} required />
             <input placeholder="Clasa dirigată (ex: 10B)" value={regClasa} onChange={e => setRegClasa(e.target.value)} style={inputStyle} required />
             <input type="email" placeholder="Email școlar" value={regEmail} onChange={e => setRegEmail(e.target.value)} style={inputStyle} required />
