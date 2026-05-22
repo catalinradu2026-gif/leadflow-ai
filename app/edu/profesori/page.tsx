@@ -58,6 +58,8 @@ export default function ProfesoriPage() {
   const [profCatalogs, setProfCatalogs] = useState<ProfCatalogs>({})
   const [hydrated, setHydrated] = useState(false)
   const [savedFlash, setSavedFlash] = useState(false)
+  const [searchElev, setSearchElev] = useState('')
+  const [searchOpen, setSearchOpen] = useState(false)
 
   // Students from diriginte, keyed by class name
   const [dirStudentsMap, setDirStudentsMap] = useState<Record<string, {nr:string;nume:string}[]>>({})
@@ -286,7 +288,7 @@ export default function ProfesoriPage() {
         <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '16px', overflow: 'hidden' }}>
           <div style={{ display: 'flex', overflowX: 'auto', borderBottom: '1px solid rgba(255,255,255,0.06)', alignItems: 'stretch' }}>
             {materiiProf.map(m => (
-              <button key={m} onClick={() => { setMaterie(m); setIdx(0); setAdaugaClasaOpen(false) }}
+              <button key={m} onClick={() => { setMaterie(m); setIdx(0); setAdaugaClasaOpen(false); setSearchOpen(false); setSearchElev('') }}
                 style={{ flex: '0 0 auto', background: 'none', border: 'none', borderBottom: `2px solid ${m === materie ? '#f97316' : 'transparent'}`, padding: '11px 15px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: m === materie ? 700 : 400, color: m === materie ? '#fb923c' : '#475569', whiteSpace: 'nowrap', transition: 'all 0.15s' }}>
                 {m}
               </button>
@@ -321,7 +323,7 @@ export default function ProfesoriPage() {
             <div style={{ fontSize: '10px', color: '#334155', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>Clasele la {materie}</div>
             <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '4px', alignItems: 'center' }}>
               {clase.map(c => (
-                <button key={c.nume} onClick={() => { setClasa(c.nume); setIdx(0) }}
+                <button key={c.nume} onClick={() => { setClasa(c.nume); setIdx(0); setSearchOpen(false); setSearchElev('') }}
                   style={{ flex: '0 0 auto', background: c.nume === clasa ? 'rgba(249,115,22,0.22)' : 'rgba(255,255,255,0.04)', border: `1px solid ${c.nume === clasa ? 'rgba(249,115,22,0.55)' : 'rgba(255,255,255,0.09)'}`, borderRadius: '10px', padding: '7px 14px', fontSize: '13px', fontWeight: c.nume === clasa ? 800 : 400, color: c.nume === clasa ? '#fb923c' : '#475569', cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s' }}>
                   {c.nume}
                   <span style={{ fontSize: '10px', color: c.nume === clasa ? '#f97316' : '#334155', marginLeft: '5px' }}>{c.nrElevi}el</span>
@@ -431,17 +433,61 @@ export default function ProfesoriPage() {
           <>
             <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '20px', overflow: 'hidden' }}>
               {/* Navigare */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '16px 18px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                <button onClick={() => setIdx(Math.max(0, idx - 1))} disabled={idx === 0}
-                  style={navBtn(idx === 0, false)}>←</button>
-                <div style={{ flex: 1, textAlign: 'center' }}>
-                  <div style={{ fontSize: '17px', fontWeight: 800, color: '#f1f5f9' }}>
-                    {elev.nr}. {elev.nume || `Elevul ${elev.nr}`}
+              <div style={{ padding: '14px 18px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: searchOpen ? '10px' : 0 }}>
+                  <button onClick={() => { setIdx(Math.max(0, idx - 1)); setSearchOpen(false); setSearchElev('') }} disabled={idx === 0}
+                    style={navBtn(idx === 0, false)}>←</button>
+                  <div style={{ flex: 1, textAlign: 'center', cursor: 'pointer' }} onClick={() => { setSearchOpen(v => !v); setSearchElev('') }}>
+                    <div style={{ fontSize: '17px', fontWeight: 800, color: '#f1f5f9' }}>
+                      {elev.nr}. {elev.nume || `Elevul ${elev.nr}`}
+                    </div>
+                    <div style={{ fontSize: '11px', color: '#475569', marginTop: '2px' }}>
+                      {searchOpen ? '▲ închide căutare' : `Elev ${idx + 1} din ${students.length} · ${clasa} · tap pentru căutare`}
+                    </div>
                   </div>
-                  <div style={{ fontSize: '11px', color: '#475569', marginTop: '2px' }}>Elev {idx + 1} din {students.length} · {clasa}</div>
+                  <button onClick={() => { setIdx(Math.min(students.length - 1, idx + 1)); setSearchOpen(false); setSearchElev('') }} disabled={idx === students.length - 1}
+                    style={navBtn(idx === students.length - 1, false)}>→</button>
                 </div>
-                <button onClick={() => setIdx(Math.min(students.length - 1, idx + 1))} disabled={idx === students.length - 1}
-                  style={navBtn(idx === students.length - 1, false)}>→</button>
+
+                {searchOpen && (
+                  <div>
+                    <input
+                      autoFocus
+                      type="text"
+                      placeholder="Caută după nume sau număr..."
+                      value={searchElev}
+                      onChange={e => setSearchElev(e.target.value)}
+                      style={{ ...inputStyle, padding: '9px 14px', fontSize: '13px', marginBottom: '6px' }}
+                    />
+                    {searchElev.trim() && (() => {
+                      const q = searchElev.trim().toLowerCase()
+                      const rezultate = students
+                        .map((s, i) => ({ s, i }))
+                        .filter(({ s }) => s.nume.toLowerCase().includes(q) || s.nr.includes(q))
+                        .slice(0, 8)
+                      return rezultate.length === 0 ? (
+                        <div style={{ fontSize: '12px', color: '#475569', textAlign: 'center', padding: '8px' }}>Niciun elev găsit</div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '200px', overflowY: 'auto' }}>
+                          {rezultate.map(({ s, i }) => {
+                            const e = getEntry(s.nr)
+                            const areDate = e.nota || e.absMot > 0 || e.absNemot > 0
+                            return (
+                              <button key={s.nr} onClick={() => { setIdx(i); setSearchOpen(false); setSearchElev('') }}
+                                style={{ background: areDate ? 'rgba(249,115,22,0.1)' : 'rgba(255,255,255,0.04)', border: `1px solid ${areDate ? 'rgba(249,115,22,0.3)' : 'rgba(255,255,255,0.08)'}`, borderRadius: '10px', padding: '10px 14px', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'space-between', textAlign: 'left' }}>
+                                <span style={{ fontSize: '14px', fontWeight: 700, color: '#f1f5f9' }}>{s.nr}. {s.nume || `Elevul ${s.nr}`}</span>
+                                <span style={{ fontSize: '12px', color: areDate ? '#fb923c' : '#334155' }}>
+                                  {e.nota ? `nota ${e.nota}` : 'fără notă'}
+                                  {(e.absMot + e.absNemot) > 0 ? ` · ${e.absMot + e.absNemot} abs` : ''}
+                                </span>
+                              </button>
+                            )
+                          })}
+                        </div>
+                      )
+                    })()}
+                  </div>
+                )}
               </div>
 
               {elev && entry && (
