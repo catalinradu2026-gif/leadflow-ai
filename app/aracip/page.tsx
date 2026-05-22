@@ -198,7 +198,8 @@ function _AraChatbotRemoved({ isMobile }: { isMobile: boolean }) {
   )
 }
 
-const PAROLA_PORTAL = 'aracip2026'
+const LOGIN_EMAIL = 'contact@aicraiova.ro'
+const LOGIN_PAROLA = 'ARACIP'
 
 export default function AracipHome() {
   const router = useRouter()
@@ -206,6 +207,7 @@ export default function AracipHome() {
   const [mounted, setMounted] = useState(false)
   const [hovered, setHovered] = useState<string | null>(null)
   const [modalCard, setModalCard] = useState<{ route: string; title: string } | null>(null)
+  const [loginEmail, setLoginEmail] = useState('')
   const [parola, setParola] = useState('')
   const [parolaErr, setParolaErr] = useState(false)
 
@@ -214,6 +216,7 @@ export default function AracipHome() {
   function handleCardClick(card: { securizat?: boolean; route: string; title: string }) {
     if (card.securizat) {
       setModalCard({ route: card.route, title: card.title })
+      setLoginEmail('')
       setParola('')
       setParolaErr(false)
     } else {
@@ -223,7 +226,7 @@ export default function AracipHome() {
 
   function submitParola(e: React.FormEvent) {
     e.preventDefault()
-    if (parola === PAROLA_PORTAL) {
+    if (loginEmail.trim().toLowerCase() === LOGIN_EMAIL && parola === LOGIN_PAROLA) {
       router.push(modalCard!.route)
       setModalCard(null)
     } else {
@@ -663,14 +666,21 @@ export default function AracipHome() {
             </div>
             <form onSubmit={submitParola} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <input
+                type="email"
+                placeholder="Email"
+                value={loginEmail}
+                onChange={e => { setLoginEmail(e.target.value); setParolaErr(false) }}
+                autoFocus
+                style={{ background: 'rgba(255,255,255,0.05)', border: `1px solid ${parolaErr ? '#ef4444' : 'rgba(255,255,255,0.1)'}`, borderRadius: '12px', padding: '13px 16px', fontSize: '14px', color: '#f1f5f9', outline: 'none', fontFamily: 'inherit', width: '100%', boxSizing: 'border-box' as const }}
+              />
+              <input
                 type="password"
-                placeholder="Parolă acces portal"
+                placeholder="Parolă"
                 value={parola}
                 onChange={e => { setParola(e.target.value); setParolaErr(false) }}
-                autoFocus
-                style={{ background: parolaErr ? 'rgba(239,68,68,0.08)' : 'rgba(255,255,255,0.05)', border: `1px solid ${parolaErr ? '#ef4444' : 'rgba(255,255,255,0.1)'}`, borderRadius: '12px', padding: '13px 16px', fontSize: '15px', color: '#f1f5f9', outline: 'none', fontFamily: 'inherit', width: '100%', boxSizing: 'border-box' as const, letterSpacing: '3px' }}
+                style={{ background: parolaErr ? 'rgba(239,68,68,0.08)' : 'rgba(255,255,255,0.05)', border: `1px solid ${parolaErr ? '#ef4444' : 'rgba(255,255,255,0.1)'}`, borderRadius: '12px', padding: '13px 16px', fontSize: '14px', color: '#f1f5f9', outline: 'none', fontFamily: 'inherit', width: '100%', boxSizing: 'border-box' as const }}
               />
-              {parolaErr && <div style={{ fontSize: '12px', color: '#ef4444', textAlign: 'center' }}>Parolă incorectă. Încercați din nou.</div>}
+              {parolaErr && <div style={{ fontSize: '12px', color: '#ef4444', textAlign: 'center' }}>Email sau parolă incorectă.</div>}
               <button type="submit" style={{ background: 'linear-gradient(135deg, #7c3aed, #6366f1)', border: 'none', borderRadius: '12px', padding: '13px', fontSize: '14px', fontWeight: 700, color: '#fff', cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 4px 16px rgba(124,58,237,0.35)' }}>
                 Intră →
               </button>
