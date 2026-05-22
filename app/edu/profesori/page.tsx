@@ -68,6 +68,10 @@ export default function ProfesoriPage() {
     setLogging(true); setLoginErr('')
     await new Promise(r => setTimeout(r, 800))
     setLogging(false)
+    if (email.trim().toLowerCase() !== 'contact@aicraiova.ro' || password !== 'ARACIP') {
+      setLoginErr('Email sau parolă incorectă.')
+      return
+    }
     try {
       const conturi: ContElev[] = JSON.parse(localStorage.getItem('dir_conturi') || '[]')
       const clasa = localStorage.getItem('dir_clasa') || ''
@@ -102,7 +106,7 @@ export default function ProfesoriPage() {
           <button type="submit" disabled={logging} style={btnOrange}>{logging ? 'Se verifică...' : 'Intră în cont →'}</button>
         </form>
         <div style={{ marginTop: '16px', padding: '12px', background: 'rgba(249,115,22,0.06)', border: '1px solid rgba(249,115,22,0.15)', borderRadius: '10px', fontSize: '11px', color: '#fb923c', textAlign: 'center' }}>
-          Demo: orice email + parolă funcționează
+          Acces restricționat · Contactați AIcraiova pentru credențiale
         </div>
       </div>
       <style>{`input::placeholder { color: #334155; }`}</style>

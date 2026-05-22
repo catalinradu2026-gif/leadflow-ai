@@ -278,6 +278,10 @@ export default function DirigintePage() {
     setLoginErr('')
     await new Promise(r => setTimeout(r, 900))
     setLogging(false)
+    if (email.trim().toLowerCase() !== 'contact@aicraiova.ro' || password !== 'ARACIP') {
+      setLoginErr('Email sau parolă incorectă.')
+      return
+    }
     setView('dashboard')
   }
 
@@ -386,7 +390,7 @@ export default function DirigintePage() {
             </button>
           </div>
           <div style={{ marginTop: '16px', padding: '12px', background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.15)', borderRadius: '10px', fontSize: '11px', color: '#4ade80', textAlign: 'center' }}>
-            Demo: orice email + parolă funcționează
+            Acces restricționat · Contactați AIcraiova pentru credențiale
           </div>
         </div>
       )}
