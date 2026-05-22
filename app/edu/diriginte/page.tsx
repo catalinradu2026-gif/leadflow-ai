@@ -1077,7 +1077,7 @@ export default function DirigintePage() {
                         <span style={{ fontSize: '16px' }}>📂</span>
                         <div style={{ flex: 1 }}>
                           <div style={{ fontSize: '12px', fontWeight: 700, color: '#a5b4fc' }}>Importă Excel / CSV</div>
-                          <div style={{ fontSize: '10px', color: '#475569' }}>Coloane: Nume, {toateMaterii.join(', ')}{toateMaterii.length ? ', ' : ''}Abs.Motivate, Abs.Nemotivate</div>
+                          <div style={{ fontSize: '10px', color: '#475569' }}>Coloane: Nume, {materiiProf.join(', ')}{materiiProf.length ? ', ' : ''}Abs.Motivate, Abs.Nemotivate</div>
                         </div>
                         {importStatus && <span style={{ fontSize: '11px', color: importStatus.includes('✅') ? '#4ade80' : '#f87171', fontWeight: 700 }}>{importStatus}</span>}
                         <input type="file" accept=".xlsx,.xls,.csv" style={{ display: 'none' }} onChange={handleImportExcel} />

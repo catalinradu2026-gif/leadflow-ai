@@ -120,14 +120,14 @@ export default function ProfesoriPage() {
   function saveClase(mat: string, cl: ClasaConf[]) {
     setClasePerMaterie(prev => {
       const updated = { ...prev, [mat]: cl }
-      localStorage.setItem('prof_clase', JSON.stringify(updated))
+      try { localStorage.setItem('prof_clase', JSON.stringify(updated)) } catch {}
       return updated
     })
   }
-  function setClasa(c: string) {
+  function setClasa(nouaClasa: string) {
     setClasaPerMaterie(prev => {
-      const updated = { ...prev, [materie]: c }
-      localStorage.setItem('prof_clasa_activa', JSON.stringify(updated))
+      const updated = { ...prev, [materie]: nouaClasa }
+      try { localStorage.setItem('prof_clasa_activa', JSON.stringify(updated)) } catch {}
       return updated
     })
   }
