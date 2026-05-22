@@ -39,6 +39,7 @@ export default function DirigintePage() {
   const [codActiv, setCodActiv] = useState(false)
   const [minuteRamase, setMinuteRamase] = useState(60)
   const [ziDirigentie, setZiDirigentie] = useState('Joi')
+  const [codCopiat, setCodCopiat] = useState(false)
 
   const demoDashboard = {
     nume: 'Prof. Maria Ionescu',
@@ -328,6 +329,29 @@ export default function DirigintePage() {
               }}>
                 {demoDashboard.cod}
               </div>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(demoDashboard.cod)
+                  setCodCopiat(true)
+                  setTimeout(() => setCodCopiat(false), 2000)
+                }}
+                title="Copiază codul"
+                style={{
+                  background: codCopiat ? 'rgba(34,197,94,0.2)' : 'rgba(255,255,255,0.06)',
+                  border: `1px solid ${codCopiat ? 'rgba(34,197,94,0.4)' : 'rgba(255,255,255,0.12)'}`,
+                  borderRadius: '8px',
+                  padding: '6px 12px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  color: codCopiat ? '#4ade80' : '#94a3b8',
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                  transition: 'all 0.2s',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {codCopiat ? '✓ Copiat' : '⎘ Copiază'}
+              </button>
               <div style={{
                 background: codActiv ? 'rgba(34,197,94,0.15)' : 'rgba(245,158,11,0.15)',
                 border: `1px solid ${codActiv ? 'rgba(34,197,94,0.4)' : 'rgba(245,158,11,0.4)'}`,
