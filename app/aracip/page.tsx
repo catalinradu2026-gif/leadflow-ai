@@ -244,30 +244,6 @@ export default function AracipHome() {
       colorHover: 'rgba(168,85,247,0.18)',
       route: '/acreditare',
     },
-    {
-      id: 'examene',
-      icon: '🎯',
-      tag: 'Pregătire Examene',
-      title: 'BAC &\nCapacitate',
-      desc: 'Profesor AI acasă — meditații interactive pentru Bacalaureat și Evaluare Națională, 24/7, gratuit.',
-      color: '#f59e0b',
-      colorLight: 'rgba(245,158,11,0.1)',
-      colorBorder: 'rgba(245,158,11,0.25)',
-      colorHover: 'rgba(245,158,11,0.18)',
-      route: '/edu/examene',
-    },
-    {
-      id: 'profesori',
-      icon: '🧑‍💻',
-      tag: 'Portal Profesori',
-      title: 'Profesori\n& Formare',
-      desc: 'Resurse AI pentru profesori, formare continuă digitală și instrumente pentru ora de curs.',
-      color: '#f97316',
-      colorLight: 'rgba(249,115,22,0.1)',
-      colorBorder: 'rgba(249,115,22,0.25)',
-      colorHover: 'rgba(249,115,22,0.18)',
-      route: '/edu/cursuri-profesori',
-    },
   ]
 
   return (
@@ -401,8 +377,8 @@ export default function AracipHome() {
           <div style={{
             display: 'grid',
             gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)',
-            gap: isMobile ? '16px' : '20px',
-            maxWidth: '960px',
+            gap: isMobile ? '16px' : '24px',
+            maxWidth: '900px',
             margin: '0 auto',
           }}>
             {cards.map(card => (
