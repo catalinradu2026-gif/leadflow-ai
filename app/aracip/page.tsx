@@ -198,13 +198,39 @@ function _AraChatbotRemoved({ isMobile }: { isMobile: boolean }) {
   )
 }
 
+const PAROLA_PORTAL = 'aracip2026'
+
 export default function AracipHome() {
   const router = useRouter()
   const isMobile = useIsMobile()
   const [mounted, setMounted] = useState(false)
   const [hovered, setHovered] = useState<string | null>(null)
+  const [modalCard, setModalCard] = useState<{ route: string; title: string } | null>(null)
+  const [parola, setParola] = useState('')
+  const [parolaErr, setParolaErr] = useState(false)
 
   useEffect(() => { setMounted(true) }, [])
+
+  function handleCardClick(card: { securizat?: boolean; route: string; title: string }) {
+    if (card.securizat) {
+      setModalCard({ route: card.route, title: card.title })
+      setParola('')
+      setParolaErr(false)
+    } else {
+      router.push(card.route)
+    }
+  }
+
+  function submitParola(e: React.FormEvent) {
+    e.preventDefault()
+    if (parola === PAROLA_PORTAL) {
+      router.push(modalCard!.route)
+      setModalCard(null)
+    } else {
+      setParolaErr(true)
+      setParola('')
+    }
+  }
 
   const cards = [
     {
@@ -398,7 +424,7 @@ export default function AracipHome() {
             {cards.map(card => (
               <button
                 key={card.id}
-                onClick={() => router.push(card.route)}
+                onClick={() => handleCardClick(card as any)}
                 onMouseEnter={() => setHovered(card.id)}
                 onMouseLeave={() => setHovered(null)}
                 style={{
@@ -619,6 +645,42 @@ export default function AracipHome() {
           50% { box-shadow: 0 0 16px #22c55e, 0 0 24px #22c55e44; }
         }
       `}</style>
+
+      {/* Modal parolă */}
+      {modalCard && (
+        <div
+          onClick={() => setModalCard(null)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', backdropFilter: 'blur(6px)' }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ background: '#0d1117', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '24px', padding: isMobile ? '28px 20px' : '40px 48px', width: '100%', maxWidth: '380px', fontFamily: "'Segoe UI', Arial, sans-serif" }}
+          >
+            <div style={{ textAlign: 'center', marginBottom: '28px' }}>
+              <div style={{ fontSize: '36px', marginBottom: '12px' }}>🔒</div>
+              <div style={{ fontSize: '18px', fontWeight: 800, color: '#f1f5f9', marginBottom: '6px' }}>Acces restricționat</div>
+              <div style={{ fontSize: '13px', color: '#475569' }}>Introduceți parola pentru a accesa secțiunea</div>
+            </div>
+            <form onSubmit={submitParola} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <input
+                type="password"
+                placeholder="Parolă acces portal"
+                value={parola}
+                onChange={e => { setParola(e.target.value); setParolaErr(false) }}
+                autoFocus
+                style={{ background: parolaErr ? 'rgba(239,68,68,0.08)' : 'rgba(255,255,255,0.05)', border: `1px solid ${parolaErr ? '#ef4444' : 'rgba(255,255,255,0.1)'}`, borderRadius: '12px', padding: '13px 16px', fontSize: '15px', color: '#f1f5f9', outline: 'none', fontFamily: 'inherit', width: '100%', boxSizing: 'border-box' as const, letterSpacing: '3px' }}
+              />
+              {parolaErr && <div style={{ fontSize: '12px', color: '#ef4444', textAlign: 'center' }}>Parolă incorectă. Încercați din nou.</div>}
+              <button type="submit" style={{ background: 'linear-gradient(135deg, #7c3aed, #6366f1)', border: 'none', borderRadius: '12px', padding: '13px', fontSize: '14px', fontWeight: 700, color: '#fff', cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 4px 16px rgba(124,58,237,0.35)' }}>
+                Intră →
+              </button>
+              <button type="button" onClick={() => setModalCard(null)} style={{ background: 'none', border: 'none', color: '#475569', cursor: 'pointer', fontSize: '13px', fontFamily: 'inherit', padding: '8px' }}>
+                Anulează
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
 
     </div>
   )
