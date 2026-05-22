@@ -47,7 +47,7 @@ export default function DirigintePage() {
 
   // Elevi
   type Elev = { nr: string; nume: string }
-  type ContElev = { nr: string; nume: string; user: string; parola: string; minutePlatforma: number; ultimaConectare: string | null }
+  type ContElev = { nr: string; nume: string; user: string; parola: string; minutePlatforma: number; ultimaConectare: string | null; activitateModul?: Record<string, number> }
   const [eleviInput, setEleviInput] = useState<Elev[]>([{ nr: '', nume: '' }])
   const [conturiGenerate, setConturiGenerate] = useState<ContElev[]>([])
 
@@ -115,7 +115,18 @@ export default function DirigintePage() {
 
   function printActivitate() {
     const w = window.open('', '_blank')!
-    w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Raport Activitate — ${demoDashboard.clasa}</title><style>
+    const modColoane = modulClasa.map(m => `<th>${m}</th>`).join('')
+    const rows = conturiGenerate.map(c => {
+      const modCelule = modulClasa.map(m => {
+        const min = c.activitateModul?.[m] ?? 0
+        const cls = min > 10 ? 'verde' : min > 0 ? 'galben' : 'gri'
+        return `<td class="${cls}">${min > 0 ? min + ' min' : '—'}</td>`
+      }).join('')
+      const total = modulClasa.reduce((s, m) => s + (c.activitateModul?.[m] ?? 0), 0)
+      const obs = total === 0 ? 'Nu a accesat platforma' : total < 5 ? 'Activitate redusă' : total > 20 ? 'Foarte activ' : 'Activitate normală'
+      return `<tr><td>${c.nr}</td><td>${c.nume}</td>${modCelule}<td>${c.ultimaConectare ?? '—'}</td><td class="obs">${obs}</td></tr>`
+    }).join('')
+    w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Raport Activitate — Clasa ${nrClasa}</title><style>
       body{font-family:Arial,sans-serif;padding:32px;color:#111}
       h2{margin:0 0 4px}p{margin:0 0 20px;color:#555;font-size:13px}
       table{width:100%;border-collapse:collapse}
@@ -127,17 +138,11 @@ export default function DirigintePage() {
       .footer{margin-top:32px;font-size:11px;color:#94a3b8;text-align:center}
       @media print{body{padding:16px}}
     </style></head><body>
-      <h2>Raport Activitate — Clasa ${demoDashboard.clasa}</h2>
+      <h2>Raport Activitate — Clasa ${nrClasa}</h2>
       <p>${demoDashboard.scoala} · ${demoDashboard.judet} · Diriginte: ${demoDashboard.nume} · Generat: ${new Date().toLocaleDateString('ro-RO')}</p>
       <table>
-        <thead><tr><th>Nr.</th><th>Nume</th><th>Timp platformă</th><th>Ultima conectare</th><th>Observații</th></tr></thead>
-        <tbody>${conturiGenerate.map(c => `<tr>
-          <td>${c.nr}</td>
-          <td>${c.nume}</td>
-          <td class="${c.minutePlatforma > 10 ? 'verde' : c.minutePlatforma > 0 ? 'galben' : 'gri'}">${c.minutePlatforma} min</td>
-          <td>${c.ultimaConectare ?? '—'}</td>
-          <td class="obs">${c.minutePlatforma === 0 ? 'Nu a accesat platforma' : c.minutePlatforma < 5 ? 'Activitate redusă' : c.minutePlatforma > 20 ? 'Foarte activ' : 'Activitate normală'}</td>
-        </tr>`).join('')}</tbody>
+        <thead><tr><th>Nr.</th><th>Nume</th>${modColoane}<th>Ultima conectare</th><th>Observații</th></tr></thead>
+        <tbody>${rows}</tbody>
       </table>
       <div class="footer">Platformă EDU DIGITAL · aicraiova.ro · Document generat automat pentru uz intern</div>
     </body></html>`)
@@ -146,16 +151,25 @@ export default function DirigintePage() {
   }
 
   function genereazaConturi() {
-    const DEMO_ACTIVITATE = ['2 min','14 min','0 min','31 min','8 min','22 min','5 min','47 min','3 min','19 min']
-    const DEMO_DATA = ['ieri 18:42','azi 09:15',null,'ieri 20:03','ieri 16:30',null,'azi 08:55','acum 3 zile',null,'ieri 22:10']
-    const conturi = eleviInput.filter(e => e.nume.trim()).map((e, i) => ({
-      nr: e.nr || String(i + 1),
-      nume: e.nume.trim(),
-      user: slugNume(e.nume.trim()),
-      parola: randPass(),
-      minutePlatforma: parseInt(DEMO_ACTIVITATE[i % DEMO_ACTIVITATE.length]) || 0,
-      ultimaConectare: DEMO_DATA[i % DEMO_DATA.length],
-    }))
+    const DEMO_MIN = [0, 14, 0, 31, 8, 22, 5, 47, 3, 19, 12, 0, 7, 25, 0, 11]
+    const DEMO_DATA = ['ieri 18:42','azi 09:15',null,'ieri 20:03','ieri 16:30',null,'azi 08:55','acum 3 zile',null,'ieri 22:10','azi 11:20',null,'ieri 21:05','acum 2 zile',null,'ieri 16:55']
+    const conturi = eleviInput.filter(e => e.nume.trim()).map((e, i) => {
+      const activitateModul: Record<string, number> = {}
+      modulClasa.forEach((m, mi) => {
+        const base = DEMO_MIN[(i + mi * 3) % DEMO_MIN.length]
+        activitateModul[m] = base
+      })
+      const totalMin = Object.values(activitateModul).reduce((s, v) => s + v, 0)
+      return {
+        nr: e.nr || String(i + 1),
+        nume: e.nume.trim(),
+        user: slugNume(e.nume.trim()),
+        parola: randPass(),
+        minutePlatforma: totalMin,
+        ultimaConectare: DEMO_DATA[i % DEMO_DATA.length],
+        activitateModul,
+      }
+    })
     setConturiGenerate(conturi)
     setTabElevi('conturi')
   }
@@ -769,18 +783,30 @@ export default function DirigintePage() {
                       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '10px' }}>
                         <button onClick={printActivitate} style={{ background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: '8px', padding: '6px 14px', fontSize: '12px', fontWeight: 700, color: '#4ade80', cursor: 'pointer', fontFamily: 'inherit' }}>🖨️ Printează raport</button>
                       </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '320px', overflowY: 'auto' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '360px', overflowY: 'auto' }}>
                         {conturiGenerate.map((c, i) => (
-                          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', background: 'rgba(255,255,255,0.02)', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                            <div style={{ width: 28, height: 28, borderRadius: '8px', background: c.ultimaConectare ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 700, color: c.ultimaConectare ? '#4ade80' : '#334155', flexShrink: 0 }}>{c.nr}</div>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ fontSize: '13px', fontWeight: 600, color: '#e2e8f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.nume}</div>
-                              <div style={{ fontSize: '11px', color: '#475569' }}>{c.ultimaConectare ? `Ultima conectare: ${c.ultimaConectare}` : 'Niciodată conectat'}</div>
+                          <div key={i} style={{ padding: '12px 14px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: modulClasa.length > 0 ? '10px' : '0' }}>
+                              <div style={{ width: 28, height: 28, borderRadius: '8px', background: c.ultimaConectare ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 700, color: c.ultimaConectare ? '#4ade80' : '#334155', flexShrink: 0 }}>{c.nr}</div>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontSize: '13px', fontWeight: 600, color: '#e2e8f0' }}>{c.nume}</div>
+                                <div style={{ fontSize: '11px', color: '#475569' }}>{c.ultimaConectare ? `Ultima conectare: ${c.ultimaConectare}` : 'Niciodată conectat'}</div>
+                              </div>
+                              <div style={{ fontSize: '12px', fontWeight: 700, color: c.minutePlatforma > 10 ? '#4ade80' : c.minutePlatforma > 0 ? '#f59e0b' : '#334155', flexShrink: 0 }}>{c.minutePlatforma} min total</div>
                             </div>
-                            <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                              <div style={{ fontSize: '13px', fontWeight: 700, color: c.minutePlatforma > 10 ? '#4ade80' : c.minutePlatforma > 0 ? '#f59e0b' : '#334155' }}>{c.minutePlatforma} min</div>
-                              <div style={{ fontSize: '10px', color: '#334155' }}>pe platformă</div>
-                            </div>
+                            {modulClasa.length > 0 && (
+                              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                                {modulClasa.map(m => {
+                                  const min = c.activitateModul?.[m] ?? 0
+                                  return (
+                                    <div key={m} style={{ background: min > 0 ? 'rgba(99,102,241,0.1)' : 'rgba(255,255,255,0.03)', border: `1px solid ${min > 0 ? 'rgba(99,102,241,0.25)' : 'rgba(255,255,255,0.06)'}`, borderRadius: '8px', padding: '4px 10px', fontSize: '11px' }}>
+                                      <span style={{ color: '#475569' }}>{m.replace('BAC ','').replace('Capacitate ','Cap. ')}: </span>
+                                      <span style={{ fontWeight: 700, color: min > 10 ? '#4ade80' : min > 0 ? '#f59e0b' : '#334155' }}>{min > 0 ? `${min} min` : '—'}</span>
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>
