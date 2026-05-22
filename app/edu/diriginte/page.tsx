@@ -276,7 +276,7 @@ export default function DirigintePage() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '12px' }}>
               {[
                 { label: 'Clasa', val: demoDashboard.clasa },
-                { label: 'Ora de dirigenție', val: `${demoDashboard.zi} · ${demoDashboard.ora}` },
+                { label: 'Ora de dirigenție', val: `${ziDirigentie} · ${oraDirigentie}` },
                 { label: 'Modul', val: demoDashboard.modul },
               ].map(r => (
                 <div key={r.label} style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '10px', padding: '10px 14px' }}>
