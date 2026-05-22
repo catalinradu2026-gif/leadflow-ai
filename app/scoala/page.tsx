@@ -45,6 +45,15 @@ export default function PortalScoala() {
       color: '#6366f1',
       route: '/edu/elevi',
     },
+    {
+      id: 'parinti-elevi',
+      icon: '👨‍👩‍👧‍👦',
+      tag: 'Comunitate',
+      title: 'Părinți și Elevi',
+      desc: 'Comunicare directă cu școala, activități, rezultate și resurse pentru familie.',
+      color: '#ec4899',
+      route: '/edu/elevi',
+    },
   ]
 
   return (
@@ -94,9 +103,9 @@ export default function PortalScoala() {
       {/* Carduri */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)',
+        gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)',
         gap: isMobile ? '16px' : '20px',
-        maxWidth: '760px',
+        maxWidth: '960px',
         margin: '0 auto',
         padding: isMobile ? '0 16px' : '0 24px',
       }}>
