@@ -36,15 +36,6 @@ export default function PortalGradinita() {
       color: '#f59e0b',
       route: '/edu/elevi',
     },
-    {
-      id: 'acreditare',
-      icon: '🏅',
-      tag: 'Calitate',
-      title: 'Autorizare & Acreditare',
-      desc: 'Dosare digitale ARACIP, standarde de calitate și evaluare externă pentru grădinițe.',
-      color: '#a855f7',
-      route: '/acreditare',
-    },
   ]
 
   return (
