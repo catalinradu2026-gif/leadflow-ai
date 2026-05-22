@@ -91,6 +91,10 @@ export default function DirigintePage() {
   type CatalogEntry = { elevNr: string; note: Record<string, string>; absMot: number; absNemot: number; observatii?: string }
   const [catalog, setCatalog] = useState<CatalogEntry[]>([])
   const [hydrated2, setHydrated2] = useState(false)
+  type ProfEntry = { nota: string; absMot: number; absNemot: number; observatii: string }
+  type ProfCatalogs = Record<string, Record<string, ProfEntry>>
+  const [profCatalogs, setProfCatalogs] = useState<ProfCatalogs>({})
+  const [hydrated3, setHydrated3] = useState(false)
   const [catalogIdx, setCatalogIdx] = useState(0)
   const [importStatus, setImportStatus] = useState('')
   useEffect(() => {
@@ -98,6 +102,12 @@ export default function DirigintePage() {
     setHydrated2(true)
   }, [])
   useEffect(() => { if (hydrated2) localStorage.setItem('dir_catalog', JSON.stringify(catalog)) }, [catalog, hydrated2])
+
+  useEffect(() => {
+    try { const p = localStorage.getItem('prof_catalogs'); if (p) setProfCatalogs(JSON.parse(p)) } catch {}
+    setHydrated3(true)
+  }, [])
+  useEffect(() => { if (hydrated3) localStorage.setItem('prof_catalogs', JSON.stringify(profCatalogs)) }, [profCatalogs, hydrated3])
 
   function getCatalogEntry(nr: string): CatalogEntry {
     return catalog.find(e => e.elevNr === nr) || { elevNr: nr, note: {}, absMot: 0, absNemot: 0 }
@@ -1000,7 +1010,7 @@ export default function DirigintePage() {
 
                               {/* Observatii */}
                               <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '12px', padding: '14px', border: '1px solid rgba(255,255,255,0.06)' }}>
-                                <div style={{ fontSize: '11px', color: '#475569', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>Observații</div>
+                                <div style={{ fontSize: '11px', color: '#475569', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>Observații diriginte</div>
                                 <textarea
                                   placeholder="Notează orice observație relevantă despre acest elev..."
                                   value={entry.observatii || ''}
@@ -1009,6 +1019,39 @@ export default function DirigintePage() {
                                   style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.6, fontSize: '13px' }}
                                 />
                               </div>
+
+                              {/* Note profesori materie */}
+                              {(() => {
+                                const materii = Object.keys(profCatalogs)
+                                const materiiCuDate = materii.filter(m => profCatalogs[m]?.[c.nr])
+                                if (materiiCuDate.length === 0) return null
+                                return (
+                                  <div style={{ background: 'rgba(249,115,22,0.04)', border: '1px solid rgba(249,115,22,0.2)', borderRadius: '12px', padding: '14px' }}>
+                                    <div style={{ fontSize: '11px', color: '#fb923c', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '10px' }}>📋 Note profesori materie</div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                      {materiiCuDate.map(m => {
+                                        const pe = profCatalogs[m][c.nr]
+                                        const val = pe.nota ? parseFloat(pe.nota) : null
+                                        return (
+                                          <div key={m} style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', padding: '8px 12px' }}>
+                                            <div style={{ flex: 1 }}>
+                                              <div style={{ fontSize: '12px', fontWeight: 700, color: '#f1f5f9' }}>{m}</div>
+                                              {pe.observatii && <div style={{ fontSize: '11px', color: '#475569', marginTop: '2px', fontStyle: 'italic' }}>{pe.observatii}</div>}
+                                            </div>
+                                            {val !== null && <div style={{ fontSize: '22px', fontWeight: 900, color: val < 5 ? '#f87171' : val < 7 ? '#fbbf24' : '#4ade80', flexShrink: 0 }}>{pe.nota}</div>}
+                                            {(pe.absMot > 0 || pe.absNemot > 0) && (
+                                              <div style={{ fontSize: '10px', color: '#475569', flexShrink: 0, textAlign: 'right' }}>
+                                                {pe.absMot > 0 && <div style={{ color: '#4ade80' }}>{pe.absMot} mot.</div>}
+                                                {pe.absNemot > 0 && <div style={{ color: '#f87171' }}>{pe.absNemot} nemot.</div>}
+                                              </div>
+                                            )}
+                                          </div>
+                                        )
+                                      })}
+                                    </div>
+                                  </div>
+                                )
+                              })()}
 
                               {/* Puncte de navigare */}
                               <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', paddingTop: '4px' }}>

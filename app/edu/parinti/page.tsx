@@ -24,10 +24,14 @@ export default function ParintiPage() {
   const [err, setErr] = useState('')
   const [logging, setLogging] = useState(false)
 
+  type ProfEntry = { nota: string; absMot: number; absNemot: number; observatii: string }
+  type ProfCatalogs = Record<string, Record<string, ProfEntry>>
+
   const [copil, setCopil] = useState<ContElev | null>(null)
   const [catalogEntry, setCatalogEntry] = useState<CatalogEntry | null>(null)
   const [modulClasa, setModulClasa] = useState<string[]>([])
   const [nrClasa, setNrClasa] = useState('')
+  const [profCatalogs, setProfCatalogs] = useState<ProfCatalogs>({})
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
@@ -56,10 +60,13 @@ export default function ParintiPage() {
         elevNr: gasit.nr, note: {}, absMot: 0, absNemot: 0, observatii: ''
       }
 
+      const profCat: ProfCatalogs = JSON.parse(localStorage.getItem('prof_catalogs') || '{}')
+
       setCopil(gasit)
       setCatalogEntry(entry)
       setModulClasa(modul)
       setNrClasa(clasa)
+      setProfCatalogs(profCat)
       setView('dashboard')
     } catch {
       setErr('Eroare la accesarea datelor. Reîncercați.')
@@ -222,6 +229,44 @@ export default function ParintiPage() {
             )}
           </div>
         )}
+
+        {/* Note profesori materie */}
+        {(() => {
+          if (!copil) return null
+          const materii = Object.keys(profCatalogs)
+          const materiiCuDate = materii.filter(m => profCatalogs[m]?.[copil.nr])
+          if (materiiCuDate.length === 0) return null
+          return (
+            <div style={{ background: 'rgba(249,115,22,0.04)', border: '1px solid rgba(249,115,22,0.2)', borderRadius: '16px', padding: '18px 20px' }}>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#f1f5f9', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span>🧑‍💻</span> Note profesori materie
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {materiiCuDate.map(m => {
+                  const pe = profCatalogs[m][copil.nr]
+                  const val = pe.nota ? parseFloat(pe.nota) : null
+                  return (
+                    <div key={m} style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'rgba(255,255,255,0.03)', borderRadius: '12px', padding: '12px 14px' }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '13px', fontWeight: 700, color: '#f1f5f9' }}>{m}</div>
+                        {(pe.absMot > 0 || pe.absNemot > 0) && (
+                          <div style={{ fontSize: '11px', color: '#475569', marginTop: '3px' }}>
+                            {pe.absMot > 0 && <span style={{ color: '#4ade80', marginRight: '8px' }}>{pe.absMot} motivate</span>}
+                            {pe.absNemot > 0 && <span style={{ color: '#f87171' }}>{pe.absNemot} nemotivate</span>}
+                          </div>
+                        )}
+                        {pe.observatii && <div style={{ fontSize: '11px', color: '#475569', marginTop: '4px', fontStyle: 'italic' }}>&ldquo;{pe.observatii}&rdquo;</div>}
+                      </div>
+                      {val !== null && (
+                        <div style={{ fontSize: '32px', fontWeight: 900, color: val < 5 ? '#f87171' : val < 7 ? '#fbbf24' : '#4ade80', flexShrink: 0 }}>{pe.nota}</div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )
+        })()}
 
         {/* Absente */}
         <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '16px', padding: '18px 20px' }}>

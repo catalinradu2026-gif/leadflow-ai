@@ -28,6 +28,15 @@ export default function PortalScoala() {
       route: '/edu/cursuri-profesori',
     },
     {
+      id: 'catalog-prof',
+      icon: '📋',
+      tag: 'Catalog',
+      title: 'Catalog Profesor',
+      desc: 'Introduceți notele, absențele și observațiile pentru fiecare elev — vizibile instant la diriginte și părinți.',
+      color: '#f97316',
+      route: '/edu/profesori',
+    },
+    {
       id: 'diriginte',
       icon: '👨‍🏫',
       tag: 'Ora de Dirigenție',
