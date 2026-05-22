@@ -244,6 +244,30 @@ export default function AracipHome() {
       colorHover: 'rgba(168,85,247,0.18)',
       route: '/acreditare',
     },
+    {
+      id: 'scoala',
+      icon: '🏫',
+      tag: 'Portal Școală',
+      title: 'Portal\nȘcoală',
+      desc: 'Director, profesori, diriginți și elevi — tot ce are nevoie o școală într-un singur loc.',
+      color: '#0ea5e9',
+      colorLight: 'rgba(14,165,233,0.1)',
+      colorBorder: 'rgba(14,165,233,0.25)',
+      colorHover: 'rgba(14,165,233,0.18)',
+      route: '/scoala',
+    },
+    {
+      id: 'gradinita',
+      icon: '🌈',
+      tag: 'Portal Grădiniță',
+      title: 'Portal\nGrădiniță',
+      desc: 'Director, educatoare și părinți — resurse digitale adaptate pentru unitățile preșcolare.',
+      color: '#f43f5e',
+      colorLight: 'rgba(244,63,94,0.1)',
+      colorBorder: 'rgba(244,63,94,0.25)',
+      colorHover: 'rgba(244,63,94,0.18)',
+      route: '/gradinita',
+    },
   ]
 
   return (
@@ -377,8 +401,8 @@ export default function AracipHome() {
           <div style={{
             display: 'grid',
             gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)',
-            gap: isMobile ? '16px' : '24px',
-            maxWidth: '900px',
+            gap: isMobile ? '16px' : '20px',
+            maxWidth: '960px',
             margin: '0 auto',
           }}>
             {cards.map(card => (
