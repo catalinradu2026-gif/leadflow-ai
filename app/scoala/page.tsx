@@ -39,9 +39,9 @@ export default function PortalScoala() {
     {
       id: 'elevi',
       icon: '🎓',
-      tag: 'Elevi Cls. 8 & 12',
-      title: 'Elevi',
-      desc: 'Pregătire BAC și Capacitate cu profesor AI. Autentificare cu datele primite de la diriginte.',
+      tag: 'BAC & Capacitate',
+      title: 'Pregătire Examene\ncu Profesorul tău AI de Acasă',
+      desc: 'Meditații interactive 24/7 pentru Bacalaureat și Evaluare Națională — fără deplasare, fără program fix.',
       color: '#6366f1',
       route: '/edu/elevi',
     },
