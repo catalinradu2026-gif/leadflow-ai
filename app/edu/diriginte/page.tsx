@@ -1058,18 +1058,15 @@ export default function DirigintePage() {
                   const c = elevi[idx]
                   const entry = c ? getCatalogEntry(c.nr) : null
 
-                  // All subjects: teacher subjects (from prof_catalogs) + diriginte modules not already in teacher list
+                  // All subjects: only what teachers have selected/entered (not BAC prep modules)
                   const profPentruClasa = profCatalogs[nrClasa] || {}
                   const materiiProf = Object.keys(profPentruClasa)
-                  const materiiDiriginte = modulClasa.filter(m => !materiiProf.includes(m))
-                  const toateMaterii = [...materiiProf, ...materiiDiriginte]
 
-                  // Overall average across all subjects with data
+                  // Overall average across all teacher subjects with nota
                   const medieGenerala = (() => {
                     if (!c || !entry) return null
                     const vals: number[] = []
                     materiiProf.forEach(m => { const pe = profPentruClasa[m]?.[c.nr]; if (pe?.nota) vals.push(parseFloat(pe.nota)) })
-                    materiiDiriginte.forEach(m => { if (entry.note[m]) vals.push(parseFloat(entry.note[m])) })
                     return vals.length ? vals.reduce((s, v) => s + v, 0) / vals.length : null
                   })()
 
@@ -1108,47 +1105,32 @@ export default function DirigintePage() {
                           {entry && (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
 
-                              {/* Toate materiile — profesori (read-only) + diriginte (editabile) */}
-                              {toateMaterii.length > 0 && (
+                              {/* Materiile selectate de profesori */}
+                              {materiiProf.length === 0 ? (
+                                <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '12px', padding: '20px', border: '1px solid rgba(255,255,255,0.06)', textAlign: 'center', color: '#334155', fontSize: '12px' }}>
+                                  Niciun profesor nu a introdus note pentru clasa {nrClasa} încă.
+                                </div>
+                              ) : (
                                 <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '12px', padding: '14px', border: '1px solid rgba(255,255,255,0.06)' }}>
-                                  <div style={{ fontSize: '11px', color: '#475569', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '12px' }}>Note materii</div>
+                                  <div style={{ fontSize: '11px', color: '#475569', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '12px' }}>Note materii · {materiiProf.length} materii</div>
                                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                    {/* Teacher subjects — read-only */}
                                     {materiiProf.map(m => {
                                       const pe = profPentruClasa[m]?.[c.nr]
                                       const nota = pe?.nota ? parseFloat(pe.nota) : null
                                       return (
-                                        <div key={m} style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(249,115,22,0.04)', border: '1px solid rgba(249,115,22,0.15)', borderRadius: '10px', padding: '10px 12px' }}>
+                                        <div key={m} style={{ display: 'flex', alignItems: 'center', gap: '10px', background: nota !== null ? (nota < 5 ? 'rgba(239,68,68,0.05)' : nota < 7 ? 'rgba(245,158,11,0.05)' : 'rgba(34,197,94,0.05)') : 'rgba(255,255,255,0.02)', border: `1px solid ${nota !== null ? (nota < 5 ? 'rgba(239,68,68,0.2)' : nota < 7 ? 'rgba(245,158,11,0.2)' : 'rgba(34,197,94,0.2)') : 'rgba(255,255,255,0.07)'}`, borderRadius: '10px', padding: '10px 12px' }}>
                                           <div style={{ flex: 1, minWidth: 0 }}>
-                                            <div style={{ fontSize: '12px', fontWeight: 700, color: '#f1f5f9' }}>{m}</div>
-                                            <div style={{ fontSize: '10px', color: '#475569', marginTop: '1px' }}>
-                                              Profesor
-                                              {pe?.absMot ? <span style={{ color: '#4ade80', marginLeft: '6px' }}>{pe.absMot} abs.mot.</span> : null}
-                                              {pe?.absNemot ? <span style={{ color: '#f87171', marginLeft: '6px' }}>{pe.absNemot} abs.nemot.</span> : null}
+                                            <div style={{ fontSize: '13px', fontWeight: 700, color: '#f1f5f9' }}>{m}</div>
+                                            <div style={{ fontSize: '10px', color: '#475569', marginTop: '2px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                              {pe?.absMot ? <span style={{ color: '#4ade80' }}>{pe.absMot} abs.mot.</span> : null}
+                                              {pe?.absNemot ? <span style={{ color: '#f87171' }}>{pe.absNemot} abs.nemot.</span> : null}
+                                              {!pe?.absMot && !pe?.absNemot && !pe?.nota && <span>Fără date încă</span>}
                                             </div>
-                                            {pe?.observatii && <div style={{ fontSize: '10px', color: '#475569', fontStyle: 'italic', marginTop: '2px' }}>{pe.observatii}</div>}
+                                            {pe?.observatii && <div style={{ fontSize: '10px', color: '#64748b', fontStyle: 'italic', marginTop: '2px' }}>{pe.observatii}</div>}
                                           </div>
-                                          <div style={{ fontSize: '26px', fontWeight: 900, color: nota === null ? '#334155' : nota < 5 ? '#f87171' : nota < 7 ? '#fbbf24' : '#4ade80', flexShrink: 0, minWidth: '36px', textAlign: 'center' }}>
+                                          <div style={{ fontSize: '28px', fontWeight: 900, color: nota === null ? '#334155' : nota < 5 ? '#f87171' : nota < 7 ? '#fbbf24' : '#4ade80', flexShrink: 0, minWidth: '40px', textAlign: 'center' }}>
                                             {pe?.nota || '—'}
                                           </div>
-                                        </div>
-                                      )
-                                    })}
-                                    {/* Diriginte modules — editable */}
-                                    {materiiDiriginte.map(m => {
-                                      const val = entry.note[m] || ''
-                                      const n = val ? parseFloat(val) : null
-                                      return (
-                                        <div key={m} style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(99,102,241,0.04)', border: '1px solid rgba(99,102,241,0.15)', borderRadius: '10px', padding: '10px 12px' }}>
-                                          <div style={{ flex: 1, minWidth: 0 }}>
-                                            <div style={{ fontSize: '12px', fontWeight: 700, color: '#f1f5f9' }}>{m}</div>
-                                            <div style={{ fontSize: '10px', color: '#475569', marginTop: '1px' }}>Diriginte · editabil</div>
-                                          </div>
-                                          <input type="number" min="1" max="10" placeholder="—"
-                                            value={val}
-                                            onChange={e => updateCatalog(c.nr, { note: { ...entry.note, [m]: e.target.value } })}
-                                            style={{ ...inputStyle, width: '64px', padding: '6px', fontSize: '22px', fontWeight: 900, textAlign: 'center', color: n === null ? '#475569' : n < 5 ? '#f87171' : n < 7 ? '#fbbf24' : '#4ade80' }}
-                                          />
                                         </div>
                                       )
                                     })}
