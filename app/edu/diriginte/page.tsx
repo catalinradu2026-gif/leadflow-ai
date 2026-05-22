@@ -1058,9 +1058,9 @@ export default function DirigintePage() {
                   const c = elevi[idx]
                   const entry = c ? getCatalogEntry(c.nr) : null
 
-                  // All subjects: only what teachers have selected/entered (not BAC prep modules)
+                  // Teacher subjects for this class — exclude platform prep modules
                   const profPentruClasa = profCatalogs[nrClasa] || {}
-                  const materiiProf = Object.keys(profPentruClasa)
+                  const materiiProf = Object.keys(profPentruClasa).filter(m => !MODULE.includes(m))
 
                   // Overall average across all teacher subjects with nota
                   const medieGenerala = (() => {
