@@ -233,19 +233,6 @@ export default function AracipHome() {
       route: '/acreditare',
     },
     {
-      id: 'edu',
-      icon: '🤖',
-      tag: 'EDU Digital',
-      title: 'Educație\nDigitală',
-      desc: 'Cursuri AI interactive pentru elevi, formare continuă pentru profesori și educație digitală în școală.',
-      color: '#14b8a6',
-      colorLight: 'rgba(20,184,166,0.1)',
-      colorBorder: 'rgba(20,184,166,0.25)',
-      colorHover: 'rgba(20,184,166,0.18)',
-      route: '/edu',
-      securizabil: true,
-    },
-    {
       id: 'examene',
       icon: '🎯',
       tag: 'Pregătire Examene',
@@ -389,9 +376,9 @@ export default function AracipHome() {
           {/* Cards */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)',
+            gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)',
             gap: isMobile ? '16px' : '20px',
-            maxWidth: '800px',
+            maxWidth: '960px',
             margin: '0 auto',
           }}>
             {cards.map(card => (
