@@ -41,22 +41,57 @@ export default function ParintiPage() {
     setLogging(false)
 
     try {
-      const conturi: ContElev[] = JSON.parse(localStorage.getItem('dir_conturi') || '[]')
-      const catalog: CatalogEntry[] = JSON.parse(localStorage.getItem('dir_catalog') || '[]')
-      const modul: string[] = JSON.parse(localStorage.getItem('dir_modul') || '[]')
-      const clasa: string = localStorage.getItem('dir_clasa') || ''
+      // Search across all diriginte classes (multi-class) + legacy fallback
+      let gasit: ContElev | undefined
+      let clasa = ''
+      let modul: string[] = []
+      let catalog: CatalogEntry[] = []
 
-      const gasit = conturi.find(c =>
-        c.user.toLowerCase() === userInput.toLowerCase().trim() &&
-        c.parola === passInput.trim()
-      )
+      const dirClaseRaw = localStorage.getItem('dir_clase')
+      const dirClase: string[] = dirClaseRaw ? JSON.parse(dirClaseRaw) : []
+
+      for (const cl of dirClase) {
+        try {
+          const raw = localStorage.getItem(`dir_data_${cl}`)
+          if (!raw) continue
+          const d = JSON.parse(raw)
+          const conturi: ContElev[] = d.conturi || []
+          const found = conturi.find(c =>
+            c.user.toLowerCase() === userInput.toLowerCase().trim() &&
+            c.parola === passInput.trim()
+          )
+          if (found) {
+            gasit = found
+            clasa = cl
+            modul = d.modul || []
+            const catRaw = localStorage.getItem(`dir_catalog_${cl}`)
+            catalog = catRaw ? JSON.parse(catRaw) : []
+            break
+          }
+        } catch {}
+      }
+
+      // Legacy fallback (single-class)
+      if (!gasit) {
+        const legacyConturi: ContElev[] = JSON.parse(localStorage.getItem('dir_conturi') || '[]')
+        const found = legacyConturi.find(c =>
+          c.user.toLowerCase() === userInput.toLowerCase().trim() &&
+          c.parola === passInput.trim()
+        )
+        if (found) {
+          gasit = found
+          clasa = localStorage.getItem('dir_clasa') || ''
+          modul = JSON.parse(localStorage.getItem('dir_modul') || '[]')
+          catalog = JSON.parse(localStorage.getItem('dir_catalog') || '[]')
+        }
+      }
 
       if (!gasit) {
         setErr('Utilizator sau parolă incorectă. Verificați foaia primită de la diriginte.')
         return
       }
 
-      const entry = catalog.find(e => e.elevNr === gasit.nr) || {
+      const entry = catalog.find(e => e.elevNr === gasit!.nr) || {
         elevNr: gasit.nr, note: {}, absMot: 0, absNemot: 0, observatii: ''
       }
 

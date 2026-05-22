@@ -54,9 +54,8 @@ export default function ProfesoriPage() {
   const [hydrated, setHydrated] = useState(false)
   const [savedFlash, setSavedFlash] = useState(false)
 
-  // Names from diriginte (for classes matching dir_clasa)
-  const [dirClasa, setDirClasa] = useState('')
-  const [dirConturi, setDirConturi] = useState<{nr:string;nume:string}[]>([])
+  // Students from diriginte, keyed by class name
+  const [dirStudentsMap, setDirStudentsMap] = useState<Record<string, {nr:string;nume:string}[]>>({})
 
   useEffect(() => {
     try {
@@ -66,10 +65,35 @@ export default function ProfesoriPage() {
       if (pm) setMateriiSelectate(JSON.parse(pm))
       const pcl = localStorage.getItem('prof_clase')
       if (pcl) setClase(JSON.parse(pcl))
+      // Build map of all diriginte classes → student lists
+      const dirClaseRaw = localStorage.getItem('dir_clase')
+      const map: Record<string, {nr:string;nume:string}[]> = {}
+      if (dirClaseRaw) {
+        const dirClase: string[] = JSON.parse(dirClaseRaw)
+        dirClase.forEach(cl => {
+          try {
+            const raw = localStorage.getItem(`dir_data_${cl}`)
+            if (raw) {
+              const d = JSON.parse(raw)
+              if (Array.isArray(d.conturi) && d.conturi.length > 0)
+                map[cl] = d.conturi.map((c: any) => ({ nr: c.nr, nume: c.nume }))
+              else if (Array.isArray(d.elevi) && d.elevi.some((e: any) => e.nume?.trim()))
+                map[cl] = d.elevi.filter((e: any) => e.nume?.trim()).map((e: any, i: number) => ({ nr: e.nr || String(i+1), nume: e.nume.trim() }))
+            }
+          } catch {}
+        })
+      }
+      // Also check legacy single-class key
       const dc = localStorage.getItem('dir_clasa')
-      if (dc) setDirClasa(dc)
       const dco = localStorage.getItem('dir_conturi')
-      if (dco) setDirConturi(JSON.parse(dco))
+      if (dc && dco) {
+        try {
+          const conturi = JSON.parse(dco)
+          if (Array.isArray(conturi) && conturi.length > 0 && !map[dc])
+            map[dc] = conturi.map((c: any) => ({ nr: c.nr, nume: c.nume }))
+        } catch {}
+      }
+      setDirStudentsMap(map)
     } catch {}
     setHydrated(true)
   }, [])
@@ -132,8 +156,9 @@ export default function ProfesoriPage() {
   function adaugaClasa() {
     const litera = nouaLiteraCustom.trim() || nouaLitera
     const numeClasa = `${nouaGrada}${litera}`
-    if (clase.find(c => c.nume === numeClasa)) return
-    const updated = [...clase, { nume: numeClasa, nrElevi: nrEleviNou }]
+    if (clase.find(c => c.nume === numeClasa)) { setClasa(numeClasa); setIdx(0); setAdaugaClasaOpen(false); return }
+    const dirCount = dirStudentsMap[numeClasa]?.length || nrEleviNou
+    const updated = [...clase, { nume: numeClasa, nrElevi: dirCount }]
     saveClase(updated)
     setClasa(numeClasa)
     setIdx(0)
@@ -141,11 +166,12 @@ export default function ProfesoriPage() {
     setNouaLiteraCustom('')
   }
 
-  // Students for current class: from diriginte if class matches, else numbered
+  // Students for current class: from diriginte map if available, else numbered by clasaConf
   const clasaConf = clase.find(c => c.nume === clasa)
-  const studentsFromDir = clasa === dirClasa && dirConturi.length > 0
+  const dirStudents = dirStudentsMap[clasa]
+  const studentsFromDir = !!dirStudents && dirStudents.length > 0
   const students: { nr: string; nume: string }[] = studentsFromDir
-    ? dirConturi
+    ? dirStudents
     : Array.from({ length: clasaConf?.nrElevi || 0 }, (_, i) => ({ nr: String(i + 1), nume: '' }))
 
   const elev = students[idx]
@@ -281,11 +307,14 @@ export default function ProfesoriPage() {
           </div>
 
           {/* Panou adauga clasa */}
-          {adaugaClasaOpen && (
+          {adaugaClasaOpen && (() => {
+            const previewNume = `${nouaGrada}${nouaLiteraCustom || nouaLitera}`
+            const dirPentruClasa = dirStudentsMap[previewNume]
+            return (
             <div style={{ padding: '14px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(249,115,22,0.03)' }}>
               <div style={{ fontSize: '11px', color: '#fb923c', fontWeight: 700, marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Adaugă clasă nouă</div>
 
-              {/* Scroll note (4-12) */}
+              {/* Scroll grade */}
               <div style={{ marginBottom: '10px' }}>
                 <div style={{ fontSize: '11px', color: '#475569', marginBottom: '6px' }}>Anul de studiu</div>
                 <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '2px' }}>
@@ -313,34 +342,45 @@ export default function ProfesoriPage() {
                 </div>
               </div>
 
-              {/* Nr elevi */}
-              <div style={{ marginBottom: '14px' }}>
-                <div style={{ fontSize: '11px', color: '#475569', marginBottom: '6px' }}>Număr de elevi</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <button type="button" onClick={() => setNrEleviNou(v => Math.max(1, v - 1))}
-                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', width: 32, height: 32, cursor: 'pointer', color: '#94a3b8', fontSize: '18px', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>−</button>
-                  <span style={{ fontSize: '22px', fontWeight: 800, color: '#f1f5f9', minWidth: '40px', textAlign: 'center' }}>{nrEleviNou}</span>
-                  <button type="button" onClick={() => setNrEleviNou(v => Math.min(40, v + 1))}
-                    style={{ background: 'rgba(249,115,22,0.15)', border: '1px solid rgba(249,115,22,0.3)', borderRadius: '8px', width: 32, height: 32, cursor: 'pointer', color: '#fb923c', fontSize: '18px', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
-                  <span style={{ fontSize: '12px', color: '#475569' }}>elevi</span>
+              {/* Diriginte badge sau nr elevi manual */}
+              {dirPentruClasa ? (
+                <div style={{ marginBottom: '14px', background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: '10px', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <span style={{ fontSize: '18px' }}>✅</span>
+                  <div>
+                    <div style={{ fontSize: '13px', fontWeight: 700, color: '#4ade80' }}>Listă preluată din diriginte</div>
+                    <div style={{ fontSize: '11px', color: '#475569', marginTop: '2px' }}>{dirPentruClasa.length} elevi cu nume — {dirPentruClasa.slice(0,3).map(s => s.nume).join(', ')}{dirPentruClasa.length > 3 ? '...' : ''}</div>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div style={{ marginBottom: '14px' }}>
+                  <div style={{ fontSize: '11px', color: '#475569', marginBottom: '6px' }}>Număr de elevi</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <button type="button" onClick={() => setNrEleviNou(v => Math.max(1, v - 1))}
+                      style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', width: 32, height: 32, cursor: 'pointer', color: '#94a3b8', fontSize: '18px', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>−</button>
+                    <span style={{ fontSize: '22px', fontWeight: 800, color: '#f1f5f9', minWidth: '40px', textAlign: 'center' }}>{nrEleviNou}</span>
+                    <button type="button" onClick={() => setNrEleviNou(v => Math.min(40, v + 1))}
+                      style={{ background: 'rgba(249,115,22,0.15)', border: '1px solid rgba(249,115,22,0.3)', borderRadius: '8px', width: 32, height: 32, cursor: 'pointer', color: '#fb923c', fontSize: '18px', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
+                    <span style={{ fontSize: '12px', color: '#475569' }}>elevi</span>
+                  </div>
+                </div>
+              )}
 
               {/* Preview + confirma */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', borderRadius: '10px', padding: '10px 14px' }}>
                   <span style={{ fontSize: '11px', color: '#475569' }}>Clasă: </span>
-                  <span style={{ fontSize: '16px', fontWeight: 800, color: '#fb923c' }}>
-                    {nouaGrada}{nouaLiteraCustom || nouaLitera}
+                  <span style={{ fontSize: '16px', fontWeight: 800, color: '#fb923c' }}>{previewNume}</span>
+                  <span style={{ fontSize: '11px', color: '#475569', marginLeft: '8px' }}>
+                    — {dirPentruClasa ? `${dirPentruClasa.length} elevi din diriginte` : `${nrEleviNou} elevi`}
                   </span>
-                  <span style={{ fontSize: '11px', color: '#475569', marginLeft: '8px' }}>— {nrEleviNou} elevi</span>
                 </div>
                 <button onClick={adaugaClasa} style={{ ...btnOrange, padding: '10px 20px', fontSize: '13px', boxShadow: 'none', whiteSpace: 'nowrap' }}>
                   Adaugă ✓
                 </button>
               </div>
             </div>
-          )}
+            )
+          })()}
 
           {clasa && <div style={{ padding: '8px 16px', fontSize: '11px', color: '#475569' }}>
             Catalog: <span style={{ color: '#fb923c', fontWeight: 700 }}>{materie}</span> · Clasa <span style={{ color: '#fb923c', fontWeight: 700 }}>{clasa}</span>
