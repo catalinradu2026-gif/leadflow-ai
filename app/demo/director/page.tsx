@@ -99,6 +99,11 @@ type Msg = { role: 'user' | 'assistant'; content: string }
 export default function DirectorPage() {
   const router = useRouter()
   const isMobile = useIsMobile()
+  const [loggedIn, setLoggedIn] = useState(false)
+  const [loginEmail, setLoginEmail] = useState('')
+  const [loginPass, setLoginPass] = useState('')
+  const [loginErr, setLoginErr] = useState('')
+  const [logging, setLogging] = useState(false)
   const [tab, setTab] = useState<'notificari' | 'bot' | 'chat'>('notificari')
   const [notificari, setNotificari] = useState(NOTIFICARI)
   const [messages, setMessages] = useState<Msg[]>([])
@@ -121,6 +126,38 @@ export default function DirectorPage() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
+
+  async function handleLogin(e: React.FormEvent) {
+    e.preventDefault()
+    if (!loginEmail || !loginPass) { setLoginErr('Completați email și parolă.'); return }
+    setLogging(true); setLoginErr('')
+    await new Promise(r => setTimeout(r, 800))
+    setLogging(false); setLoggedIn(true)
+  }
+
+  if (!loggedIn) return (
+    <div style={{ minHeight: '100vh', background: '#060b14', fontFamily: "'Segoe UI', Arial, sans-serif", color: '#f1f5f9', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+      <button onClick={() => router.back()} style={{ position: 'fixed', top: 20, left: 20, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '8px 16px', color: '#94a3b8', cursor: 'pointer', fontSize: '13px', fontFamily: 'inherit' }}>← Înapoi</button>
+      <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+        <div style={{ width: 56, height: 56, borderRadius: '16px', background: 'linear-gradient(135deg, #064e3b, #059669)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px', margin: '0 auto 16px', boxShadow: '0 8px 24px rgba(5,150,105,0.35)' }}>🏫</div>
+        <div style={{ fontSize: '20px', fontWeight: 800 }}>Portal Director</div>
+        <div style={{ fontSize: '12px', color: '#334155', marginTop: '4px' }}>Școală / Grădiniță</div>
+      </div>
+      <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(5,150,105,0.2)', borderRadius: '20px', padding: isMobile ? '28px 20px' : '36px 40px', width: '100%', maxWidth: '400px' }}>
+        <h2 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px', textAlign: 'center' }}>Autentificare Director</h2>
+        <p style={{ fontSize: '12px', color: '#475569', textAlign: 'center', marginBottom: '24px' }}>Acces restricționat — Director unitate școlară</p>
+        <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <input type="email" placeholder="Email instituțional" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '12px 16px', fontSize: '14px', color: '#f1f5f9', outline: 'none', fontFamily: 'inherit', width: '100%', boxSizing: 'border-box' as const }} />
+          <input type="password" placeholder="Parolă" value={loginPass} onChange={e => setLoginPass(e.target.value)} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '12px 16px', fontSize: '14px', color: '#f1f5f9', outline: 'none', fontFamily: 'inherit', width: '100%', boxSizing: 'border-box' as const }} />
+          {loginErr && <div style={{ fontSize: '12px', color: '#ef4444', textAlign: 'center' }}>{loginErr}</div>}
+          <button type="submit" disabled={logging} style={{ background: 'linear-gradient(135deg, #064e3b, #059669)', border: 'none', borderRadius: '12px', padding: '13px 24px', fontSize: '14px', fontWeight: 700, color: '#fff', cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 4px 16px rgba(5,150,105,0.35)' }}>
+            {logging ? 'Se verifică...' : 'Intră în cont →'}
+          </button>
+        </form>
+        <div style={{ marginTop: '16px', padding: '10px', background: 'rgba(5,150,105,0.06)', border: '1px solid rgba(5,150,105,0.15)', borderRadius: '10px', fontSize: '11px', color: '#34d399', textAlign: 'center' }}>Demo: orice email + parolă funcționează</div>
+      </div>
+    </div>
+  )
 
   function markRead(id: number) {
     setNotificari(prev => prev.map(n => n.id === id ? { ...n, citit: true } : n))

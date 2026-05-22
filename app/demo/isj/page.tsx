@@ -37,6 +37,11 @@ const DOCUMENTE = [
 export default function ISJDolj() {
   const router = useRouter()
   const isMobile = useIsMobile()
+  const [loggedIn, setLoggedIn] = useState(false)
+  const [loginEmail, setLoginEmail] = useState('')
+  const [loginPass, setLoginPass] = useState('')
+  const [loginErr, setLoginErr] = useState('')
+  const [logging, setLogging] = useState(false)
   const [tab, setTab] = useState<'docs' | 'scoli' | 'chat'>('docs')
   const [showUpload, setShowUpload] = useState(false)
   const [uploadTitle, setUploadTitle] = useState('')
@@ -52,6 +57,38 @@ export default function ISJDolj() {
   const [tipFilter, setTipFilter] = useState<string>('Toate')
   const [uploadTipDoc, setUploadTipDoc] = useState('Circular')
   const [uploadTipUnitate, setUploadTipUnitate] = useState<string>('Toate')
+
+  async function handleLogin(e: React.FormEvent) {
+    e.preventDefault()
+    if (!loginEmail || !loginPass) { setLoginErr('Completați email și parolă.'); return }
+    setLogging(true); setLoginErr('')
+    await new Promise(r => setTimeout(r, 800))
+    setLogging(false); setLoggedIn(true)
+  }
+
+  if (!loggedIn) return (
+    <div style={{ minHeight: '100vh', background: '#060b14', fontFamily: "'Segoe UI', Arial, sans-serif", color: '#f1f5f9', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+      <button onClick={() => router.back()} style={{ position: 'fixed', top: 20, left: 20, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '8px 16px', color: '#94a3b8', cursor: 'pointer', fontSize: '13px', fontFamily: 'inherit' }}>← Înapoi</button>
+      <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+        <div style={{ width: 56, height: 56, borderRadius: '16px', background: 'linear-gradient(135deg, #164e63, #0ea5e9)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px', margin: '0 auto 16px', boxShadow: '0 8px 24px rgba(14,165,233,0.35)' }}>🏛️</div>
+        <div style={{ fontSize: '20px', fontWeight: 800 }}>ISJ Dolj</div>
+        <div style={{ fontSize: '12px', color: '#334155', marginTop: '4px' }}>Inspectoratul Școlar Județean</div>
+      </div>
+      <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(14,165,233,0.2)', borderRadius: '20px', padding: isMobile ? '28px 20px' : '36px 40px', width: '100%', maxWidth: '400px' }}>
+        <h2 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px', textAlign: 'center' }}>Autentificare ISJ</h2>
+        <p style={{ fontSize: '12px', color: '#475569', textAlign: 'center', marginBottom: '24px' }}>Acces restricționat — Inspector Județean</p>
+        <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <input type="email" placeholder="Email instituțional" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '12px 16px', fontSize: '14px', color: '#f1f5f9', outline: 'none', fontFamily: 'inherit', width: '100%', boxSizing: 'border-box' as const }} />
+          <input type="password" placeholder="Parolă" value={loginPass} onChange={e => setLoginPass(e.target.value)} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '12px 16px', fontSize: '14px', color: '#f1f5f9', outline: 'none', fontFamily: 'inherit', width: '100%', boxSizing: 'border-box' as const }} />
+          {loginErr && <div style={{ fontSize: '12px', color: '#ef4444', textAlign: 'center' }}>{loginErr}</div>}
+          <button type="submit" disabled={logging} style={{ background: 'linear-gradient(135deg, #164e63, #0ea5e9)', border: 'none', borderRadius: '12px', padding: '13px 24px', fontSize: '14px', fontWeight: 700, color: '#fff', cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 4px 16px rgba(14,165,233,0.35)' }}>
+            {logging ? 'Se verifică...' : 'Intră în cont →'}
+          </button>
+        </form>
+        <div style={{ marginTop: '16px', padding: '10px', background: 'rgba(14,165,233,0.06)', border: '1px solid rgba(14,165,233,0.15)', borderRadius: '10px', fontSize: '11px', color: '#38bdf8', textAlign: 'center' }}>Demo: orice email + parolă funcționează</div>
+      </div>
+    </div>
+  )
 
   const TIP_RATII: Record<string, number> = { 'Toate': 1, 'Liceu': 0.18, 'Colegiu': 0.12, 'Școală': 0.45, 'Grădiniță': 0.25 }
 
