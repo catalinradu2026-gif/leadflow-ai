@@ -225,6 +225,21 @@ function MatematicaChat() {
   const [voiceEnabled, setVoiceEnabled] = useState(true)
   const [speaking, setSpeaking] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
+  const [showUpgrade, setShowUpgrade] = useState(false)
+
+  const DAILY_LIMIT = 5
+  const storageKey = `edu_bac_${new Date().toDateString()}`
+
+  function getDailyCount(): number {
+    if (typeof window === 'undefined') return 0
+    return parseInt(localStorage.getItem(storageKey) || '0', 10)
+  }
+
+  function incrementDailyCount() {
+    const next = getDailyCount() + 1
+    localStorage.setItem(storageKey, String(next))
+    return next
+  }
 
   const [listening, setListening] = useState(false)
   const typewriterRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -429,6 +444,12 @@ function MatematicaChat() {
   async function sendMsg(text?: string) {
     const userMsg = (text || input).trim()
     if (!userMsg || loading) return
+
+    if (getDailyCount() >= DAILY_LIMIT) {
+      setShowUpgrade(true)
+      return
+    }
+
     setInput('')
     const newMessages: Msg[] = [...messages, { role: 'user', content: userMsg }]
     setMessages(newMessages)
@@ -441,10 +462,21 @@ function MatematicaChat() {
         body: JSON.stringify({ messages: newMessages, pagina: `BAC Matematică ${profil}`, systemPrompt: SYSTEM_PROMPTS[profil] }),
       })
       const data = await res.json()
+
+      if (data.text === 'DAILY_LIMIT') {
+        setShowUpgrade(true)
+        setLoading(false)
+        setBoardText('')
+        return
+      }
+
       const reply = data.text || 'Eroare. Încercați din nou.'
+      incrementDailyCount()
       setMessages(prev => [...prev, { role: 'assistant', content: reply }])
       setBoardFull(reply)
       startSyncedOutput(reply)
+
+      if (getDailyCount() >= DAILY_LIMIT) setShowUpgrade(true)
     } catch {
       const err = 'Eroare de conexiune. Încercați din nou.'
       setBoardText(err)
@@ -458,6 +490,36 @@ function MatematicaChat() {
   return (
     <div style={{ height: '100vh', background: '#0a0f1a', fontFamily: "'Segoe UI', Arial, sans-serif", color: '#e2e8f0', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
+      {/* Upgrade overlay */}
+      {showUpgrade && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+          <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: '20px', padding: '40px 36px', maxWidth: '440px', width: '100%', textAlign: 'center' }}>
+            <div style={{ fontSize: '52px', marginBottom: '16px' }}>🎓</div>
+            <h2 style={{ fontSize: '22px', fontWeight: 800, color: '#f1f5f9', marginBottom: '10px', lineHeight: 1.3 }}>
+              Ai folosit cele 5 întrebări gratuite ale zilei
+            </h2>
+            <p style={{ fontSize: '14px', color: '#64748b', lineHeight: 1.7, marginBottom: '8px' }}>
+              Versiunea Beta EDU DIGITAL îți oferă 5 întrebări pe zi. Revino mâine — contorul se resetează automat la miezul nopții.
+            </p>
+            <p style={{ fontSize: '14px', color: '#94a3b8', lineHeight: 1.7, marginBottom: '28px' }}>
+              Dacă vrei acces nelimitat, <strong style={{ color: '#a5b4fc' }}>școala ta poate activa platforma complet</strong> — fără niciun cost pentru tine.
+            </p>
+            <a
+              href={`mailto:contact@aicraiova.ro?subject=Acces complet EDU DIGITAL&body=Buna ziua, sunt elev si as dori ca scoala mea sa activeze accesul complet la platforma EDU DIGITAL BAC.`}
+              style={{ display: 'block', background: '#6366f1', color: '#fff', padding: '14px 28px', borderRadius: '12px', fontSize: '15px', fontWeight: 700, textDecoration: 'none', marginBottom: '12px' }}
+            >
+              Solicită accesul pentru școala ta →
+            </a>
+            <button
+              onClick={() => setShowUpgrade(false)}
+              style={{ background: 'transparent', border: 'none', color: '#334155', fontSize: '13px', cursor: 'pointer', padding: '8px' }}
+            >
+              Închide
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Topbar */}
       <div style={{ background: '#0f172a', borderBottom: '1px solid #1e293b', padding: '0 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '52px', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -468,6 +530,12 @@ function MatematicaChat() {
           {typing && !speaking && <span style={{ fontSize: '11px', color: '#22c55e' }}>✏️ scrie...</span>}
         </div>
         <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+          <div
+            onClick={() => getDailyCount() >= DAILY_LIMIT && setShowUpgrade(true)}
+            style={{ fontSize: '11px', color: getDailyCount() >= DAILY_LIMIT ? '#ef4444' : '#475569', background: 'rgba(255,255,255,0.04)', border: '1px solid #1e293b', borderRadius: '6px', padding: '4px 10px', cursor: getDailyCount() >= DAILY_LIMIT ? 'pointer' : 'default', whiteSpace: 'nowrap' }}
+          >
+            {DAILY_LIMIT - getDailyCount() > 0 ? `${DAILY_LIMIT - getDailyCount()}/${DAILY_LIMIT} întrebări` : '0 întrebări rămase'}
+          </div>
           <button
             onClick={() => { if (voiceEnabled) { window.speechSynthesis?.cancel(); setSpeaking(false) }; setVoiceEnabled(v => !v) }}
             style={{ background: voiceEnabled ? 'rgba(167,139,250,0.15)' : 'transparent', border: `1px solid ${voiceEnabled ? '#a78bfa' : '#1e293b'}`, borderRadius: '6px', padding: '4px 10px', fontSize: '14px', cursor: 'pointer', color: voiceEnabled ? '#a78bfa' : '#334155' }}

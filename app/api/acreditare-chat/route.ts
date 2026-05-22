@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Groq from 'groq-sdk'
-import { rateLimit } from '@/lib/rateLimit'
+import { rateLimit, rateLimitDaily } from '@/lib/rateLimit'
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
 
@@ -223,6 +223,10 @@ export async function POST(req: NextRequest) {
     }
 
     const { messages, pagina, systemPrompt: customSystemPrompt } = await req.json()
+
+    if (customSystemPrompt && !rateLimitDaily(ip, 5)) {
+      return NextResponse.json({ text: 'DAILY_LIMIT' }, { status: 429 })
+    }
     if (!messages || !Array.isArray(messages)) {
       return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
     }
