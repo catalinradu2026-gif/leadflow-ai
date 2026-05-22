@@ -50,10 +50,9 @@ export default function PortalScoala() {
       icon: '👨‍👩‍👧‍👦',
       tag: 'Părinți',
       title: 'Părinți',
-      desc: 'Vezi notele și absențele copilului tău în timp real, direct de pe telefon sau calculator.',
-      color: '#64748b',
-      route: '',
-      inactiv: true,
+      desc: 'Note, absențe, activitate pe platformă și progres gamification — totul despre copilul tău, în timp real.',
+      color: '#0ea5e9',
+      route: '/edu/parinti',
     },
   ]
 
