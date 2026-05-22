@@ -254,6 +254,7 @@ export default function AracipHome() {
       icon: '🏅',
       tag: 'Calitate',
       title: 'Autorizare,\nAcreditare & Evaluare',
+      nesecurizat: true,
       desc: 'Dosare digitale, vizite comisii ARACIP și evaluare externă periodică — fără hârtii, 100% online.',
       color: '#a855f7',
       colorLight: 'rgba(168,85,247,0.1)',
@@ -466,6 +467,18 @@ export default function AracipHome() {
                     textTransform: 'uppercase', letterSpacing: '0.5px',
                   }}>
                     🔒 Securizat
+                  </div>
+                )}
+                {(card as any).nesecurizat && (
+                  <div style={{
+                    position: 'absolute', top: 12, right: 12,
+                    background: 'rgba(34,197,94,0.12)',
+                    border: '1px solid rgba(34,197,94,0.35)',
+                    borderRadius: '20px', padding: '2px 10px',
+                    fontSize: '10px', fontWeight: 800, color: '#22c55e',
+                    textTransform: 'uppercase', letterSpacing: '0.5px',
+                  }}>
+                    🔓 Nesecurizat
                   </div>
                 )}
 
