@@ -3,7 +3,9 @@ import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { useIsMobile } from '../../hooks/useIsMobile'
 
-type ProfEntry = { nota: string; absMot: number; absNemot: number; observatii: string }
+type Nota = { id: string; v: string }
+type Semestru = { note: Nota[]; absMot: number; absNemot: number; inchis: boolean }
+type ProfEntry = { s1: Semestru; s2: Semestru; obs: string }
 // [clasa][materie][elevNr] = ProfEntry
 type ProfCatalogs = Record<string, Record<string, Record<string, ProfEntry>>>
 type ClasaConf = { nume: string; nrElevi: number }
@@ -59,6 +61,10 @@ export default function ProfesoriPage() {
   const [savedFlash, setSavedFlash] = useState(false)
   const [searchElev, setSearchElev] = useState('')
   const [selectedNr, setSelectedNr] = useState<string | null>(null)
+  const [activeSem, setActiveSem] = useState<1|2>(1)
+  const [editingNota, setEditingNota] = useState<{elevNr:string;sem:1|2;id:string;val:string}|null>(null)
+  const [addingNotaNr, setAddingNotaNr] = useState<string|null>(null)
+  const [novaNotaVal, setNovaNotaVal] = useState('')
 
   // Students from diriginte, keyed by class name
   const [dirStudentsMap, setDirStudentsMap] = useState<Record<string, {nr:string;nume:string}[]>>({})
@@ -151,25 +157,53 @@ export default function ProfesoriPage() {
     setAltaMaterie('')
   }
 
-  function getEntry(elevNr: string): ProfEntry {
-    return profCatalogs[clasa]?.[materie]?.[elevNr] || { nota: '', absMot: 0, absNemot: 0, observatii: '' }
+  function defaultSem(): Semestru { return { note: [], absMot: 0, absNemot: 0, inchis: false } }
+  function defaultEntry(): ProfEntry { return { s1: defaultSem(), s2: defaultSem(), obs: '' } }
+  function migrateEntry(raw: any): ProfEntry {
+    if (!raw) return defaultEntry()
+    if (raw.s1 !== undefined) return raw as ProfEntry
+    return {
+      s1: { note: raw.nota ? [{ id: 'n0', v: raw.nota }] : [], absMot: raw.absMot || 0, absNemot: raw.absNemot || 0, inchis: false },
+      s2: defaultSem(), obs: raw.observatii || ''
+    }
   }
-  function updateEntry(elevNr: string, patch: Partial<ProfEntry>) {
+  function calcMedie(note: Nota[]): number | null {
+    const vals = note.map(n => parseFloat(n.v)).filter(v => !isNaN(v) && v >= 1 && v <= 10)
+    if (!vals.length) return null
+    return vals.reduce((s, v) => s + v, 0) / vals.length
+  }
+  function getEntry(elevNr: string): ProfEntry {
+    return migrateEntry(profCatalogs[clasa]?.[materie]?.[elevNr])
+  }
+  function updateEntry(elevNr: string, fn: (e: ProfEntry) => ProfEntry) {
     setProfCatalogs(prev => {
-      const base = prev[clasa]?.[materie]?.[elevNr] || { nota: '', absMot: 0, absNemot: 0, observatii: '' }
-      return {
-        ...prev,
-        [clasa]: {
-          ...(prev[clasa] || {}),
-          [materie]: {
-            ...(prev[clasa]?.[materie] || {}),
-            [elevNr]: { ...base, ...patch },
-          },
-        },
-      }
+      const cur = migrateEntry(prev[clasa]?.[materie]?.[elevNr])
+      return { ...prev, [clasa]: { ...(prev[clasa]||{}), [materie]: { ...(prev[clasa]?.[materie]||{}), [elevNr]: fn(cur) } } }
     })
     setSavedFlash(true)
     setTimeout(() => setSavedFlash(false), 1500)
+  }
+  function addNota(elevNr: string) {
+    const v = novaNotaVal.trim()
+    const n = parseFloat(v)
+    if (!v || isNaN(n) || n < 1 || n > 10) { setAddingNotaNr(null); setNovaNotaVal(''); return }
+    const sk = activeSem === 1 ? 's1' : 's2'
+    updateEntry(elevNr, e => ({ ...e, [sk]: { ...e[sk], note: [...e[sk].note, { id: Date.now().toString(), v }] } }))
+    setNovaNotaVal(''); setAddingNotaNr(null)
+  }
+  function saveEditNota() {
+    if (!editingNota) return
+    const { elevNr, sem, id, val } = editingNota
+    const n = parseFloat(val)
+    if (!val || isNaN(n) || n < 1 || n > 10) { setEditingNota(null); return }
+    const sk = sem === 1 ? 's1' : 's2'
+    updateEntry(elevNr, e => ({ ...e, [sk]: { ...e[sk], note: e[sk].note.map(nt => nt.id === id ? { ...nt, v: val } : nt) } }))
+    setEditingNota(null)
+  }
+  function closeSemestru(elevNr: string) {
+    const sk = activeSem === 1 ? 's1' : 's2'
+    updateEntry(elevNr, e => ({ ...e, [sk]: { ...e[sk], inchis: true } }))
+    if (activeSem === 1) setActiveSem(2)
   }
 
   async function handleLogin(e: React.FormEvent) {
@@ -432,122 +466,188 @@ export default function ProfesoriPage() {
             Niciun elev configurat pentru clasa {clasa}.
           </div>
         ) : (() => {
-          const cuNote = students.filter(s => getEntry(s.nr).nota)
-          const medie = cuNote.length ? cuNote.reduce((s, e) => s + parseFloat(getEntry(e.nr).nota), 0) / cuNote.length : null
-          const sub = cuNote.filter(s => parseFloat(getEntry(s.nr).nota) < 5).length
-          const absNemot = students.reduce((s, e) => s + getEntry(e.nr).absNemot, 0)
+          const sk = activeSem === 1 ? 's1' : 's2'
+          const cuNote = students.filter(s => getEntry(s.nr)[sk].note.length > 0)
+          const mediiElevi = students.map(s => calcMedie(getEntry(s.nr)[sk].note)).filter(m => m !== null) as number[]
+          const medieClasa = mediiElevi.length ? mediiElevi.reduce((a,b)=>a+b,0)/mediiElevi.length : null
+          const subMedie = mediiElevi.filter(m => m < 5).length
+          const absNemot = students.reduce((a, s) => a + getEntry(s.nr)[sk].absNemot, 0)
 
           const q = searchElev.trim().toLowerCase()
-          const listaVizibila = q
-            ? students.filter(s => s.nume.toLowerCase().includes(q) || s.nr.includes(q))
-            : students
+          const listaVizibila = q ? students.filter(s => s.nume.toLowerCase().includes(q) || s.nr.includes(q)) : students
 
-          return (
-          <>
-            {/* Sumar rapid */}
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              <div style={statCard('#6366f1')}><div style={{ fontSize: '17px', fontWeight: 800 }}>{cuNote.length}/{students.length}</div><div style={{ fontSize: '10px' }}>notate</div></div>
-              <div style={statCard('#f97316')}><div style={{ fontSize: '17px', fontWeight: 800 }}>{students.length - cuNote.length}</div><div style={{ fontSize: '10px' }}>fără notă</div></div>
-              {medie !== null && <div style={statCard('#4ade80')}><div style={{ fontSize: '17px', fontWeight: 800 }}>{medie.toFixed(2)}</div><div style={{ fontSize: '10px' }}>medie clasă</div></div>}
-              {sub > 0 && <div style={statCard('#f87171')}><div style={{ fontSize: '17px', fontWeight: 800 }}>{sub}</div><div style={{ fontSize: '10px' }}>sub medie</div></div>}
-              {absNemot > 0 && <div style={statCard('#fbbf24')}><div style={{ fontSize: '17px', fontWeight: 800 }}>{absNemot}</div><div style={{ fontSize: '10px' }}>abs. nemot.</div></div>}
+          return (<>
+            {/* Selector semestru + Sumar */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              {([1,2] as const).map(sem => (
+                <button key={sem} onClick={() => setActiveSem(sem)}
+                  style={{ background: activeSem===sem ? 'rgba(249,115,22,0.2)' : 'rgba(255,255,255,0.04)', border: `1px solid ${activeSem===sem ? 'rgba(249,115,22,0.6)' : 'rgba(255,255,255,0.1)'}`, borderRadius: '10px', padding: '6px 16px', fontSize: '12px', fontWeight: activeSem===sem ? 800 : 400, color: activeSem===sem ? '#fb923c' : '#475569', cursor: 'pointer', fontFamily: 'inherit' }}>
+                  Semestrul {sem}
+                </button>
+              ))}
+              <div style={{ flex: 1 }} />
+              <div style={statCard('#6366f1')}><span style={{ fontSize: '14px', fontWeight: 800 }}>{cuNote.length}/{students.length}</span><span style={{ fontSize: '9px', marginLeft: '4px' }}>notați</span></div>
+              {medieClasa !== null && <div style={statCard('#4ade80')}><span style={{ fontSize: '14px', fontWeight: 800 }}>{medieClasa.toFixed(2)}</span><span style={{ fontSize: '9px', marginLeft: '4px' }}>medie</span></div>}
+              {subMedie > 0 && <div style={statCard('#f87171')}><span style={{ fontSize: '14px', fontWeight: 800 }}>{subMedie}</span><span style={{ fontSize: '9px', marginLeft: '4px' }}>sub 5</span></div>}
+              {absNemot > 0 && <div style={statCard('#fbbf24')}><span style={{ fontSize: '14px', fontWeight: 800 }}>{absNemot}</span><span style={{ fontSize: '9px', marginLeft: '4px' }}>abs.nem.</span></div>}
             </div>
 
             {/* Search */}
-            <input
-              type="text"
-              placeholder="Caută elev după nume sau număr..."
-              value={searchElev}
-              onChange={e => setSearchElev(e.target.value)}
-              style={{ ...inputStyle, padding: '9px 14px', fontSize: '13px' }}
-            />
+            <input type="text" placeholder="Caută elev după nume sau număr..."
+              value={searchElev} onChange={e => setSearchElev(e.target.value)}
+              style={{ ...inputStyle, padding: '9px 14px', fontSize: '13px' }} />
 
             {/* Lista elevi */}
             <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '16px', overflow: 'hidden' }}>
               <div style={{ padding: '10px 14px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '11px', color: '#475569', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  {materie} · {clasa} {q ? `· ${listaVizibila.length} rezultate` : ''}
+                  {materie} · {clasa} · Sem {activeSem} {q ? `· ${listaVizibila.length} rezultate` : ''}
                 </span>
                 {studentsFromDir && <span style={{ fontSize: '10px', color: '#4ade80' }}>· liste din diriginte</span>}
               </div>
 
-              {listaVizibila.length === 0 && (
-                <div style={{ padding: '20px', textAlign: 'center', fontSize: '13px', color: '#475569' }}>Niciun elev găsit</div>
-              )}
+              {listaVizibila.length === 0 && <div style={{ padding: '20px', textAlign: 'center', fontSize: '13px', color: '#475569' }}>Niciun elev găsit</div>}
 
               {listaVizibila.map((s, listIdx) => {
-                const e = getEntry(s.nr)
+                const entry = getEntry(s.nr)
+                const semData = entry[sk]
                 const isOpen = selectedNr === s.nr
-                const notaVal = e.nota ? parseFloat(e.nota) : null
-                const notaColor = notaVal === null ? '#334155' : notaVal < 5 ? '#f87171' : notaVal < 7 ? '#fbbf24' : '#4ade80'
-                const totalAbs = e.absMot + e.absNemot
+                const medie = calcMedie(semData.note)
+                const medieColor = medie === null ? '#334155' : medie < 5 ? '#f87171' : medie < 7 ? '#fbbf24' : '#4ade80'
+                const totalAbs = semData.absMot + semData.absNemot
 
                 return (
                   <div key={s.nr} style={{ borderBottom: listIdx < listaVizibila.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
                     {/* Rând elev */}
-                    <button
-                      onClick={() => setSelectedNr(isOpen ? null : s.nr)}
-                      style={{ width: '100%', background: isOpen ? 'rgba(249,115,22,0.06)' : 'transparent', border: 'none', padding: '12px 14px', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '10px', textAlign: 'left' }}
-                    >
-                      {/* Număr */}
+                    <button onClick={() => setSelectedNr(isOpen ? null : s.nr)}
+                      style={{ width: '100%', background: isOpen ? 'rgba(249,115,22,0.06)' : 'transparent', border: 'none', padding: '12px 14px', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '10px', textAlign: 'left' }}>
                       <span style={{ fontSize: '11px', color: '#334155', minWidth: '22px', fontWeight: 700 }}>{s.nr}.</span>
-                      {/* Nume */}
-                      <span style={{ flex: 1, fontSize: '14px', fontWeight: isOpen ? 800 : 500, color: isOpen ? '#f1f5f9' : '#cbd5e1' }}>
-                        {s.nume || `Elevul ${s.nr}`}
-                      </span>
-                      {/* Nota badge */}
-                      <span style={{ fontSize: '13px', fontWeight: 800, color: notaColor, minWidth: '32px', textAlign: 'right' }}>
-                        {e.nota || '—'}
-                      </span>
-                      {/* Absente */}
-                      {totalAbs > 0 && (
-                        <span style={{ fontSize: '11px', color: e.absNemot > 0 ? '#f87171' : '#475569', background: e.absNemot > 0 ? 'rgba(239,68,68,0.1)' : 'rgba(255,255,255,0.05)', borderRadius: '6px', padding: '2px 7px' }}>
-                          {totalAbs} abs
+                      <span style={{ flex: 1, fontSize: '14px', fontWeight: isOpen ? 800 : 500, color: isOpen ? '#f1f5f9' : '#cbd5e1' }}>{s.nume || `Elevul ${s.nr}`}</span>
+                      {/* Note chips preview */}
+                      {semData.note.length > 0 && (
+                        <span style={{ display: 'flex', gap: '3px' }}>
+                          {semData.note.slice(0,3).map(nt => (
+                            <span key={nt.id} style={{ fontSize: '11px', fontWeight: 700, background: 'rgba(249,115,22,0.15)', border: '1px solid rgba(249,115,22,0.3)', borderRadius: '6px', padding: '1px 6px', color: '#fb923c' }}>{nt.v}</span>
+                          ))}
+                          {semData.note.length > 3 && <span style={{ fontSize: '10px', color: '#475569' }}>+{semData.note.length-3}</span>}
                         </span>
                       )}
-                      {/* Arrow */}
+                      {/* Media */}
+                      <span style={{ fontSize: '13px', fontWeight: 800, color: medieColor, minWidth: '36px', textAlign: 'right' }}>
+                        {medie !== null ? medie.toFixed(2) : '—'}
+                      </span>
+                      {semData.inchis && <span style={{ fontSize: '9px', background: 'rgba(100,116,139,0.2)', border: '1px solid rgba(100,116,139,0.4)', borderRadius: '4px', padding: '1px 5px', color: '#64748b' }}>ÎNCHIS</span>}
+                      {totalAbs > 0 && <span style={{ fontSize: '11px', color: semData.absNemot > 0 ? '#f87171' : '#475569', background: semData.absNemot > 0 ? 'rgba(239,68,68,0.1)' : 'rgba(255,255,255,0.05)', borderRadius: '6px', padding: '2px 7px' }}>{totalAbs} abs</span>}
                       <span style={{ fontSize: '11px', color: '#334155', transform: isOpen ? 'rotate(90deg)' : 'rotate(0)', transition: 'transform 0.2s', display: 'inline-block' }}>›</span>
                     </button>
 
                     {/* Formular expand */}
-                    {isOpen && (
+                    {isOpen && (() => {
+                      const semKeys: ('s1'|'s2')[] = ['s1','s2']
+                      return (
                       <div style={{ padding: '0 14px 16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                        {/* Nota */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', padding: '12px 14px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                          <div style={{ fontSize: '11px', color: '#475569', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', minWidth: '40px' }}>Notă</div>
-                          <input
-                            type="text" inputMode="numeric" placeholder="—" value={e.nota}
-                            onChange={ev => {
-                              const v = ev.target.value
-                              if (v === '') { updateEntry(s.nr, { nota: '' }); return }
-                              if (!/^\d{1,2}(\.\d{0,2})?$/.test(v)) return
-                              const n = parseFloat(v)
-                              if (!isNaN(n) && n >= 1 && n <= 10) updateEntry(s.nr, { nota: v })
-                              else if (v === '1' || v === '1.' || v.startsWith('1.')) updateEntry(s.nr, { nota: v })
-                            }}
-                            style={{ ...inputStyle, width: '80px', fontSize: '28px', fontWeight: 900, textAlign: 'center', padding: '8px', color: notaColor }}
-                          />
-                          {e.nota && notaVal !== null && (
-                            <div style={{ fontSize: '12px', fontWeight: 700, color: notaColor }}>
-                              {notaVal < 5 ? '⚠️ Sub medie' : notaVal < 7 ? '📈 Satisfăcător' : notaVal < 9 ? '✅ Bine' : '⭐ Excelent'}
-                            </div>
+
+                        {/* Tabs semestre */}
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          {semKeys.map((sk2, i) => {
+                            const sd = entry[sk2]
+                            const med = calcMedie(sd.note)
+                            const isCur = activeSem === i+1
+                            return (
+                              <button key={sk2} onClick={() => setActiveSem((i+1) as 1|2)}
+                                style={{ flex: 1, background: isCur ? 'rgba(249,115,22,0.15)' : 'rgba(255,255,255,0.03)', border: `1px solid ${isCur ? 'rgba(249,115,22,0.5)' : 'rgba(255,255,255,0.08)'}`, borderRadius: '10px', padding: '8px', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'center' }}>
+                                <div style={{ fontSize: '11px', fontWeight: 700, color: isCur ? '#fb923c' : '#475569' }}>Sem {i+1} {sd.inchis ? '🔒' : ''}</div>
+                                {med !== null && <div style={{ fontSize: '13px', fontWeight: 800, color: isCur ? '#fb923c' : '#64748b' }}>Media {med.toFixed(2)}</div>}
+                              </button>
+                            )
+                          })}
+                        </div>
+
+                        {/* Note semestru activ */}
+                        <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '12px', padding: '12px 14px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                            <span style={{ fontSize: '11px', color: '#475569', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Note · Sem {activeSem}</span>
+                            {semData.inchis
+                              ? <span style={{ fontSize: '11px', color: '#64748b', background: 'rgba(100,116,139,0.1)', border: '1px solid rgba(100,116,139,0.3)', borderRadius: '8px', padding: '3px 10px' }}>🔒 Semestru închis · Media {medie?.toFixed(2)}</span>
+                              : <span style={{ fontSize: '11px', color: '#4ade80', fontWeight: 700 }}>
+                                  {medie !== null ? `Media: ${medie.toFixed(2)}` : 'Fără note'}
+                                  {savedFlash && selectedNr === s.nr && <span style={{ color: '#4ade80', marginLeft: '8px' }}>✓</span>}
+                                </span>
+                            }
+                          </div>
+
+                          {/* Chips note */}
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: semData.inchis ? 0 : '10px' }}>
+                            {semData.note.map(nt => {
+                              const isEditing = editingNota?.elevNr === s.nr && editingNota?.sem === activeSem && editingNota?.id === nt.id
+                              const nv = parseFloat(nt.v)
+                              const nc = nv < 5 ? '#f87171' : nv < 7 ? '#fbbf24' : '#4ade80'
+                              return (
+                                <div key={nt.id} style={{ position: 'relative', display: 'flex', alignItems: 'center', background: `${nc}18`, border: `1px solid ${nc}44`, borderRadius: '10px', padding: '6px 10px', gap: '6px' }}>
+                                  {isEditing ? (
+                                    <>
+                                      <input autoFocus type="text" inputMode="numeric" value={editingNota.val}
+                                        onChange={ev => setEditingNota(prev => prev ? {...prev, val: ev.target.value} : null)}
+                                        onKeyDown={ev => { if (ev.key==='Enter') saveEditNota(); if (ev.key==='Escape') setEditingNota(null) }}
+                                        style={{ ...inputStyle, width: '48px', fontSize: '16px', fontWeight: 800, textAlign: 'center', padding: '2px 6px', color: nc, border: `1px solid ${nc}` }} />
+                                      <button onClick={saveEditNota} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#4ade80', fontSize: '14px', padding: 0 }}>✓</button>
+                                      <button onClick={() => setEditingNota(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#f87171', fontSize: '14px', padding: 0 }}>✗</button>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <span style={{ fontSize: '18px', fontWeight: 800, color: nc }}>{nt.v}</span>
+                                      {!semData.inchis && (
+                                        <button onClick={() => setEditingNota({ elevNr: s.nr, sem: activeSem, id: nt.id, val: nt.v })}
+                                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: '11px', padding: '0 0 0 2px', lineHeight: 1 }} title="Editează">✏️</button>
+                                      )}
+                                    </>
+                                  )}
+                                </div>
+                              )
+                            })}
+
+                            {/* Adaugă notă */}
+                            {!semData.inchis && (
+                              addingNotaNr === s.nr ? (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.4)', borderRadius: '10px', padding: '4px 8px' }}>
+                                  <input autoFocus type="text" inputMode="numeric" placeholder="1-10" value={novaNotaVal}
+                                    onChange={ev => setNovaNotaVal(ev.target.value)}
+                                    onKeyDown={ev => { if (ev.key==='Enter') addNota(s.nr); if (ev.key==='Escape') { setAddingNotaNr(null); setNovaNotaVal('') } }}
+                                    style={{ ...inputStyle, width: '52px', fontSize: '16px', fontWeight: 800, textAlign: 'center', padding: '2px 6px', color: '#fb923c', border: '1px solid rgba(249,115,22,0.5)' }} />
+                                  <button onClick={() => addNota(s.nr)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#4ade80', fontSize: '16px', padding: 0 }}>✓</button>
+                                  <button onClick={() => { setAddingNotaNr(null); setNovaNotaVal('') }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#f87171', fontSize: '16px', padding: 0 }}>✗</button>
+                                </div>
+                              ) : (
+                                <button onClick={() => { setAddingNotaNr(s.nr); setNovaNotaVal('') }}
+                                  style={{ background: 'rgba(249,115,22,0.08)', border: '1px dashed rgba(249,115,22,0.35)', borderRadius: '10px', padding: '6px 12px', fontSize: '13px', color: '#fb923c', cursor: 'pointer', fontFamily: 'inherit' }}>
+                                  + Notă
+                                </button>
+                              )
+                            )}
+                          </div>
+
+                          {/* Buton Închide semestru */}
+                          {!semData.inchis && semData.note.length > 0 && (
+                            <button onClick={() => closeSemestru(s.nr)}
+                              style={{ marginTop: '8px', background: 'rgba(100,116,139,0.08)', border: '1px solid rgba(100,116,139,0.3)', borderRadius: '8px', padding: '6px 14px', fontSize: '11px', color: '#64748b', cursor: 'pointer', fontFamily: 'inherit' }}>
+                              🔒 Închide Semestrul {activeSem}
+                            </button>
                           )}
-                          {savedFlash && selectedNr === s.nr && <div style={{ fontSize: '11px', color: '#4ade80', fontWeight: 700, marginLeft: 'auto' }}>✓ Salvat</div>}
                         </div>
 
                         {/* Absente */}
                         <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '12px', padding: '12px 14px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                          <div style={{ fontSize: '11px', color: '#475569', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '10px' }}>Absențe</div>
+                          <div style={{ fontSize: '11px', color: '#475569', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '10px' }}>Absențe · Sem {activeSem}</div>
                           <div style={{ display: 'flex', gap: '16px' }}>
                             {([['absMot','Motivate','#4ade80','rgba(34,197,94,0.15)','rgba(34,197,94,0.3)'],
                               ['absNemot','Nemotivate','#f87171','rgba(239,68,68,0.15)','rgba(239,68,68,0.3)']] as const).map(([field, label, color, bg, bdr]) => (
                               <div key={field} style={{ flex: 1, textAlign: 'center' }}>
                                 <div style={{ fontSize: '11px', marginBottom: '6px', color }}>{label}</div>
                                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                                  <button onClick={() => updateEntry(s.nr, { [field]: Math.max(0, e[field] - 1) })}
+                                  <button onClick={() => updateEntry(s.nr, e => ({ ...e, [sk]: { ...e[sk], [field]: Math.max(0, semData[field]-1) } }))}
                                     style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', width: 30, height: 30, cursor: 'pointer', color: '#94a3b8', fontSize: '16px', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>−</button>
-                                  <span style={{ fontSize: '22px', fontWeight: 800, color, minWidth: '32px', textAlign: 'center' }}>{e[field]}</span>
-                                  <button onClick={() => updateEntry(s.nr, { [field]: e[field] + 1 })}
+                                  <span style={{ fontSize: '22px', fontWeight: 800, color, minWidth: '32px', textAlign: 'center' }}>{semData[field]}</span>
+                                  <button onClick={() => updateEntry(s.nr, e => ({ ...e, [sk]: { ...e[sk], [field]: semData[field]+1 } }))}
                                     style={{ background: bg, border: `1px solid ${bdr}`, borderRadius: '8px', width: 30, height: 30, cursor: 'pointer', color, fontSize: '16px', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
                                 </div>
                               </div>
@@ -556,21 +656,18 @@ export default function ProfesoriPage() {
                         </div>
 
                         {/* Observatii */}
-                        <textarea
-                          placeholder="Observații (comportament, participare...)"
-                          value={e.observatii}
-                          onChange={ev => updateEntry(s.nr, { observatii: ev.target.value })}
-                          rows={2}
-                          style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.6, fontSize: '12px' }}
-                        />
+                        <textarea placeholder="Observații (comportament, participare...)"
+                          value={entry.obs}
+                          onChange={ev => updateEntry(s.nr, e => ({ ...e, obs: ev.target.value }))}
+                          rows={2} style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.6, fontSize: '12px' }} />
                       </div>
-                    )}
+                      )
+                    })()}
                   </div>
                 )
               })}
             </div>
-          </>
-          )
+          </>)
         })()}
 
         <button onClick={() => { setView('login'); setEmail(''); setPassword('') }}
