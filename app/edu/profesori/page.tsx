@@ -35,9 +35,14 @@ export default function ProfesoriPage() {
   // Catalog
   const [materiiProf, setMateriiProf] = useState<string[]>([])
   const [materie, setMaterie] = useState('')
-  const [clase, setClase] = useState<ClasaConf[]>([])
-  const [clasa, setClasa] = useState('')
+  // Per-subject class lists and active class
+  const [clasePerMaterie, setClasePerMaterie] = useState<Record<string, ClasaConf[]>>({})
+  const [clasaPerMaterie, setClasaPerMaterie] = useState<Record<string, string>>({})
   const [idx, setIdx] = useState(0)
+
+  // Derived: current subject's classes and active class
+  const clase = clasePerMaterie[materie] || []
+  const clasa = clasaPerMaterie[materie] || ''
 
   // Add class panel
   const [adaugaClasaOpen, setAdaugaClasaOpen] = useState(false)
@@ -64,7 +69,19 @@ export default function ProfesoriPage() {
       const pm = localStorage.getItem('prof_materii')
       if (pm) setMateriiSelectate(JSON.parse(pm))
       const pcl = localStorage.getItem('prof_clase')
-      if (pcl) setClase(JSON.parse(pcl))
+      if (pcl) {
+        const parsed = JSON.parse(pcl)
+        // New format: Record<materie, ClasaConf[]>; legacy: ClasaConf[]
+        if (Array.isArray(parsed)) {
+          // Legacy: migrate to first subject if possible
+          const materii: string[] = pm ? JSON.parse(pm) : []
+          if (materii.length > 0) setClasePerMaterie({ [materii[0]]: parsed })
+        } else {
+          setClasePerMaterie(parsed)
+        }
+      }
+      const pca = localStorage.getItem('prof_clasa_activa')
+      if (pca) setClasaPerMaterie(JSON.parse(pca))
       // Build map of all diriginte classes → student lists
       const dirClaseRaw = localStorage.getItem('dir_clase')
       const map: Record<string, {nr:string;nume:string}[]> = {}
@@ -100,9 +117,19 @@ export default function ProfesoriPage() {
 
   useEffect(() => { if (hydrated) localStorage.setItem('prof_catalogs', JSON.stringify(profCatalogs)) }, [profCatalogs, hydrated])
 
-  function saveClase(cl: ClasaConf[]) {
-    setClase(cl)
-    localStorage.setItem('prof_clase', JSON.stringify(cl))
+  function saveClase(mat: string, cl: ClasaConf[]) {
+    setClasePerMaterie(prev => {
+      const updated = { ...prev, [mat]: cl }
+      localStorage.setItem('prof_clase', JSON.stringify(updated))
+      return updated
+    })
+  }
+  function setClasa(c: string) {
+    setClasaPerMaterie(prev => {
+      const updated = { ...prev, [materie]: c }
+      localStorage.setItem('prof_clasa_activa', JSON.stringify(updated))
+      return updated
+    })
   }
   function saveMaterii(m: string[]) {
     setMateriiProf(m)
@@ -148,8 +175,9 @@ export default function ProfesoriPage() {
       setLoginErr('Email sau parolă incorectă.'); return
     }
     saveMaterii(materiiSelectate)
-    setMaterie(materiiSelectate[0])
-    if (clase.length > 0) setClasa(clase[0].nume)
+    const primaMaterie = materiiSelectate[0]
+    setMaterie(primaMaterie)
+    setIdx(0)
     setView('catalog')
   }
 
@@ -159,7 +187,7 @@ export default function ProfesoriPage() {
     if (clase.find(c => c.nume === numeClasa)) { setClasa(numeClasa); setIdx(0); setAdaugaClasaOpen(false); return }
     const dirCount = dirStudentsMap[numeClasa]?.length || nrEleviNou
     const updated = [...clase, { nume: numeClasa, nrElevi: dirCount }]
-    saveClase(updated)
+    saveClase(materie, updated)
     setClasa(numeClasa)
     setIdx(0)
     setAdaugaClasaOpen(false)
@@ -258,7 +286,7 @@ export default function ProfesoriPage() {
         <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '16px', overflow: 'hidden' }}>
           <div style={{ display: 'flex', overflowX: 'auto', borderBottom: '1px solid rgba(255,255,255,0.06)', alignItems: 'stretch' }}>
             {materiiProf.map(m => (
-              <button key={m} onClick={() => { setMaterie(m); setIdx(0) }}
+              <button key={m} onClick={() => { setMaterie(m); setIdx(0); setAdaugaClasaOpen(false) }}
                 style={{ flex: '0 0 auto', background: 'none', border: 'none', borderBottom: `2px solid ${m === materie ? '#f97316' : 'transparent'}`, padding: '11px 15px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: m === materie ? 700 : 400, color: m === materie ? '#fb923c' : '#475569', whiteSpace: 'nowrap', transition: 'all 0.15s' }}>
                 {m}
               </button>
@@ -274,23 +302,23 @@ export default function ProfesoriPage() {
               <div style={{ maxHeight: '100px', overflowY: 'auto', display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '8px' }}>
                 {MATERII_LISTA.filter(m => !materiiProf.includes(m)).map(m => (
                   <button key={m} type="button"
-                    onClick={() => { const u = [...materiiProf, m]; saveMaterii(u); setMaterie(m); setAdaugaMaterieOpen(false) }}
+                    onClick={() => { const u = [...materiiProf, m]; saveMaterii(u); setMaterie(m); setIdx(0); setAdaugaMaterieOpen(false) }}
                     style={{ background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.2)', borderRadius: '8px', padding: '4px 10px', fontSize: '11px', color: '#fb923c', cursor: 'pointer', fontFamily: 'inherit' }}>{m}</button>
                 ))}
               </div>
               <div style={{ display: 'flex', gap: '8px' }}>
                 <input type="text" placeholder="Altă materie..." value={nouaMaterie} onChange={e => setNouaMaterie(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter' && nouaMaterie.trim()) { const u=[...materiiProf,nouaMaterie.trim()]; saveMaterii(u); setMaterie(nouaMaterie.trim()); setAdaugaMaterieOpen(false); setNouaMaterie('') } }}
+                  onKeyDown={e => { if (e.key === 'Enter' && nouaMaterie.trim()) { const u=[...materiiProf,nouaMaterie.trim()]; saveMaterii(u); setMaterie(nouaMaterie.trim()); setIdx(0); setAdaugaMaterieOpen(false); setNouaMaterie('') } }}
                   autoFocus style={{ ...inputStyle, flex: 1, padding: '7px 12px', fontSize: '12px' }} />
-                <button onClick={() => { if (!nouaMaterie.trim()) return; const u=[...materiiProf,nouaMaterie.trim()]; saveMaterii(u); setMaterie(nouaMaterie.trim()); setAdaugaMaterieOpen(false); setNouaMaterie('') }}
+                <button onClick={() => { if (!nouaMaterie.trim()) return; const u=[...materiiProf,nouaMaterie.trim()]; saveMaterii(u); setMaterie(nouaMaterie.trim()); setIdx(0); setAdaugaMaterieOpen(false); setNouaMaterie('') }}
                   style={{ ...btnOrange, padding: '0 14px', fontSize: '13px', boxShadow: 'none' }}>✓</button>
               </div>
             </div>
           )}
 
-          {/* ── Scroll clase ── */}
+          {/* ── Scroll clase (per materie) ── */}
           <div style={{ padding: '10px 14px', borderBottom: clase.length > 0 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
-            <div style={{ fontSize: '10px', color: '#334155', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>Clasele tale</div>
+            <div style={{ fontSize: '10px', color: '#334155', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>Clasele la {materie}</div>
             <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '4px', alignItems: 'center' }}>
               {clase.map(c => (
                 <button key={c.nume} onClick={() => { setClasa(c.nume); setIdx(0) }}
