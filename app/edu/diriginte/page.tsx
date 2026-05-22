@@ -1057,25 +1057,30 @@ export default function DirigintePage() {
                   const [idx, setIdx] = [catalogIdx, setCatalogIdx]
                   const c = elevi[idx]
                   const entry = c ? getCatalogEntry(c.nr) : null
-                  const medieNote = c && modulClasa.length > 0
-                    ? (() => { const vals = modulClasa.filter(m => entry!.note[m]); return vals.length ? vals.reduce((s,m) => s + parseFloat(entry!.note[m]||'0'), 0) / vals.length : null })()
-                    : null
+
+                  // All subjects: teacher subjects (from prof_catalogs) + diriginte modules not already in teacher list
+                  const profPentruClasa = profCatalogs[nrClasa] || {}
+                  const materiiProf = Object.keys(profPentruClasa)
+                  const materiiDiriginte = modulClasa.filter(m => !materiiProf.includes(m))
+                  const toateMaterii = [...materiiProf, ...materiiDiriginte]
+
+                  // Overall average across all subjects with data
+                  const medieGenerala = (() => {
+                    if (!c || !entry) return null
+                    const vals: number[] = []
+                    materiiProf.forEach(m => { const pe = profPentruClasa[m]?.[c.nr]; if (pe?.nota) vals.push(parseFloat(pe.nota)) })
+                    materiiDiriginte.forEach(m => { if (entry.note[m]) vals.push(parseFloat(entry.note[m])) })
+                    return vals.length ? vals.reduce((s, v) => s + v, 0) / vals.length : null
+                  })()
 
                   return (
                     <div style={{ padding: '16px' }}>
-                      {/* Status */}
-                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '14px' }}>
-                        <div style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: '6px', padding: '3px 8px', fontSize: '10px', color: '#4ade80', fontWeight: 700 }}>✅ Salvare locală funcțională</div>
-                        <div style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: '6px', padding: '3px 8px', fontSize: '10px', color: '#fbbf24', fontWeight: 700 }}>⚠️ Parțial — doar diriginte, nu profesori materie</div>
-                        <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '6px', padding: '3px 8px', fontSize: '10px', color: '#f87171', fontWeight: 700 }}>🔴 Fără conexiune SIIIR</div>
-                      </div>
-
                       {/* Import Excel */}
                       <label style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(99,102,241,0.08)', border: '1px dashed rgba(99,102,241,0.3)', borderRadius: '10px', padding: '10px 14px', cursor: 'pointer', marginBottom: '14px' }}>
                         <span style={{ fontSize: '16px' }}>📂</span>
                         <div style={{ flex: 1 }}>
                           <div style={{ fontSize: '12px', fontWeight: 700, color: '#a5b4fc' }}>Importă Excel / CSV</div>
-                          <div style={{ fontSize: '10px', color: '#475569' }}>Coloane: Nume, {modulClasa.join(', ')}{modulClasa.length ? ', ' : ''}Abs.Motivate, Abs.Nemotivate, Observatii</div>
+                          <div style={{ fontSize: '10px', color: '#475569' }}>Coloane: Nume, {toateMaterii.join(', ')}{toateMaterii.length ? ', ' : ''}Abs.Motivate, Abs.Nemotivate</div>
                         </div>
                         {importStatus && <span style={{ fontSize: '11px', color: importStatus.includes('✅') ? '#4ade80' : '#f87171', fontWeight: 700 }}>{importStatus}</span>}
                         <input type="file" accept=".xlsx,.xls,.csv" style={{ display: 'none' }} onChange={handleImportExcel} />
@@ -1091,7 +1096,10 @@ export default function DirigintePage() {
                               style={{ background: idx === 0 ? 'rgba(255,255,255,0.03)' : 'rgba(99,102,241,0.15)', border: `1px solid ${idx === 0 ? 'rgba(255,255,255,0.06)' : 'rgba(99,102,241,0.4)'}`, borderRadius: '10px', width: 40, height: 40, cursor: idx === 0 ? 'not-allowed' : 'pointer', color: idx === 0 ? '#334155' : '#a5b4fc', fontSize: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>←</button>
                             <div style={{ flex: 1, textAlign: 'center' }}>
                               <div style={{ fontSize: '18px', fontWeight: 800, color: '#f1f5f9' }}>{c?.nr}. {c?.nume}</div>
-                              <div style={{ fontSize: '11px', color: '#475569', marginTop: '2px' }}>Elev {idx + 1} din {elevi.length}</div>
+                              <div style={{ fontSize: '11px', color: '#475569', marginTop: '2px' }}>
+                                Elev {idx + 1} din {elevi.length}
+                                {medieGenerala !== null && <span style={{ marginLeft: '8px', fontWeight: 700, color: medieGenerala >= 5 ? '#4ade80' : '#f87171' }}>· Medie: {medieGenerala.toFixed(2)}</span>}
+                              </div>
                             </div>
                             <button onClick={() => setIdx(Math.min(elevi.length - 1, idx + 1))} disabled={idx === elevi.length - 1}
                               style={{ background: idx === elevi.length - 1 ? 'rgba(255,255,255,0.03)' : 'rgba(99,102,241,0.15)', border: `1px solid ${idx === elevi.length - 1 ? 'rgba(255,255,255,0.06)' : 'rgba(99,102,241,0.4)'}`, borderRadius: '10px', width: 40, height: 40, cursor: idx === elevi.length - 1 ? 'not-allowed' : 'pointer', color: idx === elevi.length - 1 ? '#334155' : '#a5b4fc', fontSize: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>→</button>
@@ -1099,24 +1107,51 @@ export default function DirigintePage() {
 
                           {entry && (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                              {/* Note */}
-                              {modulClasa.length > 0 && (
+
+                              {/* Toate materiile — profesori (read-only) + diriginte (editabile) */}
+                              {toateMaterii.length > 0 && (
                                 <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '12px', padding: '14px', border: '1px solid rgba(255,255,255,0.06)' }}>
-                                  <div style={{ fontSize: '11px', color: '#475569', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '10px', display: 'flex', justifyContent: 'space-between' }}>
-                                    <span>Note</span>
-                                    {medieNote !== null && <span style={{ color: medieNote >= 5 ? '#4ade80' : '#f87171', fontWeight: 800 }}>Medie: {medieNote.toFixed(2)}</span>}
-                                  </div>
-                                  <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                                    {modulClasa.map(m => (
-                                      <div key={m} style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: '1', minWidth: '90px' }}>
-                                        <div style={{ fontSize: '10px', color: '#475569' }}>{m.replace('BAC ','').replace('Capacitate ','')}</div>
-                                        <input type="number" min="1" max="10" placeholder="—"
-                                          value={entry.note[m] || ''}
-                                          onChange={e => updateCatalog(c.nr, { note: { ...entry.note, [m]: e.target.value } })}
-                                          style={{ ...inputStyle, padding: '8px', fontSize: '20px', fontWeight: 800, textAlign: 'center', color: entry.note[m] ? (parseFloat(entry.note[m]) < 5 ? '#f87171' : '#4ade80') : '#475569' }}
-                                        />
-                                      </div>
-                                    ))}
+                                  <div style={{ fontSize: '11px', color: '#475569', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '12px' }}>Note materii</div>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                    {/* Teacher subjects — read-only */}
+                                    {materiiProf.map(m => {
+                                      const pe = profPentruClasa[m]?.[c.nr]
+                                      const nota = pe?.nota ? parseFloat(pe.nota) : null
+                                      return (
+                                        <div key={m} style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(249,115,22,0.04)', border: '1px solid rgba(249,115,22,0.15)', borderRadius: '10px', padding: '10px 12px' }}>
+                                          <div style={{ flex: 1, minWidth: 0 }}>
+                                            <div style={{ fontSize: '12px', fontWeight: 700, color: '#f1f5f9' }}>{m}</div>
+                                            <div style={{ fontSize: '10px', color: '#475569', marginTop: '1px' }}>
+                                              Profesor
+                                              {pe?.absMot ? <span style={{ color: '#4ade80', marginLeft: '6px' }}>{pe.absMot} abs.mot.</span> : null}
+                                              {pe?.absNemot ? <span style={{ color: '#f87171', marginLeft: '6px' }}>{pe.absNemot} abs.nemot.</span> : null}
+                                            </div>
+                                            {pe?.observatii && <div style={{ fontSize: '10px', color: '#475569', fontStyle: 'italic', marginTop: '2px' }}>{pe.observatii}</div>}
+                                          </div>
+                                          <div style={{ fontSize: '26px', fontWeight: 900, color: nota === null ? '#334155' : nota < 5 ? '#f87171' : nota < 7 ? '#fbbf24' : '#4ade80', flexShrink: 0, minWidth: '36px', textAlign: 'center' }}>
+                                            {pe?.nota || '—'}
+                                          </div>
+                                        </div>
+                                      )
+                                    })}
+                                    {/* Diriginte modules — editable */}
+                                    {materiiDiriginte.map(m => {
+                                      const val = entry.note[m] || ''
+                                      const n = val ? parseFloat(val) : null
+                                      return (
+                                        <div key={m} style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(99,102,241,0.04)', border: '1px solid rgba(99,102,241,0.15)', borderRadius: '10px', padding: '10px 12px' }}>
+                                          <div style={{ flex: 1, minWidth: 0 }}>
+                                            <div style={{ fontSize: '12px', fontWeight: 700, color: '#f1f5f9' }}>{m}</div>
+                                            <div style={{ fontSize: '10px', color: '#475569', marginTop: '1px' }}>Diriginte · editabil</div>
+                                          </div>
+                                          <input type="number" min="1" max="10" placeholder="—"
+                                            value={val}
+                                            onChange={e => updateCatalog(c.nr, { note: { ...entry.note, [m]: e.target.value } })}
+                                            style={{ ...inputStyle, width: '64px', padding: '6px', fontSize: '22px', fontWeight: 900, textAlign: 'center', color: n === null ? '#475569' : n < 5 ? '#f87171' : n < 7 ? '#fbbf24' : '#4ade80' }}
+                                          />
+                                        </div>
+                                      )
+                                    })}
                                   </div>
                                 </div>
                               )}
@@ -1151,40 +1186,6 @@ export default function DirigintePage() {
                                   style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.6, fontSize: '13px' }}
                                 />
                               </div>
-
-                              {/* Note profesori materie */}
-                              {(() => {
-                                const clasaDir = nrClasa
-                                const profPentruClasa = profCatalogs[clasaDir] || {}
-                                const materiiCuDate = Object.keys(profPentruClasa).filter(m => profPentruClasa[m]?.[c.nr])
-                                if (materiiCuDate.length === 0) return null
-                                return (
-                                  <div style={{ background: 'rgba(249,115,22,0.04)', border: '1px solid rgba(249,115,22,0.2)', borderRadius: '12px', padding: '14px' }}>
-                                    <div style={{ fontSize: '11px', color: '#fb923c', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '10px' }}>📋 Note profesori materie</div>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                      {materiiCuDate.map(m => {
-                                        const pe = profPentruClasa[m][c.nr]
-                                        const val = pe.nota ? parseFloat(pe.nota) : null
-                                        return (
-                                          <div key={m} style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', padding: '8px 12px' }}>
-                                            <div style={{ flex: 1 }}>
-                                              <div style={{ fontSize: '12px', fontWeight: 700, color: '#f1f5f9' }}>{m}</div>
-                                              {pe.observatii && <div style={{ fontSize: '11px', color: '#475569', marginTop: '2px', fontStyle: 'italic' }}>{pe.observatii}</div>}
-                                            </div>
-                                            {val !== null && <div style={{ fontSize: '22px', fontWeight: 900, color: val < 5 ? '#f87171' : val < 7 ? '#fbbf24' : '#4ade80', flexShrink: 0 }}>{pe.nota}</div>}
-                                            {(pe.absMot > 0 || pe.absNemot > 0) && (
-                                              <div style={{ fontSize: '10px', color: '#475569', flexShrink: 0, textAlign: 'right' }}>
-                                                {pe.absMot > 0 && <div style={{ color: '#4ade80' }}>{pe.absMot} mot.</div>}
-                                                {pe.absNemot > 0 && <div style={{ color: '#f87171' }}>{pe.absNemot} nemot.</div>}
-                                              </div>
-                                            )}
-                                          </div>
-                                        )
-                                      })}
-                                    </div>
-                                  </div>
-                                )
-                              })()}
 
                               {/* Puncte de navigare */}
                               <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', paddingTop: '4px' }}>
