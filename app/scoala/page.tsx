@@ -48,9 +48,9 @@ export default function PortalScoala() {
     {
       id: 'parinti-elevi',
       icon: '👨‍👩‍👧‍👦',
-      tag: 'Comunitate',
-      title: 'Părinți și Elevi',
-      desc: 'Comunicare directă cu școala, activități, rezultate și resurse pentru familie.',
+      tag: 'Părinți',
+      title: 'Părinți',
+      desc: 'Vezi notele și absențele copilului tău în timp real, direct de pe telefon sau calculator.',
       color: '#64748b',
       route: '',
       inactiv: true,
