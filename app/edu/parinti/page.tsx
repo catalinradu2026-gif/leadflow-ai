@@ -233,8 +233,9 @@ export default function ParintiPage() {
         {/* Note profesori materie */}
         {(() => {
           if (!copil) return null
-          const materii = Object.keys(profCatalogs)
-          const materiiCuDate = materii.filter(m => profCatalogs[m]?.[copil.nr])
+          const clsKey = localStorage.getItem('dir_clasa') || ''
+          const profPentruClasa = profCatalogs[clsKey] || {}
+          const materiiCuDate = Object.keys(profPentruClasa).filter(m => profPentruClasa[m]?.[copil.nr])
           if (materiiCuDate.length === 0) return null
           return (
             <div style={{ background: 'rgba(249,115,22,0.04)', border: '1px solid rgba(249,115,22,0.2)', borderRadius: '16px', padding: '18px 20px' }}>
@@ -243,7 +244,7 @@ export default function ParintiPage() {
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {materiiCuDate.map(m => {
-                  const pe = profCatalogs[m][copil.nr]
+                  const pe = profPentruClasa[m][copil.nr]
                   const val = pe.nota ? parseFloat(pe.nota) : null
                   return (
                     <div key={m} style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'rgba(255,255,255,0.03)', borderRadius: '12px', padding: '12px 14px' }}>

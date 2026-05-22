@@ -1026,15 +1026,16 @@ export default function DirigintePage() {
 
                               {/* Note profesori materie */}
                               {(() => {
-                                const materii = Object.keys(profCatalogs)
-                                const materiiCuDate = materii.filter(m => profCatalogs[m]?.[c.nr])
+                                const clasaDir = nrClasa
+                                const profPentruClasa = profCatalogs[clasaDir] || {}
+                                const materiiCuDate = Object.keys(profPentruClasa).filter(m => profPentruClasa[m]?.[c.nr])
                                 if (materiiCuDate.length === 0) return null
                                 return (
                                   <div style={{ background: 'rgba(249,115,22,0.04)', border: '1px solid rgba(249,115,22,0.2)', borderRadius: '12px', padding: '14px' }}>
                                     <div style={{ fontSize: '11px', color: '#fb923c', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '10px' }}>📋 Note profesori materie</div>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                       {materiiCuDate.map(m => {
-                                        const pe = profCatalogs[m][c.nr]
+                                        const pe = profPentruClasa[m][c.nr]
                                         const val = pe.nota ? parseFloat(pe.nota) : null
                                         return (
                                           <div key={m} style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', padding: '8px 12px' }}>
