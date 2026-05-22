@@ -26,6 +26,7 @@ export async function POST(req: NextRequest) {
       access: 'public',
       addRandomSuffix: false,
       contentType: 'application/json',
+      allowOverwrite: true,
     })
     return NextResponse.json({ ok: true })
   } catch {
