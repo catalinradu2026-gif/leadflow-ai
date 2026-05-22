@@ -345,8 +345,8 @@ export default function DirigintePage() {
             )}
           </div>
 
-          {/* Card EDU Digital */}
-          <button
+          {/* Card EDU Digital — apare doar dupa activarea codului */}
+          {codActiv && <button
             onClick={() => router.push('/edu')}
             style={{
               width: '100%',
@@ -389,7 +389,7 @@ export default function DirigintePage() {
               </div>
               <div style={{ color: '#14b8a6', fontSize: '20px', flexShrink: 0 }}>→</div>
             </div>
-          </button>
+          </button>}
 
           {/* Info */}
           <div style={{ fontSize: '12px', color: '#1e293b', textAlign: 'center', lineHeight: 1.6 }}>
