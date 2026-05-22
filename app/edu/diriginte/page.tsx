@@ -383,6 +383,7 @@ export default function DirigintePage() {
               <button
                 onClick={() => {
                   navigator.clipboard.writeText(demoDashboard.cod)
+                  setCodIntro(demoDashboard.cod)
                   setCodCopiat(true)
                   setTimeout(() => setCodCopiat(false), 2000)
                 }}
