@@ -65,6 +65,8 @@ export default function ProfesoriPage() {
   const [editingNota, setEditingNota] = useState<{elevNr:string;sem:1|2;id:string;val:string}|null>(null)
   const [addingNotaNr, setAddingNotaNr] = useState<string|null>(null)
   const [novaNotaVal, setNovaNotaVal] = useState('')
+  const [unlockSem, setUnlockSem] = useState<{elevNr:string;sem:1|2;pass:string;err:boolean}|null>(null)
+  const [showMateriiSelector, setShowMateriiSelector] = useState(false)
 
   // Students from diriginte, keyed by class name
   const [dirStudentsMap, setDirStudentsMap] = useState<Record<string, {nr:string;nume:string}[]>>({})
@@ -209,16 +211,15 @@ export default function ProfesoriPage() {
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
     if (!email || !password) { setLoginErr('Completați email și parolă.'); return }
-    if (materiiSelectate.length === 0) { setLoginErr('Selectați cel puțin o materie predată.'); return }
     setLogging(true); setLoginErr('')
     await new Promise(r => setTimeout(r, 800))
     setLogging(false)
     if (email.trim().toLowerCase() !== 'contact@aicraiova.ro' || password !== 'ARACIP') {
       setLoginErr('Email sau parolă incorectă.'); return
     }
-    saveMaterii(materiiSelectate)
-    const primaMaterie = materiiSelectate[0]
-    setMaterie(primaMaterie)
+    const materii = materiiSelectate.length > 0 ? materiiSelectate : (['Materie neconfigurată'] as string[])
+    saveMaterii(materii)
+    setMaterie(materii[0])
     setSelectedNr(null)
     setView('catalog')
   }
@@ -262,40 +263,55 @@ export default function ProfesoriPage() {
           <input type="email" placeholder="Email școlar" value={email} onChange={e => setEmail(e.target.value)} style={inputStyle} autoComplete="email" />
           <input type="password" placeholder="Parolă" value={password} onChange={e => setPassword(e.target.value)} style={inputStyle} autoComplete="current-password" />
 
-          <div>
-            <div style={{ fontSize: '11px', color: '#475569', fontWeight: 700, marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', justifyContent: 'space-between' }}>
-              <span>Materiile predate</span>
-              {materiiSelectate.length > 0 && <span style={{ color: '#f97316' }}>{materiiSelectate.length} selectate</span>}
-            </div>
-            {materiiSelectate.length > 0 && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '10px' }}>
+          {/* Materii salvate — quick login */}
+          {materiiSelectate.length > 0 && !showMateriiSelector ? (
+            <div style={{ background: 'rgba(249,115,22,0.06)', border: '1px solid rgba(249,115,22,0.2)', borderRadius: '12px', padding: '10px 14px' }}>
+              <div style={{ fontSize: '11px', color: '#fb923c', fontWeight: 700, marginBottom: '7px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>Materii salvate</span>
+                <button type="button" onClick={() => setShowMateriiSelector(true)} style={{ background: 'none', border: 'none', color: '#475569', fontSize: '11px', cursor: 'pointer', fontFamily: 'inherit' }}>Schimbă →</button>
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
                 {materiiSelectate.map(m => (
-                  <div key={m} style={{ display: 'flex', alignItems: 'center', gap: '5px', background: 'rgba(249,115,22,0.2)', border: '1px solid rgba(249,115,22,0.5)', borderRadius: '20px', padding: '4px 10px', fontSize: '12px', fontWeight: 700, color: '#fb923c' }}>
-                    {m}
-                    <button type="button" onClick={() => toggleMaterie(m)} style={{ background: 'none', border: 'none', color: '#fb923c', cursor: 'pointer', fontSize: '14px', lineHeight: 1, padding: 0 }}>×</button>
-                  </div>
+                  <span key={m} style={{ background: 'rgba(249,115,22,0.15)', border: '1px solid rgba(249,115,22,0.35)', borderRadius: '16px', padding: '3px 10px', fontSize: '12px', fontWeight: 700, color: '#fb923c' }}>{m}</span>
                 ))}
               </div>
-            )}
-            <div style={{ maxHeight: '140px', overflowY: 'auto', display: 'flex', flexWrap: 'wrap', gap: '6px', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '10px', padding: '10px' }}>
-              {MATERII_LISTA.map(m => {
-                const sel = materiiSelectate.includes(m)
-                return (
-                  <button key={m} type="button" onClick={() => toggleMaterie(m)}
-                    style={{ background: sel ? 'rgba(249,115,22,0.2)' : 'rgba(255,255,255,0.04)', border: `1px solid ${sel ? 'rgba(249,115,22,0.55)' : 'rgba(255,255,255,0.09)'}`, borderRadius: '8px', padding: '5px 11px', fontSize: '12px', fontWeight: sel ? 700 : 400, color: sel ? '#fb923c' : '#475569', cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s' }}>
-                    {sel ? '✓ ' : ''}{m}
-                  </button>
-                )
-              })}
             </div>
-            <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
-              <input type="text" placeholder="Altă materie..." value={altaMaterie} onChange={e => setAltaMaterie(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); adaugaAltaMaterie() } }}
-                style={{ ...inputStyle, flex: 1, padding: '8px 12px', fontSize: '12px' }} />
-              <button type="button" onClick={adaugaAltaMaterie}
-                style={{ background: altaMaterie.trim() ? 'rgba(249,115,22,0.2)' : 'rgba(255,255,255,0.04)', border: `1px solid ${altaMaterie.trim() ? 'rgba(249,115,22,0.4)' : 'rgba(255,255,255,0.1)'}`, borderRadius: '10px', padding: '0 14px', fontSize: '18px', cursor: 'pointer', color: altaMaterie.trim() ? '#fb923c' : '#334155', fontFamily: 'inherit' }}>+</button>
+          ) : (
+            <div>
+              <div style={{ fontSize: '11px', color: '#475569', fontWeight: 700, marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', justifyContent: 'space-between' }}>
+                <span>Materiile predate</span>
+                {materiiSelectate.length > 0 && <span style={{ color: '#f97316' }}>{materiiSelectate.length} selectate</span>}
+              </div>
+              {materiiSelectate.length > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '10px' }}>
+                  {materiiSelectate.map(m => (
+                    <div key={m} style={{ display: 'flex', alignItems: 'center', gap: '5px', background: 'rgba(249,115,22,0.2)', border: '1px solid rgba(249,115,22,0.5)', borderRadius: '20px', padding: '4px 10px', fontSize: '12px', fontWeight: 700, color: '#fb923c' }}>
+                      {m}
+                      <button type="button" onClick={() => toggleMaterie(m)} style={{ background: 'none', border: 'none', color: '#fb923c', cursor: 'pointer', fontSize: '14px', lineHeight: 1, padding: 0 }}>×</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div style={{ maxHeight: '140px', overflowY: 'auto', display: 'flex', flexWrap: 'wrap', gap: '6px', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '10px', padding: '10px' }}>
+                {MATERII_LISTA.map(m => {
+                  const sel = materiiSelectate.includes(m)
+                  return (
+                    <button key={m} type="button" onClick={() => toggleMaterie(m)}
+                      style={{ background: sel ? 'rgba(249,115,22,0.2)' : 'rgba(255,255,255,0.04)', border: `1px solid ${sel ? 'rgba(249,115,22,0.55)' : 'rgba(255,255,255,0.09)'}`, borderRadius: '8px', padding: '5px 11px', fontSize: '12px', fontWeight: sel ? 700 : 400, color: sel ? '#fb923c' : '#475569', cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s' }}>
+                      {sel ? '✓ ' : ''}{m}
+                    </button>
+                  )
+                })}
+              </div>
+              <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                <input type="text" placeholder="Altă materie..." value={altaMaterie} onChange={e => setAltaMaterie(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); adaugaAltaMaterie() } }}
+                  style={{ ...inputStyle, flex: 1, padding: '8px 12px', fontSize: '12px' }} />
+                <button type="button" onClick={adaugaAltaMaterie}
+                  style={{ background: altaMaterie.trim() ? 'rgba(249,115,22,0.2)' : 'rgba(255,255,255,0.04)', border: `1px solid ${altaMaterie.trim() ? 'rgba(249,115,22,0.4)' : 'rgba(255,255,255,0.1)'}`, borderRadius: '10px', padding: '0 14px', fontSize: '18px', cursor: 'pointer', color: altaMaterie.trim() ? '#fb923c' : '#334155', fontFamily: 'inherit' }}>+</button>
+              </div>
             </div>
-          </div>
+          )}
 
           {loginErr && <div style={{ fontSize: '12px', color: '#ef4444', textAlign: 'center' }}>{loginErr}</div>}
           <button type="submit" disabled={logging} style={btnOrange}>{logging ? 'Se verifică...' : 'Intră în cont →'}</button>
@@ -553,12 +569,57 @@ export default function ProfesoriPage() {
                             const sd = entry[sk2]
                             const med = calcMedie(sd.note)
                             const isCur = activeSem === i+1
+                            const isUnlocking = unlockSem?.elevNr === s.nr && unlockSem?.sem === i+1
                             return (
-                              <button key={sk2} onClick={() => setActiveSem((i+1) as 1|2)}
-                                style={{ flex: 1, background: isCur ? 'rgba(249,115,22,0.15)' : 'rgba(255,255,255,0.03)', border: `1px solid ${isCur ? 'rgba(249,115,22,0.5)' : 'rgba(255,255,255,0.08)'}`, borderRadius: '10px', padding: '8px', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'center' }}>
-                                <div style={{ fontSize: '11px', fontWeight: 700, color: isCur ? '#fb923c' : '#475569' }}>Sem {i+1} {sd.inchis ? '🔒' : ''}</div>
-                                {med !== null && <div style={{ fontSize: '13px', fontWeight: 800, color: isCur ? '#fb923c' : '#64748b' }}>Media {med.toFixed(2)}</div>}
-                              </button>
+                              <div key={sk2} style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                <button onClick={() => {
+                                  if (sd.inchis) {
+                                    setUnlockSem({ elevNr: s.nr, sem: (i+1) as 1|2, pass: '', err: false })
+                                    setActiveSem((i+1) as 1|2)
+                                  } else {
+                                    setActiveSem((i+1) as 1|2)
+                                    setUnlockSem(null)
+                                  }
+                                }}
+                                  style={{ width: '100%', background: isCur ? (sd.inchis ? 'rgba(100,116,139,0.15)' : 'rgba(249,115,22,0.15)') : 'rgba(255,255,255,0.03)', border: `1px solid ${isCur ? (sd.inchis ? 'rgba(100,116,139,0.4)' : 'rgba(249,115,22,0.5)') : 'rgba(255,255,255,0.08)'}`, borderRadius: '10px', padding: '8px', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'center' }}>
+                                  <div style={{ fontSize: '11px', fontWeight: 700, color: isCur ? (sd.inchis ? '#94a3b8' : '#fb923c') : '#475569' }}>Sem {i+1} {sd.inchis ? '🔒' : ''}</div>
+                                  {med !== null && <div style={{ fontSize: '13px', fontWeight: 800, color: isCur ? (sd.inchis ? '#94a3b8' : '#fb923c') : '#64748b' }}>Media {med.toFixed(2)}</div>}
+                                </button>
+                                {/* Prompt unlock */}
+                                {isUnlocking && (
+                                  <div style={{ background: 'rgba(100,116,139,0.1)', border: '1px solid rgba(100,116,139,0.3)', borderRadius: '10px', padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                    <div style={{ fontSize: '11px', color: '#94a3b8' }}>Parolă pentru deblocare:</div>
+                                    <div style={{ display: 'flex', gap: '6px' }}>
+                                      <input autoFocus type="password" placeholder="Parolă" value={unlockSem.pass}
+                                        onChange={ev => setUnlockSem(prev => prev ? {...prev, pass: ev.target.value, err: false} : null)}
+                                        onKeyDown={ev => {
+                                          if (ev.key === 'Enter') {
+                                            if (unlockSem.pass === 'ARACIP') {
+                                              const sk3 = unlockSem.sem === 1 ? 's1' : 's2'
+                                              updateEntry(s.nr, e => ({ ...e, [sk3]: { ...e[sk3], inchis: false } }))
+                                              setUnlockSem(null)
+                                            } else {
+                                              setUnlockSem(prev => prev ? {...prev, err: true} : null)
+                                            }
+                                          }
+                                          if (ev.key === 'Escape') setUnlockSem(null)
+                                        }}
+                                        style={{ ...inputStyle, flex: 1, padding: '5px 10px', fontSize: '12px', border: `1px solid ${unlockSem.err ? '#f87171' : 'rgba(255,255,255,0.15)'}` }} />
+                                      <button onClick={() => {
+                                        if (unlockSem.pass === 'ARACIP') {
+                                          const sk3 = unlockSem.sem === 1 ? 's1' : 's2'
+                                          updateEntry(s.nr, e => ({ ...e, [sk3]: { ...e[sk3], inchis: false } }))
+                                          setUnlockSem(null)
+                                        } else {
+                                          setUnlockSem(prev => prev ? {...prev, err: true} : null)
+                                        }
+                                      }} style={{ background: 'rgba(249,115,22,0.2)', border: '1px solid rgba(249,115,22,0.4)', borderRadius: '8px', padding: '0 10px', color: '#fb923c', cursor: 'pointer', fontFamily: 'inherit', fontSize: '13px' }}>✓</button>
+                                      <button onClick={() => setUnlockSem(null)} style={{ background: 'none', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '0 8px', color: '#475569', cursor: 'pointer', fontFamily: 'inherit', fontSize: '13px' }}>✗</button>
+                                    </div>
+                                    {unlockSem.err && <div style={{ fontSize: '11px', color: '#f87171' }}>Parolă greșită</div>}
+                                  </div>
+                                )}
+                              </div>
                             )
                           })}
                         </div>
