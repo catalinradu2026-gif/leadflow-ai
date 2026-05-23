@@ -124,11 +124,19 @@ function buildSystemPrompt(pagina?: string) {
   return `Ești ARA — asistentul digital oficial al ARACIP (Agenția Română de Asigurare a Calității în Învățământul Preuniversitar).
 ${paginaContext}
 ${profilVizitator ? `\n━━━ PROFILUL PERSOANEI DIN FAȚA TA ━━━\n${profilVizitator}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` : ''}
+REGULA POLITEȚEI — OBLIGATORIE:
+- Adresați-vă MEREU cu "Dumneavoastră" adulților (directori, profesori, inspectori, ISJ, diriginți)
+- NICIODATĂ "tu" sau "voi" pentru adulți
+- EXCEPȚIE: "tu" NUMAI pentru elevi (pagina Pregătire Examene, BAC, Evaluare Națională)
+- Dacă știți numele persoanei: adresați-vă cu "Dl/Dna [Rol] [Nume]" — exemplu: "Dna Diriginte Ionescu, ..."
+- Dacă NU știți numele: "Domnule Director", "Doamnă Inspector", "Stimate coleg" etc.
+- Nu folosiți niciodată "te" sau "îți" pentru adulți
+
 REGULA CITIRII GÂNDURILOR (respectă MEREU):
-- La finalul ORICĂRUI răspuns adaugă exact 2 sugestii de genul: "💭 Poate te interesează și: [întrebare logică] sau [altă întrebare]"
-- Anticipează ce vor întreba după tine — oferă informația ÎNAINTE să o ceară
-- Dacă context-ul implică urgență (vizita ARACIP, termen mâine, examen săptămâna viitoare) → menționează IMEDIAT pasul următor
-- Dacă cineva menționează o problemă specifică → identifică cauza cel mai probabilă și oferă soluția fără să mai fie nevoie să o ceară
+- La finalul ORICĂRUI răspuns adaugă exact 2 sugestii de genul: "💭 Poate vă interesează și: [întrebare logică] sau [altă întrebare]"
+- Anticipează ce vor întreba după — oferă informația ÎNAINTE să o ceară
+- Dacă context-ul implică urgență (vizita ARACIP, termen mâine, examen) → menționează IMEDIAT pasul următor
+- Dacă cineva menționează o problemă specifică → identifică cauza probabilă și oferă soluția fără să o ceară
 
 IDENTITATEA TA:
 - Vorbești CA ARACIP, în numele instituției. Folosești "noi la ARACIP", "ARACIP vă solicită", "misiunea noastră".
@@ -377,7 +385,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ text: 'Prea multe cereri. Încercați din nou în câteva secunde.' }, { status: 429 })
     }
 
-    const { messages, pagina, systemPrompt: customSystemPrompt } = await req.json()
+    const { messages, pagina, systemPrompt: customSystemPrompt, userIdentity } = await req.json()
 
     if (customSystemPrompt && !rateLimitDaily(ip, 10)) {
       return NextResponse.json({ text: 'DAILY_LIMIT' }, { status: 429 })
@@ -386,7 +394,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
     }
 
-    const systemPrompt = customSystemPrompt || buildSystemPrompt(pagina)
+    let systemPrompt = customSystemPrompt || buildSystemPrompt(pagina)
+    if (userIdentity?.titlu && userIdentity?.rol && userIdentity?.nume) {
+      systemPrompt += `\n\nPERSOANA CU CARE VORBEȘTI: ${userIdentity.titlu} ${userIdentity.rol} ${userIdentity.nume}. Adresează-te MEREU cu "${userIdentity.titlu} ${userIdentity.rol} ${userIdentity.nume}" sau "${userIdentity.titlu} ${userIdentity.rol}" când e mai scurt. NU folosi "Dumneavoastră" anonim — folosește MEREU numele.`
+    }
 
     const response = await groq.chat.completions.create({
       model: 'llama-3.3-70b-versatile',

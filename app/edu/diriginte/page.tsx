@@ -21,6 +21,7 @@ export default function DirigintePage() {
   const [logging, setLogging] = useState(false)
 
   // Register state
+  const [regTitlu, setRegTitlu] = useState<'Dl' | 'Dna'>('Dl')
   const [regNume, setRegNume] = useState('')
   const [regScoala, setRegScoala] = useState('')
   const [regJudet, setRegJudet] = useState('')
@@ -350,6 +351,9 @@ export default function DirigintePage() {
     setRegistering(true)
     await new Promise(r => setTimeout(r, 1200))
     setRegistering(false)
+    if (regNume.trim()) {
+      try { localStorage.setItem('ara_user', JSON.stringify({ titlu: regTitlu, rol: 'Diriginte', nume: regNume.trim() })) } catch {}
+    }
     setRegDone(true)
   }
 
@@ -467,6 +471,13 @@ export default function DirigintePage() {
             Contul tău trebuie aprobat de ISJ înainte de activare.
           </p>
           <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              {(['Dl', 'Dna'] as const).map(t => (
+                <button key={t} type="button" onClick={() => setRegTitlu(t)} style={{ flex: 1, background: regTitlu === t ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.04)', border: `1px solid ${regTitlu === t ? '#22c55e' : 'rgba(255,255,255,0.1)'}`, borderRadius: '10px', padding: '10px', fontSize: '13px', color: regTitlu === t ? '#22c55e' : '#64748b', cursor: 'pointer', fontFamily: 'inherit', fontWeight: regTitlu === t ? 700 : 400 }}>
+                  {t === 'Dl' ? 'Dl. Diriginte' : 'Dna. Diriginte'}
+                </button>
+              ))}
+            </div>
             <input placeholder="Nume complet" value={regNume} onChange={e => setRegNume(e.target.value)} style={inputStyle} required />
             <select value={regTip} onChange={e => setRegTip(e.target.value)} style={selectStyle} required>
               <option value="">Tipul unității școlare</option>
