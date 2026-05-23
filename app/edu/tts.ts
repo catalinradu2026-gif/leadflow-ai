@@ -26,59 +26,100 @@ function numRo(n: number): string {
 
 export function prepareForSpeech(text: string): string {
   let s = text
-  s = s.replace(/\bAI\b/g, 'Ei Ai')
+  // Emoji și simboluri
+  s = s.replace(/[\u{1F300}-\u{1FFFF}]/gu, '')
+       .replace(/[\u{2600}-\u{26FF}]/gu, '')
+       .replace(/[\u{2700}-\u{27BF}]/gu, '')
+       .replace(/[*_~`#→←•·🔴🟡🟢]/g, '')
+       .replace(/—/g, ', ')
+  // Abrevieri românești
+  s = s.replace(/\bAI\b/g, 'Inteligență Artificială')
        .replace(/\bBAC\b/g, 'Bacalaureat')
+       .replace(/\bEN\b/g, 'Evaluarea Națională')
+       .replace(/\bARACI P\b/g, 'ARACIP')
+       .replace(/\bARACIP\b/g, 'Aracip')
+       .replace(/\bISJ\b/g, 'Inspectoratul Școlar Județean')
+       .replace(/\bPNRR\b/g, 'P N R R')
+       .replace(/\bPDI\b/g, 'Planul de Dezvoltare Instituțională')
+       .replace(/\bROI\b/g, 'Regulamentul de Ordine Interioară')
+       .replace(/\bRAE\b/g, 'Raportul de Autoevaluare')
        .replace(/\bM1\b/g, 'M unu')
        .replace(/\bM2\b/g, 'M doi')
        .replace(/\bnr\./gi, 'numărul')
        .replace(/\bpct\./gi, 'punctul')
-       .replace(/\bpg\./gi, 'pagina')
-  s = s.replace(/[\u{1F300}-\u{1FFFF}]/gu, '').replace(/[*_~`#→←•]/g, '')
+       .replace(/\bcls\.\s*/gi, 'clasa ')
+       .replace(/\b24\/7\b/g, 'douăzeci și patru din șapte')
+  // Numere
   s = s.replace(/\b(\d+)\/(\d{4})\b/g, (_, n, y) => `${numRo(parseInt(n))} din ${numRo(parseInt(y))}`)
   s = s.replace(/\b(\d{1,9})\b/g, (_, n) => numRo(parseInt(n)))
-  s = s.replace(/\s{2,}/g, ' ')
+  // Curățare finală
+  s = s.replace(/\s{2,}/g, ' ').replace(/,\s*,/g, ',')
   return s.trim()
 }
 
 export function getVoice(): SpeechSynthesisVoice | null {
   const voices = window.speechSynthesis.getVoices()
-  return voices.find(v => v.lang.startsWith('ro') && v.name.toLowerCase().includes('female'))
-    || voices.find(v => v.lang.startsWith('ro') && (v.name.includes('Ioana') || v.name.includes('Carmen') || v.name.includes('Maria')))
+  return voices.find(v => v.lang === 'ro-RO' && /ioana|carmen|maria|andrei/i.test(v.name))
+    || voices.find(v => v.lang === 'ro-RO')
     || voices.find(v => v.lang.startsWith('ro'))
+    || voices.find(v => v.lang === 'en-GB' && /female|woman/i.test(v.name))
     || voices.find(v => v.lang.startsWith('en-GB'))
     || voices[0]
     || null
 }
 
 export function splitSentences(text: string): string[] {
-  return text.split(/(?<=[.!?…])\s+|(?<=—)\s*/).map(s => s.trim()).filter(s => s.length > 0)
+  // Împarte pe punct/!/?/... și pe virgulă dacă fraza e mai lungă de 60 de caractere
+  const primary = text.split(/(?<=[.!?…])\s+/).map(s => s.trim()).filter(Boolean)
+  const result: string[] = []
+  for (const seg of primary) {
+    if (seg.length > 60 && seg.includes(',')) {
+      const parts = seg.split(/,\s+/).map(s => s.trim()).filter(Boolean)
+      result.push(...parts)
+    } else {
+      result.push(seg)
+    }
+  }
+  return result
 }
 
-export function speak(text: string, onEnd?: () => void, rate = 1.0) {
+function pauseAfter(chunk: string): number {
+  const last = chunk.slice(-1)
+  if (last === '.' || last === '!' || last === '?') return 350
+  if (last === ',') return 180
+  return 120
+}
+
+export function speak(text: string, onEnd?: () => void) {
   if (typeof window === 'undefined' || !window.speechSynthesis) return
   window.speechSynthesis.cancel()
   const clean = prepareForSpeech(text)
-  const sentences = splitSentences(clean)
-  if (sentences.length === 0) { onEnd?.(); return }
-  const voice = getVoice()
-  function makeUtt(s: string): SpeechSynthesisUtterance {
-    const u = new SpeechSynthesisUtterance(s)
-    u.lang = 'ro-RO'
-    u.rate = rate
-    u.pitch = 1.0
-    u.volume = 1
-    if (voice) u.voice = voice
-    return u
+  const chunks = splitSentences(clean)
+  if (chunks.length === 0) { onEnd?.(); return }
+  // Vocea se încarcă asincron — așteptăm dacă e nevoie
+  function doSpeak(voice: SpeechSynthesisVoice | null) {
+    let index = 0
+    function next() {
+      if (index >= chunks.length) { onEnd?.(); return }
+      const chunk = chunks[index++]
+      const u = new SpeechSynthesisUtterance(chunk)
+      u.lang = 'ro-RO'
+      u.rate = 0.92
+      u.pitch = 1.05
+      u.volume = 1
+      if (voice) u.voice = voice
+      u.onend = () => setTimeout(next, pauseAfter(chunk))
+      window.speechSynthesis.speak(u)
+    }
+    next()
   }
-  let index = 0
-  function speakNext() {
-    if (index >= sentences.length) { onEnd?.(); return }
-    const u = makeUtt(sentences[index])
-    index++
-    const lastChar = sentences[index - 1].slice(-1)
-    const pause = (lastChar === '.' || lastChar === '!' || lastChar === '?') ? 280 : 180
-    u.onend = () => setTimeout(speakNext, pause)
-    window.speechSynthesis.speak(u)
+  const voices = window.speechSynthesis.getVoices()
+  if (voices.length > 0) {
+    doSpeak(getVoice())
+  } else {
+    window.speechSynthesis.onvoiceschanged = () => {
+      window.speechSynthesis.onvoiceschanged = null
+      doSpeak(getVoice())
+    }
   }
-  speakNext()
 }
