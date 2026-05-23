@@ -103,7 +103,7 @@ export default function DirectorPage() {
   const [loginEmail, setLoginEmail] = useState('')
   const [loginPass, setLoginPass] = useState('')
   const [loginNume, setLoginNume] = useState('')
-  const [loginTitlu, setLoginTitlu] = useState<'Dl' | 'Dna'>('Dl')
+  const [loginTitlu, setLoginTitlu] = useState('Dl')
   const [loginErr, setLoginErr] = useState('')
   const [logging, setLogging] = useState(false)
   const [tab, setTab] = useState<'notificari' | 'bot' | 'chat'>('notificari')
@@ -153,14 +153,13 @@ export default function DirectorPage() {
         <h2 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px', textAlign: 'center' }}>Autentificare Director</h2>
         <p style={{ fontSize: '12px', color: '#475569', textAlign: 'center', marginBottom: '24px' }}>Acces restricționat — Director unitate școlară</p>
         <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            {(['Dl', 'Dna'] as const).map(t => (
-              <button key={t} type="button" onClick={() => setLoginTitlu(t)} style={{ flex: 1, background: loginTitlu === t ? 'rgba(5,150,105,0.2)' : 'rgba(255,255,255,0.04)', border: `1px solid ${loginTitlu === t ? '#059669' : 'rgba(255,255,255,0.1)'}`, borderRadius: '10px', padding: '10px', fontSize: '13px', color: loginTitlu === t ? '#34d399' : '#64748b', cursor: 'pointer', fontFamily: 'inherit', fontWeight: loginTitlu === t ? 700 : 400 }}>
-                {t === 'Dl' ? 'Dl. Director' : 'Dna. Director'}
-              </button>
-            ))}
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <select value={loginTitlu} onChange={e => setLoginTitlu(e.target.value)} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(5,150,105,0.3)', borderRadius: '10px', padding: '11px 10px', fontSize: '13px', color: '#34d399', outline: 'none', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0, width: '80px' }}>
+              <option value="Dl">Dl.</option>
+              <option value="Dna">Dna.</option>
+            </select>
+            <input placeholder="Prenume Nume" value={loginNume} onChange={e => setLoginNume(e.target.value)} style={{ flex: 1, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '12px 16px', fontSize: '14px', color: '#f1f5f9', outline: 'none', fontFamily: 'inherit', width: '100%', boxSizing: 'border-box' as const }} />
           </div>
-          <input placeholder="Prenume Nume (opțional)" value={loginNume} onChange={e => setLoginNume(e.target.value)} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '12px 16px', fontSize: '14px', color: '#f1f5f9', outline: 'none', fontFamily: 'inherit', width: '100%', boxSizing: 'border-box' as const }} />
           <input type="email" placeholder="Email instituțional" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '12px 16px', fontSize: '14px', color: '#f1f5f9', outline: 'none', fontFamily: 'inherit', width: '100%', boxSizing: 'border-box' as const }} />
           <input type="password" placeholder="Parolă" value={loginPass} onChange={e => setLoginPass(e.target.value)} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '12px 16px', fontSize: '14px', color: '#f1f5f9', outline: 'none', fontFamily: 'inherit', width: '100%', boxSizing: 'border-box' as const }} />
           {loginErr && <div style={{ fontSize: '12px', color: '#ef4444', textAlign: 'center' }}>{loginErr}</div>}

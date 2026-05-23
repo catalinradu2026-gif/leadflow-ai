@@ -17,11 +17,13 @@ export default function DirigintePage() {
   // Login state
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [loginTitlu, setLoginTitlu] = useState('Dl')
+  const [loginNume, setLoginNume] = useState('')
   const [loginErr, setLoginErr] = useState('')
   const [logging, setLogging] = useState(false)
 
   // Register state
-  const [regTitlu, setRegTitlu] = useState<'Dl' | 'Dna'>('Dl')
+  const [regTitlu, setRegTitlu] = useState('Dl')
   const [regNume, setRegNume] = useState('')
   const [regScoala, setRegScoala] = useState('')
   const [regJudet, setRegJudet] = useState('')
@@ -340,6 +342,9 @@ export default function DirigintePage() {
       setLoginErr('Email sau parolă incorectă.')
       return
     }
+    if (loginNume.trim()) {
+      try { localStorage.setItem('ara_user', JSON.stringify({ titlu: loginTitlu, rol: 'Diriginte', nume: loginNume.trim() })) } catch {}
+    }
     setView('dashboard')
   }
 
@@ -425,6 +430,13 @@ export default function DirigintePage() {
         }}>
           <h2 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '24px', textAlign: 'center' }}>Autentificare</h2>
           <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <select value={loginTitlu} onChange={e => setLoginTitlu(e.target.value)} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: '10px', padding: '11px 10px', fontSize: '13px', color: '#22c55e', outline: 'none', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0, width: '80px' }}>
+                <option value="Dl">Dl.</option>
+                <option value="Dna">Dna.</option>
+              </select>
+              <input placeholder="Prenume Nume" value={loginNume} onChange={e => setLoginNume(e.target.value)} style={{ ...inputStyle, flex: 1, margin: 0 }} />
+            </div>
             <input
               type="email"
               placeholder="Email școlar"
@@ -471,14 +483,13 @@ export default function DirigintePage() {
             Contul tău trebuie aprobat de ISJ înainte de activare.
           </p>
           <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              {(['Dl', 'Dna'] as const).map(t => (
-                <button key={t} type="button" onClick={() => setRegTitlu(t)} style={{ flex: 1, background: regTitlu === t ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.04)', border: `1px solid ${regTitlu === t ? '#22c55e' : 'rgba(255,255,255,0.1)'}`, borderRadius: '10px', padding: '10px', fontSize: '13px', color: regTitlu === t ? '#22c55e' : '#64748b', cursor: 'pointer', fontFamily: 'inherit', fontWeight: regTitlu === t ? 700 : 400 }}>
-                  {t === 'Dl' ? 'Dl. Diriginte' : 'Dna. Diriginte'}
-                </button>
-              ))}
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <select value={regTitlu} onChange={e => setRegTitlu(e.target.value)} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: '10px', padding: '11px 10px', fontSize: '13px', color: '#22c55e', outline: 'none', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0, width: '80px' }}>
+                <option value="Dl">Dl.</option>
+                <option value="Dna">Dna.</option>
+              </select>
+              <input placeholder="Prenume Nume" value={regNume} onChange={e => setRegNume(e.target.value)} style={{ ...inputStyle, flex: 1, margin: 0 }} required />
             </div>
-            <input placeholder="Nume complet" value={regNume} onChange={e => setRegNume(e.target.value)} style={inputStyle} required />
             <select value={regTip} onChange={e => setRegTip(e.target.value)} style={selectStyle} required>
               <option value="">Tipul unității școlare</option>
               {TIP_SCOALA.map(t => <option key={t} value={t}>{t}</option>)}

@@ -4,37 +4,7 @@ import { usePathname } from 'next/navigation'
 import { speak } from '../edu/tts'
 
 type Msg = { role: 'user' | 'assistant'; content: string }
-type UserCtx = { titlu: 'Dl' | 'Dna'; rol: string; nume: string }
-
-const PROFESSIONAL_PAGES = [
-  '/demo/director', '/demo/isj', '/demo/inspector',
-  '/edu/diriginte', '/edu/cursuri-profesori',
-  '/acreditare', '/acreditare/autorizare', '/acreditare/acreditare-scolara',
-  '/acreditare/evaluare-periodica', '/acreditare/dashboard',
-  '/acreditare/registre', '/acreditare/legislatie', '/acreditare/faq',
-  '/aracip', '/scoala', '/gradinita',
-]
-
-function getRolFromPath(pathname: string): string {
-  if (pathname === '/demo/director') return 'Director'
-  if (pathname === '/demo/isj') return 'Inspector ISJ'
-  if (pathname === '/demo/inspector') return 'Inspector Național'
-  if (pathname === '/edu/diriginte') return 'Diriginte'
-  if (pathname.includes('cursuri-profesori')) return 'Profesor'
-  if (pathname.includes('inspector')) return 'Inspector'
-  if (pathname.includes('isj')) return 'Inspector ISJ'
-  if (pathname.includes('director')) return 'Director'
-  if (pathname.includes('acreditare') || pathname === '/aracip') return 'Director'
-  if (pathname === '/gradinita') return 'Director'
-  if (pathname === '/scoala') return 'Director'
-  return 'Utilizator'
-}
-
-function isProfessionalPage(pathname: string): boolean {
-  return PROFESSIONAL_PAGES.some(p => pathname === p || pathname.startsWith(p + '/'))
-    || pathname.includes('inspector') || pathname.includes('acreditare')
-    || pathname.includes('diriginte') || pathname.includes('cursuri-profesori')
-}
+type UserCtx = { titlu: string; rol: string; nume: string }
 
 const PAGE_LABELS: Record<string, string> = {
   '/': 'AIcraiova',
@@ -155,37 +125,30 @@ const QUICK_QUESTIONS: Record<string, string[]> = {
   ],
 }
 
-function makePersonalSalut(ctx: UserCtx | null, pagina?: string): string {
-  if (!ctx) return ''
-  const rol = ctx.rol || (pagina ? getRolFromPath(pagina) : '')
-  return `Bună ziua, ${ctx.titlu} ${rol} ${ctx.nume}! `
-}
-
-function getGreeting(pathname: string, ctx?: UserCtx | null): string {
-  const salut = ctx ? makePersonalSalut(ctx) : ''
-  if (pathname === '/acreditare/autorizare') return salut + 'Sunt ARA. Știu de ce ați deschis această pagină — vreți să înțelegeți ce documente trebuie și cât durează autorizarea. Vă dau imediat lista completă:\n\n📋 Documente obligatorii: cerere tip ARACIP, acte proprietate/folosință spațiu, aviz ISU (pompieri), aviz DSP (sanitar), plan de școlarizare, lista cadrelor didactice cu grade, regulament intern, ofertă educațională.\n\n⏱️ Durată: 30-60 zile lucrătoare — depuneți cu minimum 3 luni înainte de deschidere.\n\nCe vă ridică semne de întrebare?'
+function getGreeting(pathname: string): string {
+  if (pathname === '/acreditare/autorizare') return 'Bună ziua! Sunt ARA. Știu de ce ați deschis această pagină — vreți să înțelegeți ce documente trebuie și cât durează autorizarea. Vă dau imediat lista completă:\n\n📋 Documente obligatorii: cerere tip ARACIP, acte proprietate/folosință spațiu, aviz ISU (pompieri), aviz DSP (sanitar), plan de școlarizare, lista cadrelor didactice cu grade, regulament intern, ofertă educațională.\n\n⏱️ Durată: 30-60 zile lucrătoare — depuneți cu minimum 3 luni înainte de deschidere.\n\nCe vă ridică semne de întrebare?'
   if (pathname === '/acreditare/acreditare-scolara') return 'Bună ziua! Sunt ARA. Dacă ați deschis această pagină, probabil aveți o vizită ARACIP în orizont sau vreți să știți cum să vă pregătiți dosarul.\n\n🎯 Cele mai frecvente probleme găsite de comisie:\n• Proceduri operaționale lipsă sau neactualizate\n• PDI expirat\n• ROI din ani anteriori, nereaprobat\n• Personal fără fișă de post actualizată\n\nAveți deja o dată programată pentru vizită?'
-  if (pathname === '/acreditare/evaluare-periodica') return salut + 'Sunt ARA. Evaluarea periodică este obligatorie la fiecare 5 ani și mulți directori o subestimează față de prima acreditare — greșeală.\n\n⚠️ Comisia știe că ați mai trecut printr-o evaluare. Verifică dacă ați aplicat recomandările anterioare.\n\n🔴 Cel mai frecvent motiv de Nesatisfăcător: PDI expirat + proceduri nerevizuite.\n\nDe când suntem la ultima acreditare? Vă ajut să estimați dacă suntem în termen.'
-  if (pathname === '/acreditare/dashboard') return salut + 'Sunt ARA. Pe acest dashboard monitorizați calitatea la nivel național. Puteți filtra după județ, tip de unitate sau calificativ ARACIP.\n\n💭 Poate vă interesează și: statusul unităților cu Nesatisfăcător din județ sau calendarul evaluărilor programate pentru trim. III 2026. Cu ce vă ajut?'
-  if (pathname === '/acreditare/registre') return salut + 'Sunt ARA. Registrele Naționale ARACIP conțin toate cele ~11.500 unități școlare din România — acreditate, autorizate sau cu proceduri în curs.\n\nCăutați o unitate specifică sau vreți să verificați statusul acreditării pentru un județ? Spuneți-mi și găsim imediat.'
-  if (pathname === '/acreditare/legislatie') return salut + 'Sunt ARA. Știu că actele normative pot fi copleșitoare — vă spun eu care contează pentru situația dumneavoastră.\n\n📚 Cele mai accesate: Legea 87/2006 (calitate educație), HG 22/2007 (metodologia ARACIP), OM 5337/2020 (standarde acreditare).\n\nCe situație aveți — autorizare, acreditare sau contestație? Vă indic exact articolul relevant.'
-  if (pathname === '/acreditare/faq') return salut + 'Sunt ARA. Probabil aveți o întrebare care nu e în lista de mai jos — întrebați-mă direct, știu tot ce e de știut despre procesele ARACIP.\n\n💭 Cele mai frecvente întrebări care nu apar în FAQ: cum corectez o decizie de Nesatisfăcător, cât costă procesele ARACIP și dacă pot reprograma vizita.'
-  if (pathname === '/aracip') return salut + 'Sunt ARA, asistentul digital oficial al ARACIP.\n\nÎn funcție de cine sunteți, vă pot ajuta diferit:\n• 🏫 Director de școală → autorizare, acreditare, pregătire vizită\n• 🔍 Inspector → statistici, calificative, proceduri evaluare\n• 👨‍🏫 Profesor → formare continuă cu AI\n• 🎓 Elev → pregătire BAC și Evaluare Națională\n\nCine sunteți și cu ce vă ajut azi?'
-  if (pathname === '/edu/diriginte') return salut + 'Sunt ARA. Știu că aveți ora de dirigenție și aveți nevoie să activați sesiunea rapid.\n\n▶️ Pașii: copiați codul din header → introduceți-l în câmpul de activare → apăsați "Activează" → sesiunea devine activă 60 de minute.\n\nCodul se generează automat în ziua orei selectate. Dacă butonul nu e activ, verificați că ziua setată coincide cu ziua de azi. Cu ce vă mai ajut?'
+  if (pathname === '/acreditare/evaluare-periodica') return 'Bună ziua! Sunt ARA. Evaluarea periodică este obligatorie la fiecare 5 ani și mulți directori o subestimează față de prima acreditare — greșeală.\n\n⚠️ Comisia știe că ați mai trecut printr-o evaluare. Verifică dacă ați aplicat recomandările anterioare.\n\n🔴 Cel mai frecvent motiv de Nesatisfăcător: PDI expirat + proceduri nerevizuite.\n\nDe când suntem la ultima acreditare? Vă ajut să estimați dacă suntem în termen.'
+  if (pathname === '/acreditare/dashboard') return 'Bună ziua! Sunt ARA. Pe acest dashboard monitorizați calitatea la nivel național. Puteți filtra după județ, tip de unitate sau calificativ ARACIP.\n\n💭 Poate vă interesează și: statusul unităților cu Nesatisfăcător din județ sau calendarul evaluărilor programate pentru trim. III 2026. Cu ce vă ajut?'
+  if (pathname === '/acreditare/registre') return 'Bună ziua! Sunt ARA. Registrele Naționale ARACIP conțin toate cele ~11.500 unități școlare din România — acreditate, autorizate sau cu proceduri în curs.\n\nCăutați o unitate specifică sau vreți să verificați statusul acreditării pentru un județ? Spuneți-mi și găsim imediat.'
+  if (pathname === '/acreditare/legislatie') return 'Bună ziua! Sunt ARA. Știu că actele normative pot fi copleșitoare — vă spun eu care contează pentru situația dumneavoastră.\n\n📚 Cele mai accesate: Legea 87/2006 (calitate educație), HG 22/2007 (metodologia ARACIP), OM 5337/2020 (standarde acreditare).\n\nCe situație aveți — autorizare, acreditare sau contestație? Vă indic exact articolul relevant.'
+  if (pathname === '/acreditare/faq') return 'Bună ziua! Sunt ARA. Probabil aveți o întrebare care nu e în lista de mai jos — întrebați-mă direct, știu tot ce e de știut despre procesele ARACIP.\n\n💭 Cele mai frecvente întrebări care nu apar în FAQ: cum corectez o decizie de Nesatisfăcător, cât costă procesele ARACIP și dacă pot reprograma vizita.'
+  if (pathname === '/aracip') return 'Bună ziua! Sunt ARA, asistentul digital oficial al ARACIP.\n\nÎn funcție de cine sunteți, vă pot ajuta diferit:\n• 🏫 Director de școală → autorizare, acreditare, pregătire vizită\n• 🔍 Inspector → statistici, calificative, proceduri evaluare\n• 👨‍🏫 Profesor → formare continuă cu AI\n• 🎓 Elev → pregătire BAC și Evaluare Națională\n\nCine sunteți și cu ce vă ajut azi?'
+  if (pathname === '/edu/diriginte') return 'Bună ziua! Sunt ARA. Știu că aveți ora de dirigenție și aveți nevoie să activați sesiunea rapid.\n\n▶️ Pașii: copiați codul din header → introduceți-l în câmpul de activare → apăsați "Activează" → sesiunea devine activă 60 de minute.\n\nCodul se generează automat în ziua orei selectate. Dacă butonul nu e activ, verificați că ziua setată coincide cu ziua de azi. Cu ce vă mai ajut?'
   if (pathname === '/edu/elevi') return 'Salut! Sunt ARA, profesorul tău AI disponibil 24/7.\n\nȘtiu că pregătirea pentru examene pare copleșitoare. Hai să simplificăm:\n• 📐 BAC Matematică M1 sau M2\n• 📝 BAC Română real sau uman\n• 🎯 Evaluare Națională cls. VIII\n\nLa ce materie lucrăm azi și de unde simți că ești mai slab?'
-  if (pathname === '/scoala') return salut + 'Sunt ARA. Vă ghidez spre secțiunea potrivită în funcție de rolul dumneavoastră:\n\n• 🏫 Director → portalul Director cu documentele ISJ\n• 👨‍🏫 Profesor → formare continuă cu AI\n• 📋 Diriginte → ora de dirigenție digitală\n• 🎓 Elevi → pregătire BAC și EN\n\nCe rol aveți?'
-  if (pathname === '/gradinita') return salut + 'Sunt ARA. Știu că unitățile preșcolare au nevoi specifice — nu doar documente administrative, ci și resurse didactice pentru educatoare.\n\nPot genera planuri de activitate tematice, fișe de lucru pentru 3-6 ani sau vă ajut cu documentele obligatorii pentru director (plan managerial, ROI preșcolar, raportare ISJ). Cu ce începem?'
-  if (pathname === '/demo/inspector') return salut + 'Sunt ARA. Știu că vreți să monitorizați eficient — vă ofer imediat informațiile cele mai relevante.\n\n📊 La nivel național: ~11.500 unități evaluate de ARACIP, rata de calificativ Nesatisfăcător 3-4%, județele cu cele mai multe neconformități în trimestrul curent.\n\nCăutați o unitate specifică sau vreți situația pe un județ?'
-  if (pathname === '/demo/isj') return salut + 'Sunt ARA. Termene active ISJ Dolj:\n\n🔴 25 mai → Raportare absențe mai 2026 (Circular 1247)\n🔴 30 mai → Comisii examene naționale constituite (Procedura 892)\n🔴 15 iunie → Situație statistică finalizare an (Circular 1198)\n\nCare unitate/problemă vă ocupă azi?'
-  if (pathname === '/demo/director') return salut + 'Sunt ARA. Aveți 3 documente active de la ISJ Dolj:\n\n🔴 Circular 1247 — raportare absențe până 25 mai (prin platformă, nu email)\n🔴 Procedura 892 — comisii EN până 30 mai\n🟡 Adresa 2103 — dotări PNRR, livrare 10-20 iunie\n\nVreți să vedem ce trebuie făcut pentru fiecare?'
+  if (pathname === '/scoala') return 'Bună ziua! Sunt ARA. Vă ghidez spre secțiunea potrivită în funcție de rolul dumneavoastră:\n\n• 🏫 Director → portalul Director cu documentele ISJ\n• 👨‍🏫 Profesor → formare continuă cu AI\n• 📋 Diriginte → ora de dirigenție digitală\n• 🎓 Elevi → pregătire BAC și EN\n\nCe rol aveți?'
+  if (pathname === '/gradinita') return 'Bună ziua! Sunt ARA. Știu că unitățile preșcolare au nevoi specifice — nu doar documente administrative, ci și resurse didactice pentru educatoare.\n\nPot genera planuri de activitate tematice, fișe de lucru pentru 3-6 ani sau vă ajut cu documentele obligatorii pentru director (plan managerial, ROI preșcolar, raportare ISJ). Cu ce începem?'
+  if (pathname === '/demo/inspector') return 'Bună ziua! Sunt ARA. Știu că vreți să monitorizați eficient — vă ofer imediat informațiile cele mai relevante.\n\n📊 La nivel național: ~11.500 unități evaluate de ARACIP, rata de calificativ Nesatisfăcător 3-4%, județele cu cele mai multe neconformități în trimestrul curent.\n\nCăutați o unitate specifică sau vreți situația pe un județ?'
+  if (pathname === '/demo/isj') return 'Bună ziua! Sunt ARA. Termene active ISJ Dolj:\n\n🔴 25 mai → Raportare absențe mai 2026 (Circular 1247)\n🔴 30 mai → Comisii examene naționale constituite (Procedura 892)\n🔴 15 iunie → Situație statistică finalizare an (Circular 1198)\n\nCare unitate/problemă vă ocupă azi?'
+  if (pathname === '/demo/director') return 'Bună ziua! Sunt ARA. Aveți 3 documente active de la ISJ Dolj:\n\n🔴 Circular 1247 — raportare absențe până 25 mai (prin platformă, nu email)\n🔴 Procedura 892 — comisii EN până 30 mai\n🟡 Adresa 2103 — dotări PNRR, livrare 10-20 iunie\n\nVreți să vedem ce trebuie făcut pentru fiecare?'
   if (pathname.includes('/bac/matematica')) return 'Salut! Sunt ARA, profesorul tău AI de matematică BAC.\n\nȘtiu că cei mai mulți elevi au probleme cu: studiul funcției (derivate, extreme, asimptote) și integralele. De acolo vă suceam de obicei la subiectul III.\n\nLa ce capitol simți că ești mai nesigur? Sau îți generez un subiect complet să vedem unde ești?'
   if (pathname.includes('/bac/romana')) return 'Salut! Sunt ARA, profesorul tău AI de română BAC.\n\nCel mai dificil la română BAC e de obicei eseul de 400 de cuvinte — să ai structură clară și citate relevante. Și textul argumentativ din subiectul I.\n\nCe profil ai — Real sau Uman? Și la ce te simți mai nesigur?'
   if (pathname.includes('/bac/materie')) return 'Salut! Sunt ARA, profesorul tău AI pentru această materie BAC.\n\nÎnainte să începem — spune-mi ce capitol ți se pare cel mai greu sau ce vrei să exersezi. Mă adaptez la nivelul tău și generez exerciții la cerere.'
   if (pathname.includes('/cursuri-ai')) return 'Salut! Sunt ARA, profesorul tău de inteligență artificială.\n\nAI pare complicat, dar nu e — îți explic orice, de la ce este un algoritm până la cum funcționează ChatGPT. Fără jargon inutil.\n\nEști la început sau ai deja niște cunoștințe? Îmi spui și pornesc de la nivelul tău.'
-  if (pathname.includes('/cursuri-profesori')) return salut + 'Sunt ARA, mentorul dumneavoastră AI pentru formare continuă.\n\nȘtiu că cel mai frecvent profesorii mă întreabă: "Ce pot folosi concret mâine la clasă?"\n\nRăspuns scurt: ChatGPT pentru planuri de lecție, Quizlet AI pentru fișe, Canva AI pentru prezentări — toate gratuite.\n\nLa ce materie predați? Vă dau un prompt specific gata de folosit.'
+  if (pathname.includes('/cursuri-profesori')) return 'Bună ziua! Sunt ARA, mentorul dumneavoastră AI pentru formare continuă.\n\nȘtiu că cel mai frecvent profesorii mă întreabă: "Ce pot folosi concret mâine la clasă?"\n\nRăspuns scurt: ChatGPT pentru planuri de lecție, Quizlet AI pentru fișe, Canva AI pentru prezentări — toate gratuite.\n\nLa ce materie predați? Vă dau un prompt specific gata de folosit.'
   if (pathname.includes('/capacitate') || pathname.includes('/evaluare-nationala')) return 'Salut! Sunt ARA, profesorul tău AI pentru Evaluarea Națională.\n\nCele mai frecvente probleme la EN: ecuațiile de gradul II, geometria în spațiu și morfologia la română.\n\nCe materie și de unde simți că ai nevoie de ajutor? Generez exerciții la nivelul tău.'
-  if (pathname.includes('/demo')) return salut + 'Sunt ARA, asistenta platformei ISJ. Vă pot ajuta cu documentele, termenele sau procedurile active. Cu ce vă ajut?'
-  return salut + 'Sunt ARA, asistentul digital ARACIP. Cu ce vă pot ajuta?'
+  if (pathname.includes('/demo')) return 'Bună ziua! Sunt ARA, asistenta platformei ISJ. Vă pot ajuta cu documentele, termenele sau procedurile active. Cu ce vă ajut?'
+  return 'Bună ziua! Sunt ARA, asistentul digital ARACIP. Cu ce vă pot ajuta?'
 }
 
 function getQuickQuestions(pathname: string): string[] {
@@ -213,16 +176,12 @@ export default function AraChatbot() {
   if (pathname === '/') return null
   const pagina = PAGE_LABELS[pathname] || 'Platformă ARACIP'
   const quickQuestions = getQuickQuestions(pathname)
-  const isProPage = isProfessionalPage(pathname)
 
   const [open, setOpen] = useState(false)
   const [userCtx, setUserCtx] = useState<UserCtx | null>(null)
   const [messages, setMessages] = useState<Msg[]>([
-    { role: 'assistant', content: getGreeting(pathname, null) }
+    { role: 'assistant', content: getGreeting(pathname) }
   ])
-  const [showIdentityForm, setShowIdentityForm] = useState(false)
-  const [idTitlu, setIdTitlu] = useState<'Dl' | 'Dna'>('Dl')
-  const [idNume, setIdNume] = useState('')
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [unread, setUnread] = useState(0)
@@ -236,26 +195,9 @@ export default function AraChatbot() {
   useEffect(() => {
     try {
       const saved = localStorage.getItem('ara_user')
-      if (saved) {
-        const ctx: UserCtx = JSON.parse(saved)
-        setUserCtx(ctx)
-        setMessages([{ role: 'assistant', content: getGreeting(pathname, ctx) }])
-      } else if (isProPage) {
-        setShowIdentityForm(true)
-      }
+      if (saved) setUserCtx(JSON.parse(saved))
     } catch {}
   }, [])
-
-  function submitIdentity() {
-    if (!idNume.trim()) return
-    const rol = getRolFromPath(pathname)
-    const ctx: UserCtx = { titlu: idTitlu, rol, nume: idNume.trim() }
-    try { localStorage.setItem('ara_user', JSON.stringify(ctx)) } catch {}
-    setUserCtx(ctx)
-    setShowIdentityForm(false)
-    setMessages([{ role: 'assistant', content: getGreeting(pathname, ctx) }])
-    greetingSpokenRef.current = false
-  }
 
   function startListening() {
     const SR = (window as typeof window & { SpeechRecognition?: typeof SpeechRecognition; webkitSpeechRecognition?: typeof SpeechRecognition }).SpeechRecognition || (window as typeof window & { webkitSpeechRecognition?: typeof SpeechRecognition }).webkitSpeechRecognition
@@ -376,37 +318,8 @@ export default function AraChatbot() {
             <div ref={bottomRef} />
           </div>
 
-          {/* Identity capture form */}
-          {showIdentityForm && (
-            <div style={{ margin: '0 12px 10px', background: 'rgba(124,58,237,0.08)', border: '1px solid rgba(124,58,237,0.25)', borderRadius: '12px', padding: '14px' }}>
-              <div style={{ fontSize: '12px', color: '#a78bfa', fontWeight: 600, marginBottom: '10px' }}>🏛️ Prezentați-vă pentru o experiență personalizată</div>
-              <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
-                {(['Dl', 'Dna'] as const).map(t => (
-                  <button key={t} onClick={() => setIdTitlu(t)} style={{ flex: 1, background: idTitlu === t ? 'rgba(124,58,237,0.3)' : 'rgba(255,255,255,0.04)', border: `1px solid ${idTitlu === t ? '#7c3aed' : '#334155'}`, borderRadius: '8px', padding: '7px', fontSize: '13px', color: idTitlu === t ? '#e2e8f0' : '#64748b', cursor: 'pointer', fontFamily: 'inherit', fontWeight: idTitlu === t ? 700 : 400 }}>
-                    {t === 'Dl' ? 'Dl.' : 'Dna.'}
-                  </button>
-                ))}
-              </div>
-              <input
-                value={idNume}
-                onChange={e => setIdNume(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && submitIdentity()}
-                placeholder="Prenume Nume (ex: Ionescu Maria)"
-                style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', borderRadius: '8px', padding: '8px 12px', fontSize: '13px', color: '#e2e8f0', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
-              />
-              <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
-                <button onClick={submitIdentity} disabled={!idNume.trim()} style={{ flex: 1, background: idNume.trim() ? '#7c3aed' : '#334155', color: '#fff', border: 'none', borderRadius: '8px', padding: '8px', fontSize: '12px', fontWeight: 700, cursor: idNume.trim() ? 'pointer' : 'not-allowed', fontFamily: 'inherit' }}>
-                  Continuă →
-                </button>
-                <button onClick={() => setShowIdentityForm(false)} style={{ background: 'none', border: '1px solid #334155', borderRadius: '8px', padding: '8px 12px', fontSize: '12px', color: '#475569', cursor: 'pointer', fontFamily: 'inherit' }}>
-                  Sar peste
-                </button>
-              </div>
-            </div>
-          )}
-
           {/* Quick questions */}
-          {messages.length <= 1 && !showIdentityForm && (
+          {messages.length <= 1 && (
             <div style={{ padding: '0 12px 10px', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
               {quickQuestions.map(q => (
                 <button key={q} onClick={() => send(q)} style={{ background: 'rgba(124,58,237,0.15)', border: '1px solid rgba(124,58,237,0.3)', borderRadius: '20px', padding: '5px 12px', fontSize: '11px', color: '#a78bfa', cursor: 'pointer', fontFamily: 'inherit' }}>
