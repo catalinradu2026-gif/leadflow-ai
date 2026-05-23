@@ -253,7 +253,7 @@ export default function ParintiPage() {
                   const val = nota ? parseFloat(nota) : null
                   return (
                     <div key={m} style={{ flex: '1', minWidth: '100px', background: 'rgba(255,255,255,0.03)', border: `1px solid ${val === null ? 'rgba(255,255,255,0.06)' : val < 5 ? 'rgba(239,68,68,0.3)' : 'rgba(34,197,94,0.3)'}`, borderRadius: '12px', padding: '14px', textAlign: 'center' }}>
-                      <div style={{ fontSize: '10px', color: '#475569', marginBottom: '8px', lineHeight: 1.3 }}>{m.replace('BAC ', '').replace('Capacitate ', '')}</div>
+                      <div style={{ fontSize: '10px', color: '#475569', marginBottom: '8px', lineHeight: 1.3 }}>{m.replace('BAC ', '').replace('EN ', 'EN ')}</div>
                       <div style={{ fontSize: '28px', fontWeight: 900, color: val === null ? '#334155' : val < 5 ? '#f87171' : val < 7 ? '#fbbf24' : '#4ade80' }}>
                         {val !== null ? nota : '—'}
                       </div>
@@ -350,7 +350,7 @@ export default function ParintiPage() {
                 return (
                   <div key={m}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                      <span style={{ fontSize: '11px', color: '#475569' }}>{m.replace('BAC ', '').replace('Capacitate ', '')}</span>
+                      <span style={{ fontSize: '11px', color: '#475569' }}>{m.replace('BAC ', '').replace('EN ', 'EN ')}</span>
                       <span style={{ fontSize: '11px', fontWeight: 700, color: min > 10 ? '#4ade80' : min > 0 ? '#fbbf24' : '#334155' }}>{min > 0 ? `${min} min` : '—'}</span>
                     </div>
                     <div style={{ height: 6, background: 'rgba(255,255,255,0.06)', borderRadius: '3px', overflow: 'hidden' }}>

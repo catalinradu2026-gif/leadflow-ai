@@ -7,7 +7,7 @@ type View = 'login' | 'register' | 'dashboard'
 
 const ZILE = ['Luni', 'Marți', 'Miercuri', 'Joi', 'Vineri']
 const TIP_SCOALA = ['Liceu', 'Colegiu Național', 'Colegiu Tehnic', 'Școală Gimnazială', 'Școală Primară']
-const MODULE = ['BAC Matematică M1', 'BAC Matematică M2', 'BAC Română', 'Capacitate Matematică', 'Capacitate Română']
+const MODULE = ['BAC Matematică M1', 'BAC Matematică M2', 'BAC Română', 'EN Matematică', 'EN Română']
 
 export default function DirigintePage() {
   const router = useRouter()
@@ -872,7 +872,7 @@ export default function DirigintePage() {
                 </div>
                 <div style={{ fontSize: '16px', fontWeight: 700, color: '#f1f5f9', marginBottom: '4px' }}>Educație Digitală</div>
                 <div style={{ fontSize: '12px', color: '#475569', lineHeight: 1.5 }}>
-                  Accesează cursurile AI, pregătirea BAC și Capacitate pentru clasa ta.
+                  Accesează cursurile AI, pregătirea BAC și Evaluare Națională pentru clasa ta.
                 </div>
               </div>
               <div style={{ color: '#14b8a6', fontSize: '20px', flexShrink: 0 }}>→</div>
@@ -1036,7 +1036,7 @@ export default function DirigintePage() {
                                   const min = c.activitateModul?.[m] ?? 0
                                   return (
                                     <div key={m} style={{ background: min > 0 ? 'rgba(99,102,241,0.1)' : 'rgba(255,255,255,0.03)', border: `1px solid ${min > 0 ? 'rgba(99,102,241,0.25)' : 'rgba(255,255,255,0.06)'}`, borderRadius: '8px', padding: '4px 10px', fontSize: '11px' }}>
-                                      <span style={{ color: '#475569' }}>{m.replace('BAC ','').replace('Capacitate ','Cap. ')}: </span>
+                                      <span style={{ color: '#475569' }}>{m.replace('BAC ','').replace('EN ','EN ')}: </span>
                                       <span style={{ fontWeight: 700, color: min > 10 ? '#4ade80' : min > 0 ? '#f59e0b' : '#334155' }}>{min > 0 ? `${min} min` : '—'}</span>
                                     </div>
                                   )

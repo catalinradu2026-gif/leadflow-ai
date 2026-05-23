@@ -48,7 +48,7 @@ export default function PortalScoala() {
     {
       id: 'elevi',
       icon: '🎓',
-      tag: 'BAC & Capacitate',
+      tag: 'BAC & Evaluare Națională',
       title: 'Pregătire Examene\ncu Profesorul tău AI de Acasă',
       desc: 'Meditații interactive 24/7 pentru Bacalaureat și Evaluare Națională — fără deplasare, fără program fix.',
       color: '#6366f1',

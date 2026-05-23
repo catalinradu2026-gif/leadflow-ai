@@ -100,7 +100,7 @@ export default function ExameneLanding() {
               MATEMATICĂ · ROMÂNĂ · 24/7
             </div>
             <h2 style={{ fontSize: '26px', fontWeight: 800, color: '#fff', marginBottom: '12px', lineHeight: 1.2 }}>
-              Pregătire<br />Capacitate
+              Evaluare<br />Națională
             </h2>
             <p style={{ fontSize: '14px', color: '#94a3b8', lineHeight: 1.7, marginBottom: '28px' }}>
               Profesor AI pentru Evaluarea Națională cls. VIII. Explică orice lecție, generează exerciții și se adaptează la nivelul tău. Matematică și Română.

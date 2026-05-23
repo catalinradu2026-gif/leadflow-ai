@@ -22,7 +22,7 @@ export default function CapacitateLanding() {
       <div style={{ position: 'fixed', top: 0, left: 0, right: 0, background: '#1e293b', borderBottom: '1px solid #334155', padding: '0 24px', display: 'flex', alignItems: 'center', gap: '16px', height: '56px', zIndex: 10 }}>
         <button onClick={() => router.push('/edu')} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '13px' }}>← Edu</button>
         <div style={{ width: 1, height: 20, background: '#334155' }} />
-        <span style={{ fontSize: '13px', color: '#fff', fontWeight: 600 }}>🎯 Pregătire Capacitate 2026</span>
+        <span style={{ fontSize: '13px', color: '#fff', fontWeight: 600 }}>🎯 Evaluare Națională 2026</span>
         <span style={{ background: '#7f1d1d', color: '#fca5a5', fontSize: '11px', fontWeight: 700, padding: '2px 10px', borderRadius: '20px' }}>AI 24/7</span>
       </div>
 
@@ -70,7 +70,7 @@ export default function CapacitateLanding() {
               onClick={() => router.push('/edu/capacitate/matematica')}
               style={{ width: '100%', background: '#1d4ed8', color: '#fff', border: 'none', borderRadius: '10px', padding: '14px', fontSize: '14px', fontWeight: 700, cursor: 'pointer' }}
             >
-              Matematică Capacitate →
+              Matematică EN →
             </button>
           </div>
 
@@ -93,7 +93,7 @@ export default function CapacitateLanding() {
               onClick={() => router.push('/edu/capacitate/romana')}
               style={{ width: '100%', background: '#7c3aed', color: '#fff', border: 'none', borderRadius: '10px', padding: '14px', fontSize: '14px', fontWeight: 700, cursor: 'pointer' }}
             >
-              Română Capacitate →
+              Română EN →
             </button>
           </div>
         </div>

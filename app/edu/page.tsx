@@ -164,7 +164,7 @@ export default function EduLanding() {
             AI pentru<br />Elevi
           </h2>
           <p style={{ fontSize: '14px', color: '#94a3b8', lineHeight: 1.7, marginBottom: '28px' }}>
-            Cursuri AI interactive pentru elevi — ce este inteligența artificială, cum te ajută la școală, cariere în tech, fake news, educație financiară și pregătire BAC/Capacitate.
+            Cursuri AI interactive pentru elevi — ce este inteligența artificială, cum te ajută la școală, cariere în tech, fake news, educație financiară și pregătire BAC/Evaluare Națională.
           </p>
           <div style={{
             background: '#6366f1',

@@ -12,7 +12,7 @@ const INTREBARI_RAPIDE = [
   'Ajută-mă să scriu o compunere',
   'Explică morfologia — părțile de vorbire',
   'Ce autori trebuie să știu pentru EN?',
-  'Generează un subiect complet de Capacitate',
+  'Generează un subiect complet de Evaluare Națională',
 ]
 
 const SYSTEM_PROMPT = `Ești un profesor AI specializat în pregătirea elevilor de clasa a VIII-a pentru Evaluarea Națională (Capacitate) la Limba și Literatura Română.
@@ -74,7 +74,7 @@ export default function CapacitateRomana() {
   }, [messages])
 
   useEffect(() => {
-    const welcome = `Bună! Sunt profesorul tău AI pentru Evaluarea Națională la Limba Română.\n\nTe pregătesc pentru examenul de Capacitate 2026 — înțelegerea textului, limbă română (morfologie și sintaxă) și redactare, după programa oficială cls. V-VIII.\n\nCe vrei să exersăm azi? Poți folosi butoanele de mai jos sau îmi pui orice întrebare.`
+    const welcome = `Bună! Sunt profesorul tău AI pentru Evaluarea Națională la Limba Română.\n\nTe pregătesc pentru EN 2026 — înțelegerea textului, limbă română (morfologie și sintaxă) și redactare, după programa oficială cls. V-VIII.\n\nCe vrei să exersăm azi? Poți folosi butoanele de mai jos sau îmi pui orice întrebare.`
     setMessages([{ role: 'assistant', content: welcome }])
     if (voiceEnabled) { setSpeaking(true); speak(welcome, () => setSpeaking(false)) }
   }, [])
@@ -108,7 +108,7 @@ export default function CapacitateRomana() {
       {/* Topbar */}
       <div style={{ background: '#1e293b', borderBottom: '1px solid #334155', padding: isMobile ? '8px 12px' : '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: '60px', flexShrink: 0, gap: '8px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <button onClick={() => router.push('/edu/capacitate')} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '13px' }}>← Capacitate</button>
+          <button onClick={() => router.push('/edu/capacitate')} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '13px' }}>← EN</button>
           <div style={{ width: 1, height: 20, background: '#334155' }} />
           <span style={{ fontSize: '22px' }}>📝</span>
           <div>
@@ -188,7 +188,7 @@ export default function CapacitateRomana() {
           </button>
         </div>
         <div style={{ textAlign: 'center', marginTop: '8px', fontSize: '11px', color: '#334155' }}>
-          Enter pentru a trimite · Capacitate 2026
+          Enter pentru a trimite · Evaluare Națională 2026
         </div>
       </div>
     </div>
