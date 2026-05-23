@@ -4,11 +4,15 @@ import { useState, useEffect, useRef } from 'react'
 import { useIsMobile } from '../../hooks/useIsMobile'
 
 type Nota = { id: string; v: string }
-type Semestru = { note: Nota[]; absMot: number; absNemot: number; inchis: boolean }
-type ProfEntry = { s1: Semestru; s2: Semestru; obs: string }
-// [clasa][materie][elevNr] = ProfEntry
+type Modul = { note: Nota[]; absMot: number; absNemot: number; inchis: boolean }
+type ProfEntry = { m1: Modul; m2: Modul; m3: Modul; m4: Modul; m5: Modul; obs: string }
 type ProfCatalogs = Record<string, Record<string, Record<string, ProfEntry>>>
 type ClasaConf = { nume: string; nrElevi: number }
+type ModulKey = 'm1' | 'm2' | 'm3' | 'm4' | 'm5'
+
+const MODULE_KEYS: ModulKey[] = ['m1', 'm2', 'm3', 'm4', 'm5']
+const MODULE_LABEL = ['M1', 'M2', 'M3', 'M4', 'M5']
+const MODULE_PERIOADA = ['Oct 2025', 'Dec 2025', 'Feb 2026', 'Apr 2026', 'Iun 2026']
 
 const MATERII_LISTA = [
   'Matematică','Limba Română','Limba Engleză','Limba Franceză','Limba Germană',
@@ -19,6 +23,7 @@ const MATERII_LISTA = [
 ]
 const GRADE = ['4','5','6','7','8','9','10','11','12']
 const LITERE = ['A','B','C','D','E','F']
+const MIN_NOTE_AN = 4
 
 export default function ProfesoriPage() {
   const router = useRouter()
@@ -33,29 +38,22 @@ export default function ProfesoriPage() {
   const [cloudSyncStatus, setCloudSyncStatus] = useState<'idle'|'saving'|'saved'|'error'>('idle')
   const saveToCloudTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Login — materii
   const [materiiSelectate, setMateriiSelectate] = useState<string[]>([])
   const [altaMaterie, setAltaMaterie] = useState('')
 
-  // Catalog
   const [materiiProf, setMateriiProf] = useState<string[]>([])
   const [materie, setMaterie] = useState('')
-  // Per-subject class lists and active class
   const [clasePerMaterie, setClasePerMaterie] = useState<Record<string, ClasaConf[]>>({})
   const [clasaPerMaterie, setClasaPerMaterie] = useState<Record<string, string>>({})
 
-  // Derived: current subject's classes and active class
   const clase = clasePerMaterie[materie] || []
   const clasa = clasaPerMaterie[materie] || ''
 
-  // Add class panel
   const [adaugaClasaOpen, setAdaugaClasaOpen] = useState(false)
   const [nouaGrada, setNouaGrada] = useState('10')
   const [nouaLitera, setNouaLitera] = useState('A')
   const [nouaLiteraCustom, setNouaLiteraCustom] = useState('')
   const [nrEleviNou, setNrEleviNou] = useState(30)
-
-  // Add subject panel
   const [adaugaMaterieOpen, setAdaugaMaterieOpen] = useState(false)
   const [nouaMaterie, setNouaMaterie] = useState('')
 
@@ -64,16 +62,16 @@ export default function ProfesoriPage() {
   const [savedFlash, setSavedFlash] = useState(false)
   const [searchElev, setSearchElev] = useState('')
   const [selectedNr, setSelectedNr] = useState<string | null>(null)
-  const [activeSem, setActiveSem] = useState<1|2>(1)
-  const [editingNota, setEditingNota] = useState<{elevNr:string;sem:1|2;id:string;val:string}|null>(null)
+  const [activeModul, setActiveModul] = useState<1|2|3|4|5>(1)
+  const [editingNota, setEditingNota] = useState<{elevNr:string;modul:1|2|3|4|5;id:string;val:string}|null>(null)
   const [addingNotaNr, setAddingNotaNr] = useState<string|null>(null)
   const [novaNotaVal, setNovaNotaVal] = useState('')
-  const [unlockSem, setUnlockSem] = useState<{elevNr:string;sem:1|2;pass:string;err:boolean}|null>(null)
+  const [unlockModul, setUnlockModul] = useState<{elevNr:string;modul:1|2|3|4|5;pass:string;err:boolean}|null>(null)
   const [showMateriiSelector, setShowMateriiSelector] = useState(false)
 
-  // Students from diriginte, keyed by class name
   const [dirStudentsMap, setDirStudentsMap] = useState<Record<string, {nr:string;nume:string}[]>>({})
 
+  // ── Hydration ──
   useEffect(() => {
     try {
       const pc = localStorage.getItem('prof_catalogs')
@@ -83,9 +81,7 @@ export default function ProfesoriPage() {
       const pcl = localStorage.getItem('prof_clase')
       if (pcl) {
         const parsed = JSON.parse(pcl)
-        // New format: Record<materie, ClasaConf[]>; legacy: ClasaConf[]
         if (Array.isArray(parsed)) {
-          // Legacy: migrate to first subject if possible
           const materii: string[] = pm ? JSON.parse(pm) : []
           if (materii.length > 0) setClasePerMaterie({ [materii[0]]: parsed })
         } else {
@@ -94,7 +90,6 @@ export default function ProfesoriPage() {
       }
       const pca = localStorage.getItem('prof_clasa_activa')
       if (pca) setClasaPerMaterie(JSON.parse(pca))
-      // Build map of all diriginte classes → student lists
       const dirClaseRaw = localStorage.getItem('dir_clase')
       const map: Record<string, {nr:string;nume:string}[]> = {}
       if (dirClaseRaw) {
@@ -112,7 +107,6 @@ export default function ProfesoriPage() {
           } catch {}
         })
       }
-      // Also check legacy single-class key
       const dc = localStorage.getItem('dir_clasa')
       const dco = localStorage.getItem('dir_conturi')
       if (dc && dco) {
@@ -133,12 +127,12 @@ export default function ProfesoriPage() {
     localStorage.setItem('prof_catalogs', JSON.stringify(profCatalogs))
   }, [profCatalogs, hydrated])
 
-  // Cloud save (debounced 2s) — triggers on any catalog/class/subject change after login
   useEffect(() => {
     if (!hydrated || !loggedEmail || view !== 'catalog') return
     saveToCloud(loggedEmail, profCatalogs, clasePerMaterie, clasaPerMaterie, materiiProf)
   }, [profCatalogs, clasePerMaterie, clasaPerMaterie, materiiProf, hydrated, loggedEmail, view])
 
+  // ── Helpers storage ──
   function saveClase(mat: string, cl: ClasaConf[]) {
     setClasePerMaterie(prev => {
       const updated = { ...prev, [mat]: cl }
@@ -158,6 +152,7 @@ export default function ProfesoriPage() {
     localStorage.setItem('prof_materii', JSON.stringify(m))
   }
 
+  // ── Cloud sync ──
   async function loadFromCloud(em: string): Promise<string[] | null> {
     const key = em.replace(/[@.]/g, '-')
     try {
@@ -217,24 +212,52 @@ export default function ProfesoriPage() {
     setAltaMaterie('')
   }
 
-  function defaultSem(): Semestru { return { note: [], absMot: 0, absNemot: 0, inchis: false } }
-  function defaultEntry(): ProfEntry { return { s1: defaultSem(), s2: defaultSem(), obs: '' } }
+  // ── Date helpers ──
+  function defaultModul(): Modul { return { note: [], absMot: 0, absNemot: 0, inchis: false } }
+  function defaultEntry(): ProfEntry { return { m1: defaultModul(), m2: defaultModul(), m3: defaultModul(), m4: defaultModul(), m5: defaultModul(), obs: '' } }
+
+  function migrateModulRaw(raw: any): Modul {
+    if (!raw) return defaultModul()
+    return { note: Array.isArray(raw.note) ? raw.note : [], absMot: raw.absMot || 0, absNemot: raw.absNemot || 0, inchis: raw.inchis || false }
+  }
+
   function migrateEntry(raw: any): ProfEntry {
     if (!raw) return defaultEntry()
-    if (raw.s1 !== undefined) return raw as ProfEntry
+    if (raw.m1 !== undefined) return raw as ProfEntry
+    if (raw.s1 !== undefined) {
+      // Old 2-semester format → migrate S1→M1, S2→M3
+      return { m1: migrateModulRaw(raw.s1), m2: defaultModul(), m3: migrateModulRaw(raw.s2), m4: defaultModul(), m5: defaultModul(), obs: raw.obs || '' }
+    }
+    // Very old single-nota format
     return {
-      s1: { note: raw.nota ? [{ id: 'n0', v: raw.nota }] : [], absMot: raw.absMot || 0, absNemot: raw.absNemot || 0, inchis: false },
-      s2: defaultSem(), obs: raw.observatii || ''
+      m1: { note: raw.nota ? [{ id: 'n0', v: raw.nota }] : [], absMot: raw.absMot || 0, absNemot: raw.absNemot || 0, inchis: false },
+      m2: defaultModul(), m3: defaultModul(), m4: defaultModul(), m5: defaultModul(), obs: raw.observatii || ''
     }
   }
+
   function calcMedie(note: Nota[]): number | null {
     const vals = note.map(n => parseFloat(n.v)).filter(v => !isNaN(v) && v >= 1 && v <= 10)
     if (!vals.length) return null
     return vals.reduce((s, v) => s + v, 0) / vals.length
   }
+
+  // Media anuală = media aritmetică a mediilor modulare (ROFUIP 2024)
+  function calcMedieAnuala(entry: ProfEntry): number | null {
+    const medii = MODULE_KEYS.map(k => calcMedie(entry[k].note)).filter(m => m !== null) as number[]
+    if (!medii.length) return null
+    return medii.reduce((s, v) => s + v, 0) / medii.length
+  }
+
+  function totalNote(entry: ProfEntry): number {
+    return MODULE_KEYS.reduce((s, k) => s + entry[k].note.length, 0)
+  }
+
+  function getMk(n: 1|2|3|4|5): ModulKey { return `m${n}` as ModulKey }
+
   function getEntry(elevNr: string): ProfEntry {
     return migrateEntry(profCatalogs[clasa]?.[materie]?.[elevNr])
   }
+
   function updateEntry(elevNr: string, fn: (e: ProfEntry) => ProfEntry) {
     setProfCatalogs(prev => {
       const cur = migrateEntry(prev[clasa]?.[materie]?.[elevNr])
@@ -243,27 +266,30 @@ export default function ProfesoriPage() {
     setSavedFlash(true)
     setTimeout(() => setSavedFlash(false), 1500)
   }
+
   function addNota(elevNr: string) {
     const v = novaNotaVal.trim()
     const n = parseFloat(v)
     if (!v || isNaN(n) || n < 1 || n > 10) { setAddingNotaNr(null); setNovaNotaVal(''); return }
-    const sk = activeSem === 1 ? 's1' : 's2'
-    updateEntry(elevNr, e => ({ ...e, [sk]: { ...e[sk], note: [...e[sk].note, { id: Date.now().toString(), v }] } }))
+    const mk = getMk(activeModul)
+    updateEntry(elevNr, e => ({ ...e, [mk]: { ...e[mk], note: [...e[mk].note, { id: Date.now().toString(), v }] } }))
     setNovaNotaVal(''); setAddingNotaNr(null)
   }
+
   function saveEditNota() {
     if (!editingNota) return
-    const { elevNr, sem, id, val } = editingNota
+    const { elevNr, modul, id, val } = editingNota
     const n = parseFloat(val)
     if (!val || isNaN(n) || n < 1 || n > 10) { setEditingNota(null); return }
-    const sk = sem === 1 ? 's1' : 's2'
-    updateEntry(elevNr, e => ({ ...e, [sk]: { ...e[sk], note: e[sk].note.map(nt => nt.id === id ? { ...nt, v: val } : nt) } }))
+    const mk = getMk(modul)
+    updateEntry(elevNr, e => ({ ...e, [mk]: { ...e[mk], note: e[mk].note.map(nt => nt.id === id ? { ...nt, v: val } : nt) } }))
     setEditingNota(null)
   }
-  function closeSemestru(elevNr: string) {
-    const sk = activeSem === 1 ? 's1' : 's2'
-    updateEntry(elevNr, e => ({ ...e, [sk]: { ...e[sk], inchis: true } }))
-    if (activeSem === 1) setActiveSem(2)
+
+  function closeModul(elevNr: string) {
+    const mk = getMk(activeModul)
+    updateEntry(elevNr, e => ({ ...e, [mk]: { ...e[mk], inchis: true } }))
+    if (activeModul < 5) setActiveModul((activeModul + 1) as 1|2|3|4|5)
   }
 
   async function handleLogin(e: React.FormEvent) {
@@ -276,12 +302,9 @@ export default function ProfesoriPage() {
     }
     const em = email.trim().toLowerCase()
     setLoggedEmail(em)
-
-    // Load from cloud — overrides localStorage on new device
     const cloudMaterii = await loadFromCloud(em)
     setLogging(false)
     setSelectedNr(null)
-
     const effectiveMat = cloudMaterii ?? materiiSelectate
     if (effectiveMat.length === 0) {
       setView('materii')
@@ -305,7 +328,6 @@ export default function ProfesoriPage() {
     setNouaLiteraCustom('')
   }
 
-  // Students for current class: from diriginte map if available, else numbered by clasaConf
   const clasaConf = clase.find(c => c.nume === clasa)
   const dirStudents = dirStudentsMap[clasa]
   const studentsFromDir = !!dirStudents && dirStudents.length > 0
@@ -313,7 +335,9 @@ export default function ProfesoriPage() {
     ? dirStudents
     : Array.from({ length: clasaConf?.nrElevi || 0 }, (_, i) => ({ nr: String(i + 1), nume: '' }))
 
-  // ---- LOGIN ----
+  // ════════════════════════════════
+  // VIEW: LOGIN
+  // ════════════════════════════════
   if (view === 'login') return (
     <div style={pageWrap(isMobile)}>
       <button onClick={() => router.push('/scoala')} style={backBtn}>← Înapoi</button>
@@ -322,15 +346,12 @@ export default function ProfesoriPage() {
         <div style={{ fontSize: '20px', fontWeight: 800 }}>Portal Profesor</div>
         <div style={{ fontSize: '12px', color: '#334155', marginTop: '4px' }}>EDU DIGITAL · AIcraiova</div>
       </div>
-
       <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(249,115,22,0.2)', borderRadius: '20px', padding: isMobile ? '28px 20px' : '36px 40px', width: '100%', maxWidth: '420px' }}>
         <h2 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px', textAlign: 'center' }}>Autentificare Profesor</h2>
         <p style={{ fontSize: '12px', color: '#475569', textAlign: 'center', marginBottom: '24px' }}>Accesați catalogul clasei și introduceți situația elevilor</p>
-
         <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <input type="email" placeholder="Email școlar" value={email} onChange={e => setEmail(e.target.value)} style={inputStyle} autoComplete="email" />
           <input type="password" placeholder="Parolă" value={password} onChange={e => setPassword(e.target.value)} style={inputStyle} autoComplete="current-password" />
-
           {loginErr && <div style={{ fontSize: '12px', color: '#ef4444', textAlign: 'center' }}>{loginErr}</div>}
           <button type="submit" disabled={logging} style={btnOrange}>{logging ? 'Se verifică...' : 'Intră în cont →'}</button>
         </form>
@@ -342,7 +363,9 @@ export default function ProfesoriPage() {
     </div>
   )
 
-  // ---- SELECTARE MATERII (device nou) ----
+  // ════════════════════════════════
+  // VIEW: SELECTARE MATERII
+  // ════════════════════════════════
   if (view === 'materii') return (
     <div style={pageWrap(isMobile)}>
       <div style={{ textAlign: 'center', marginBottom: '24px' }}>
@@ -350,7 +373,6 @@ export default function ProfesoriPage() {
         <div style={{ fontSize: '20px', fontWeight: 800 }}>Ce materii predai?</div>
         <div style={{ fontSize: '12px', color: '#475569', marginTop: '6px' }}>Selectează o dată — salvate pe acest dispozitiv</div>
       </div>
-
       <div style={{ width: '100%', maxWidth: '420px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {materiiSelectate.length > 0 && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
@@ -390,16 +412,18 @@ export default function ProfesoriPage() {
     </div>
   )
 
-  // ---- CATALOG ----
+  // ════════════════════════════════
+  // VIEW: CATALOG
+  // ════════════════════════════════
   return (
     <div style={pageWrap(isMobile)}>
       <button onClick={() => router.push('/scoala')} style={backBtn}>← Înapoi</button>
       <div style={{ textAlign: 'center', marginBottom: '16px' }}>
         <div style={{ width: 44, height: 44, borderRadius: '13px', background: 'linear-gradient(135deg, #c2410c, #f97316)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', margin: '0 auto 8px', boxShadow: '0 6px 20px rgba(249,115,22,0.3)' }}>🧑‍💻</div>
         <div style={{ fontSize: '16px', fontWeight: 800 }}>Catalog Profesor</div>
-        <div style={{ fontSize: '11px', color: '#334155', marginTop: '2px' }}>EDU DIGITAL · AIcraiova</div>
+        <div style={{ fontSize: '11px', color: '#334155', marginTop: '2px' }}>EDU DIGITAL · AIcraiova — An școlar 2025–2026 · 5 module</div>
         {cloudSyncStatus !== 'idle' && (
-          <div style={{ fontSize: '10px', color: cloudSyncStatus === 'saving' ? '#fbbf24' : cloudSyncStatus === 'saved' ? '#4ade80' : '#f87171', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', padding: '3px 10px', marginTop: '4px' }}>
+          <div style={{ fontSize: '10px', color: cloudSyncStatus === 'saving' ? '#fbbf24' : cloudSyncStatus === 'saved' ? '#4ade80' : '#f87171', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', padding: '3px 10px', marginTop: '6px', display: 'inline-block' }}>
             {cloudSyncStatus === 'saving' ? '☁ Sincronizare...' : cloudSyncStatus === 'saved' ? '☁ Salvat în cloud ✓' : '☁ Eroare sync'}
           </div>
         )}
@@ -417,10 +441,9 @@ export default function ProfesoriPage() {
               </button>
             ))}
             <button onClick={() => setAdaugaMaterieOpen(v => !v)}
-              style={{ flex: '0 0 auto', background: 'none', border: 'none', borderBottom: '2px solid transparent', padding: '11px 14px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '18px', color: '#334155', title: 'Adaugă materie' }}>+</button>
+              style={{ flex: '0 0 auto', background: 'none', border: 'none', borderBottom: '2px solid transparent', padding: '11px 14px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '18px', color: '#334155' }}>+</button>
           </div>
 
-          {/* Panou adauga materie */}
           {adaugaMaterieOpen && (
             <div style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '12px 14px' }}>
               <div style={{ fontSize: '11px', color: '#475569', marginBottom: '8px', fontWeight: 600 }}>Adaugă materie nouă:</div>
@@ -441,15 +464,14 @@ export default function ProfesoriPage() {
             </div>
           )}
 
-          {/* ── Scroll clase (per materie) ── */}
+          {/* ── Clase per materie ── */}
           <div style={{ padding: '10px 14px', borderBottom: clase.length > 0 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
             <div style={{ fontSize: '10px', color: '#334155', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>Clasele la {materie}</div>
             <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '4px', alignItems: 'center' }}>
               {clase.map(c => (
                 <button key={c.nume} onClick={() => { setClasa(c.nume); setSelectedNr(null); setSearchElev('') }}
                   style={{ flex: '0 0 auto', background: c.nume === clasa ? 'rgba(249,115,22,0.22)' : 'rgba(255,255,255,0.04)', border: `1px solid ${c.nume === clasa ? 'rgba(249,115,22,0.55)' : 'rgba(255,255,255,0.09)'}`, borderRadius: '10px', padding: '7px 14px', fontSize: '13px', fontWeight: c.nume === clasa ? 800 : 400, color: c.nume === clasa ? '#fb923c' : '#475569', cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s' }}>
-                  {c.nume}
-                  <span style={{ fontSize: '10px', color: c.nume === clasa ? '#f97316' : '#334155', marginLeft: '5px' }}>{c.nrElevi}el</span>
+                  {c.nume}<span style={{ fontSize: '10px', color: c.nume === clasa ? '#f97316' : '#334155', marginLeft: '5px' }}>{c.nrElevi}el</span>
                 </button>
               ))}
               <button onClick={() => setAdaugaClasaOpen(v => !v)}
@@ -459,79 +481,67 @@ export default function ProfesoriPage() {
             </div>
           </div>
 
-          {/* Panou adauga clasa */}
+          {/* ── Panou adaugă clasă ── */}
           {adaugaClasaOpen && (() => {
             const previewNume = `${nouaGrada}${nouaLiteraCustom || nouaLitera}`
             const dirPentruClasa = dirStudentsMap[previewNume]
             return (
-            <div style={{ padding: '14px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(249,115,22,0.03)' }}>
-              <div style={{ fontSize: '11px', color: '#fb923c', fontWeight: 700, marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Adaugă clasă nouă</div>
-
-              {/* Scroll grade */}
-              <div style={{ marginBottom: '10px' }}>
-                <div style={{ fontSize: '11px', color: '#475569', marginBottom: '6px' }}>Anul de studiu</div>
-                <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '2px' }}>
-                  {GRADE.map(g => (
-                    <button key={g} type="button" onClick={() => setNouaGrada(g)}
-                      style={{ flex: '0 0 auto', background: g === nouaGrada ? 'rgba(249,115,22,0.25)' : 'rgba(255,255,255,0.04)', border: `1px solid ${g === nouaGrada ? 'rgba(249,115,22,0.6)' : 'rgba(255,255,255,0.1)'}`, borderRadius: '8px', padding: '7px 14px', fontSize: '14px', fontWeight: g === nouaGrada ? 800 : 400, color: g === nouaGrada ? '#fb923c' : '#475569', cursor: 'pointer', fontFamily: 'inherit' }}>
-                      {g}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Litera */}
-              <div style={{ marginBottom: '10px' }}>
-                <div style={{ fontSize: '11px', color: '#475569', marginBottom: '6px' }}>Litera clasei</div>
-                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
-                  {LITERE.map(l => (
-                    <button key={l} type="button" onClick={() => { setNouaLitera(l); setNouaLiteraCustom('') }}
-                      style={{ background: l === nouaLitera && !nouaLiteraCustom ? 'rgba(249,115,22,0.25)' : 'rgba(255,255,255,0.04)', border: `1px solid ${l === nouaLitera && !nouaLiteraCustom ? 'rgba(249,115,22,0.6)' : 'rgba(255,255,255,0.1)'}`, borderRadius: '8px', padding: '6px 14px', fontSize: '14px', fontWeight: l === nouaLitera && !nouaLiteraCustom ? 800 : 400, color: l === nouaLitera && !nouaLiteraCustom ? '#fb923c' : '#475569', cursor: 'pointer', fontFamily: 'inherit' }}>
-                      {l}
-                    </button>
-                  ))}
-                  <input type="text" placeholder="Alta..." value={nouaLiteraCustom} onChange={e => setNouaLiteraCustom(e.target.value.toUpperCase().slice(0,3))}
-                    style={{ ...inputStyle, width: '70px', padding: '6px 10px', fontSize: '14px', fontWeight: 700, textAlign: 'center', border: `1px solid ${nouaLiteraCustom ? 'rgba(249,115,22,0.6)' : 'rgba(255,255,255,0.1)'}`, color: nouaLiteraCustom ? '#fb923c' : '#f1f5f9' }} />
-                </div>
-              </div>
-
-              {/* Diriginte badge sau nr elevi manual */}
-              {dirPentruClasa ? (
-                <div style={{ marginBottom: '14px', background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: '10px', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <span style={{ fontSize: '18px' }}>✅</span>
-                  <div>
-                    <div style={{ fontSize: '13px', fontWeight: 700, color: '#4ade80' }}>Listă preluată din diriginte</div>
-                    <div style={{ fontSize: '11px', color: '#475569', marginTop: '2px' }}>{dirPentruClasa.length} elevi cu nume — {dirPentruClasa.slice(0,3).map(s => s.nume).join(', ')}{dirPentruClasa.length > 3 ? '...' : ''}</div>
+              <div style={{ padding: '14px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(249,115,22,0.03)' }}>
+                <div style={{ fontSize: '11px', color: '#fb923c', fontWeight: 700, marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Adaugă clasă nouă</div>
+                <div style={{ marginBottom: '10px' }}>
+                  <div style={{ fontSize: '11px', color: '#475569', marginBottom: '6px' }}>Anul de studiu</div>
+                  <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '2px' }}>
+                    {GRADE.map(g => (
+                      <button key={g} type="button" onClick={() => setNouaGrada(g)}
+                        style={{ flex: '0 0 auto', background: g === nouaGrada ? 'rgba(249,115,22,0.25)' : 'rgba(255,255,255,0.04)', border: `1px solid ${g === nouaGrada ? 'rgba(249,115,22,0.6)' : 'rgba(255,255,255,0.1)'}`, borderRadius: '8px', padding: '7px 14px', fontSize: '14px', fontWeight: g === nouaGrada ? 800 : 400, color: g === nouaGrada ? '#fb923c' : '#475569', cursor: 'pointer', fontFamily: 'inherit' }}>
+                        {g}
+                      </button>
+                    ))}
                   </div>
                 </div>
-              ) : (
-                <div style={{ marginBottom: '14px' }}>
-                  <div style={{ fontSize: '11px', color: '#475569', marginBottom: '6px' }}>Număr de elevi</div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <button type="button" onClick={() => setNrEleviNou(v => Math.max(1, v - 1))}
-                      style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', width: 32, height: 32, cursor: 'pointer', color: '#94a3b8', fontSize: '18px', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>−</button>
-                    <span style={{ fontSize: '22px', fontWeight: 800, color: '#f1f5f9', minWidth: '40px', textAlign: 'center' }}>{nrEleviNou}</span>
-                    <button type="button" onClick={() => setNrEleviNou(v => Math.min(40, v + 1))}
-                      style={{ background: 'rgba(249,115,22,0.15)', border: '1px solid rgba(249,115,22,0.3)', borderRadius: '8px', width: 32, height: 32, cursor: 'pointer', color: '#fb923c', fontSize: '18px', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
-                    <span style={{ fontSize: '12px', color: '#475569' }}>elevi</span>
+                <div style={{ marginBottom: '10px' }}>
+                  <div style={{ fontSize: '11px', color: '#475569', marginBottom: '6px' }}>Litera clasei</div>
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    {LITERE.map(l => (
+                      <button key={l} type="button" onClick={() => { setNouaLitera(l); setNouaLiteraCustom('') }}
+                        style={{ background: l === nouaLitera && !nouaLiteraCustom ? 'rgba(249,115,22,0.25)' : 'rgba(255,255,255,0.04)', border: `1px solid ${l === nouaLitera && !nouaLiteraCustom ? 'rgba(249,115,22,0.6)' : 'rgba(255,255,255,0.1)'}`, borderRadius: '8px', padding: '6px 14px', fontSize: '14px', fontWeight: l === nouaLitera && !nouaLiteraCustom ? 800 : 400, color: l === nouaLitera && !nouaLiteraCustom ? '#fb923c' : '#475569', cursor: 'pointer', fontFamily: 'inherit' }}>
+                        {l}
+                      </button>
+                    ))}
+                    <input type="text" placeholder="Alta..." value={nouaLiteraCustom} onChange={e => setNouaLiteraCustom(e.target.value.toUpperCase().slice(0,3))}
+                      style={{ ...inputStyle, width: '70px', padding: '6px 10px', fontSize: '14px', fontWeight: 700, textAlign: 'center', border: `1px solid ${nouaLiteraCustom ? 'rgba(249,115,22,0.6)' : 'rgba(255,255,255,0.1)'}`, color: nouaLiteraCustom ? '#fb923c' : '#f1f5f9' }} />
                   </div>
                 </div>
-              )}
-
-              {/* Preview + confirma */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', borderRadius: '10px', padding: '10px 14px' }}>
-                  <span style={{ fontSize: '11px', color: '#475569' }}>Clasă: </span>
-                  <span style={{ fontSize: '16px', fontWeight: 800, color: '#fb923c' }}>{previewNume}</span>
-                  <span style={{ fontSize: '11px', color: '#475569', marginLeft: '8px' }}>
-                    — {dirPentruClasa ? `${dirPentruClasa.length} elevi din diriginte` : `${nrEleviNou} elevi`}
-                  </span>
+                {dirPentruClasa ? (
+                  <div style={{ marginBottom: '14px', background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: '10px', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ fontSize: '18px' }}>✅</span>
+                    <div>
+                      <div style={{ fontSize: '13px', fontWeight: 700, color: '#4ade80' }}>Listă preluată din diriginte</div>
+                      <div style={{ fontSize: '11px', color: '#475569', marginTop: '2px' }}>{dirPentruClasa.length} elevi cu nume — {dirPentruClasa.slice(0,3).map(s => s.nume).join(', ')}{dirPentruClasa.length > 3 ? '...' : ''}</div>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ marginBottom: '14px' }}>
+                    <div style={{ fontSize: '11px', color: '#475569', marginBottom: '6px' }}>Număr de elevi</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <button type="button" onClick={() => setNrEleviNou(v => Math.max(1, v - 1))}
+                        style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', width: 32, height: 32, cursor: 'pointer', color: '#94a3b8', fontSize: '18px', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>−</button>
+                      <span style={{ fontSize: '22px', fontWeight: 800, color: '#f1f5f9', minWidth: '40px', textAlign: 'center' }}>{nrEleviNou}</span>
+                      <button type="button" onClick={() => setNrEleviNou(v => Math.min(40, v + 1))}
+                        style={{ background: 'rgba(249,115,22,0.15)', border: '1px solid rgba(249,115,22,0.3)', borderRadius: '8px', width: 32, height: 32, cursor: 'pointer', color: '#fb923c', fontSize: '18px', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
+                      <span style={{ fontSize: '12px', color: '#475569' }}>elevi</span>
+                    </div>
+                  </div>
+                )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', borderRadius: '10px', padding: '10px 14px' }}>
+                    <span style={{ fontSize: '11px', color: '#475569' }}>Clasă: </span>
+                    <span style={{ fontSize: '16px', fontWeight: 800, color: '#fb923c' }}>{previewNume}</span>
+                    <span style={{ fontSize: '11px', color: '#475569', marginLeft: '8px' }}>— {dirPentruClasa ? `${dirPentruClasa.length} elevi din diriginte` : `${nrEleviNou} elevi`}</span>
+                  </div>
+                  <button onClick={adaugaClasa} style={{ ...btnOrange, padding: '10px 20px', fontSize: '13px', boxShadow: 'none', whiteSpace: 'nowrap' }}>Adaugă ✓</button>
                 </div>
-                <button onClick={adaugaClasa} style={{ ...btnOrange, padding: '10px 20px', fontSize: '13px', boxShadow: 'none', whiteSpace: 'nowrap' }}>
-                  Adaugă ✓
-                </button>
               </div>
-            </div>
             )
           })()}
 
@@ -541,7 +551,7 @@ export default function ProfesoriPage() {
           </div>}
         </div>
 
-        {/* ── Catalog elevi ── */}
+        {/* ── Lista elevi ── */}
         {!clasa ? (
           <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '16px', padding: '36px', textAlign: 'center', color: '#475569', fontSize: '13px' }}>
             <div style={{ fontSize: '32px', marginBottom: '12px' }}>🏫</div>
@@ -553,246 +563,324 @@ export default function ProfesoriPage() {
             Niciun elev configurat pentru clasa {clasa}.
           </div>
         ) : (() => {
-          const sk = activeSem === 1 ? 's1' : 's2'
-          const cuNote = students.filter(s => getEntry(s.nr)[sk].note.length > 0)
-          const mediiElevi = students.map(s => calcMedie(getEntry(s.nr)[sk].note)).filter(m => m !== null) as number[]
-          const medieClasa = mediiElevi.length ? mediiElevi.reduce((a,b)=>a+b,0)/mediiElevi.length : null
-          const subMedie = mediiElevi.filter(m => m < 5).length
-          const absNemot = students.reduce((a, s) => a + getEntry(s.nr)[sk].absNemot, 0)
+          const mk = getMk(activeModul)
+          const cuNoteInModul = students.filter(s => getEntry(s.nr)[mk].note.length > 0)
+          const mediiAnuale = students.map(s => calcMedieAnuala(getEntry(s.nr))).filter(m => m !== null) as number[]
+          const medieAnualaClasa = mediiAnuale.length ? mediiAnuale.reduce((a,b)=>a+b,0)/mediiAnuale.length : null
+          const corijenți = mediiAnuale.filter(m => m < 5).length
+          const subMinimNote = students.filter(s => totalNote(getEntry(s.nr)) < MIN_NOTE_AN && totalNote(getEntry(s.nr)) > 0).length
+          const absNemotModul = students.reduce((a, s) => a + getEntry(s.nr)[mk].absNemot, 0)
 
           const q = searchElev.trim().toLowerCase()
           const listaVizibila = q ? students.filter(s => s.nume.toLowerCase().includes(q) || s.nr.includes(q)) : students
 
           return (<>
-            {/* Selector semestru + Sumar */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              {([1,2] as const).map(sem => (
-                <button key={sem} onClick={() => setActiveSem(sem)}
-                  style={{ background: activeSem===sem ? 'rgba(249,115,22,0.2)' : 'rgba(255,255,255,0.04)', border: `1px solid ${activeSem===sem ? 'rgba(249,115,22,0.6)' : 'rgba(255,255,255,0.1)'}`, borderRadius: '10px', padding: '6px 16px', fontSize: '12px', fontWeight: activeSem===sem ? 800 : 400, color: activeSem===sem ? '#fb923c' : '#475569', cursor: 'pointer', fontFamily: 'inherit' }}>
-                  Semestrul {sem}
-                </button>
-              ))}
-              <div style={{ flex: 1 }} />
-              <div style={statCard('#6366f1')}><span style={{ fontSize: '14px', fontWeight: 800 }}>{cuNote.length}/{students.length}</span><span style={{ fontSize: '9px', marginLeft: '4px' }}>notați</span></div>
-              {medieClasa !== null && <div style={statCard('#4ade80')}><span style={{ fontSize: '14px', fontWeight: 800 }}>{medieClasa.toFixed(2)}</span><span style={{ fontSize: '9px', marginLeft: '4px' }}>medie</span></div>}
-              {subMedie > 0 && <div style={statCard('#f87171')}><span style={{ fontSize: '14px', fontWeight: 800 }}>{subMedie}</span><span style={{ fontSize: '9px', marginLeft: '4px' }}>sub 5</span></div>}
-              {absNemot > 0 && <div style={statCard('#fbbf24')}><span style={{ fontSize: '14px', fontWeight: 800 }}>{absNemot}</span><span style={{ fontSize: '9px', marginLeft: '4px' }}>abs.nem.</span></div>}
+            {/* ── Selector modul ── */}
+            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '14px', padding: '12px 14px' }}>
+              <div style={{ fontSize: '10px', color: '#334155', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>Modul activ</div>
+              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                {MODULE_KEYS.map((mk2, i) => {
+                  const isCur = activeModul === i + 1
+                  const hasNote = students.some(s => getEntry(s.nr)[mk2].note.length > 0)
+                  return (
+                    <button key={mk2} onClick={() => { setActiveModul((i+1) as 1|2|3|4|5); setSelectedNr(null) }}
+                      style={{ flex: '0 0 auto', background: isCur ? 'rgba(249,115,22,0.2)' : 'rgba(255,255,255,0.04)', border: `1px solid ${isCur ? 'rgba(249,115,22,0.6)' : 'rgba(255,255,255,0.1)'}`, borderRadius: '10px', padding: '6px 12px', fontSize: '12px', fontWeight: isCur ? 800 : 400, color: isCur ? '#fb923c' : '#475569', cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1px' }}>
+                      <span>{MODULE_LABEL[i]}</span>
+                      <span style={{ fontSize: '9px', color: isCur ? '#f97316' : '#334155' }}>{MODULE_PERIOADA[i]}</span>
+                      {hasNote && <span style={{ fontSize: '8px', color: isCur ? '#fb923c' : '#475569' }}>●</span>}
+                    </button>
+                  )
+                })}
+              </div>
             </div>
 
-            {/* Search */}
+            {/* ── Statistici clasă ── */}
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+              <div style={statCard('#6366f1')}>
+                <span style={{ fontSize: '14px', fontWeight: 800 }}>{cuNoteInModul.length}/{students.length}</span>
+                <span style={{ fontSize: '9px', marginLeft: '4px' }}>notați {MODULE_LABEL[activeModul-1]}</span>
+              </div>
+              {medieAnualaClasa !== null && (
+                <div style={statCard(medieAnualaClasa < 5 ? '#f87171' : medieAnualaClasa < 6 ? '#fbbf24' : '#4ade80')}>
+                  <span style={{ fontSize: '14px', fontWeight: 800 }}>{medieAnualaClasa.toFixed(2)}</span>
+                  <span style={{ fontSize: '9px', marginLeft: '4px' }}>medie anuală</span>
+                </div>
+              )}
+              {corijenți > 0 && (
+                <div style={statCard('#f87171')}>
+                  <span style={{ fontSize: '14px', fontWeight: 800 }}>{corijenți}</span>
+                  <span style={{ fontSize: '9px', marginLeft: '4px' }}>corijenți</span>
+                </div>
+              )}
+              {subMinimNote > 0 && (
+                <div style={statCard('#fbbf24')}>
+                  <span style={{ fontSize: '14px', fontWeight: 800 }}>{subMinimNote}</span>
+                  <span style={{ fontSize: '9px', marginLeft: '4px' }}>sub min.note</span>
+                </div>
+              )}
+              {absNemotModul > 0 && (
+                <div style={statCard('#fb923c')}>
+                  <span style={{ fontSize: '14px', fontWeight: 800 }}>{absNemotModul}</span>
+                  <span style={{ fontSize: '9px', marginLeft: '4px' }}>abs.nem.{MODULE_LABEL[activeModul-1]}</span>
+                </div>
+              )}
+            </div>
+
+            {/* ── Căutare ── */}
             <input type="text" placeholder="Caută elev după nume sau număr..."
               value={searchElev} onChange={e => setSearchElev(e.target.value)}
               style={{ ...inputStyle, padding: '9px 14px', fontSize: '13px' }} />
 
-            {/* Lista elevi */}
+            {/* ── Rânduri elevi ── */}
             <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '16px', overflow: 'hidden' }}>
               <div style={{ padding: '10px 14px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '11px', color: '#475569', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  {materie} · {clasa} · Sem {activeSem} {q ? `· ${listaVizibila.length} rezultate` : ''}
+                  {materie} · {clasa} · {MODULE_LABEL[activeModul-1]} {q ? `· ${listaVizibila.length} rezultate` : ''}
                 </span>
-                {studentsFromDir && <span style={{ fontSize: '10px', color: '#4ade80' }}>· liste din diriginte</span>}
+                {studentsFromDir && <span style={{ fontSize: '10px', color: '#4ade80' }}>· diriginte</span>}
               </div>
 
               {listaVizibila.length === 0 && <div style={{ padding: '20px', textAlign: 'center', fontSize: '13px', color: '#475569' }}>Niciun elev găsit</div>}
 
               {listaVizibila.map((s, listIdx) => {
                 const entry = getEntry(s.nr)
-                const semData = entry[sk]
+                const modulData = entry[mk]
                 const isOpen = selectedNr === s.nr
-                const medie = calcMedie(semData.note)
-                const medieColor = medie === null ? '#334155' : medie < 5 ? '#f87171' : medie < 7 ? '#fbbf24' : '#4ade80'
-                const totalAbs = semData.absMot + semData.absNemot
+                const medieAnuala = calcMedieAnuala(entry)
+                const totalNoteElev = totalNote(entry)
+                const subMinim = totalNoteElev > 0 && totalNoteElev < MIN_NOTE_AN
+                const corigent = medieAnuala !== null && medieAnuala < 5
+                const medieColor = medieAnuala === null ? '#334155' : medieAnuala < 5 ? '#f87171' : medieAnuala < 6 ? '#fbbf24' : '#4ade80'
+                const totalAbsNemot = MODULE_KEYS.reduce((a, k) => a + entry[k].absNemot, 0)
 
                 return (
                   <div key={s.nr} style={{ borderBottom: listIdx < listaVizibila.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
-                    {/* Rând elev */}
                     <button onClick={() => setSelectedNr(isOpen ? null : s.nr)}
-                      style={{ width: '100%', background: isOpen ? 'rgba(249,115,22,0.06)' : 'transparent', border: 'none', padding: '12px 14px', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '10px', textAlign: 'left' }}>
+                      style={{ width: '100%', background: isOpen ? 'rgba(249,115,22,0.06)' : 'transparent', border: 'none', padding: '11px 14px', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '8px', textAlign: 'left' }}>
                       <span style={{ fontSize: '11px', color: '#334155', minWidth: '22px', fontWeight: 700 }}>{s.nr}.</span>
-                      <span style={{ flex: 1, fontSize: '14px', fontWeight: isOpen ? 800 : 500, color: isOpen ? '#f1f5f9' : '#cbd5e1' }}>{s.nume || `Elevul ${s.nr}`}</span>
-                      {/* Note chips preview */}
-                      {semData.note.length > 0 && (
-                        <span style={{ display: 'flex', gap: '3px' }}>
-                          {semData.note.slice(0,3).map(nt => (
-                            <span key={nt.id} style={{ fontSize: '11px', fontWeight: 700, background: 'rgba(249,115,22,0.15)', border: '1px solid rgba(249,115,22,0.3)', borderRadius: '6px', padding: '1px 6px', color: '#fb923c' }}>{nt.v}</span>
+                      <span style={{ flex: 1, fontSize: '13px', fontWeight: isOpen ? 800 : 500, color: isOpen ? '#f1f5f9' : '#cbd5e1' }}>{s.nume || `Elevul ${s.nr}`}</span>
+
+                      {/* Note chips modul activ */}
+                      {modulData.note.length > 0 && (
+                        <span style={{ display: 'flex', gap: '2px' }}>
+                          {modulData.note.slice(0,3).map(nt => (
+                            <span key={nt.id} style={{ fontSize: '11px', fontWeight: 700, background: 'rgba(249,115,22,0.12)', border: '1px solid rgba(249,115,22,0.25)', borderRadius: '5px', padding: '1px 5px', color: '#fb923c' }}>{nt.v}</span>
                           ))}
-                          {semData.note.length > 3 && <span style={{ fontSize: '10px', color: '#475569' }}>+{semData.note.length-3}</span>}
+                          {modulData.note.length > 3 && <span style={{ fontSize: '9px', color: '#475569' }}>+{modulData.note.length-3}</span>}
                         </span>
                       )}
-                      {/* Media */}
-                      <span style={{ fontSize: '13px', fontWeight: 800, color: medieColor, minWidth: '36px', textAlign: 'right' }}>
-                        {medie !== null ? medie.toFixed(2) : '—'}
+
+                      {/* Badges */}
+                      {subMinim && <span title={`Minim legal: ${MIN_NOTE_AN} note/an`} style={{ fontSize: '10px', background: 'rgba(251,191,36,0.15)', border: '1px solid rgba(251,191,36,0.4)', borderRadius: '5px', padding: '1px 6px', color: '#fbbf24' }}>⚠</span>}
+                      {corigent && <span style={{ fontSize: '9px', background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.5)', borderRadius: '5px', padding: '1px 6px', color: '#f87171', fontWeight: 800 }}>CORIGENT</span>}
+                      {totalAbsNemot > 0 && <span style={{ fontSize: '10px', color: '#f87171', background: 'rgba(239,68,68,0.1)', borderRadius: '5px', padding: '1px 6px' }}>{totalAbsNemot}abs</span>}
+
+                      {/* Media anuală */}
+                      <span style={{ fontSize: '14px', fontWeight: 800, color: medieColor, minWidth: '38px', textAlign: 'right' }}>
+                        {medieAnuala !== null ? medieAnuala.toFixed(2) : '—'}
                       </span>
-                      {semData.inchis && <span style={{ fontSize: '9px', background: 'rgba(100,116,139,0.2)', border: '1px solid rgba(100,116,139,0.4)', borderRadius: '4px', padding: '1px 5px', color: '#64748b' }}>ÎNCHIS</span>}
-                      {totalAbs > 0 && <span style={{ fontSize: '11px', color: semData.absNemot > 0 ? '#f87171' : '#475569', background: semData.absNemot > 0 ? 'rgba(239,68,68,0.1)' : 'rgba(255,255,255,0.05)', borderRadius: '6px', padding: '2px 7px' }}>{totalAbs} abs</span>}
                       <span style={{ fontSize: '11px', color: '#334155', transform: isOpen ? 'rotate(90deg)' : 'rotate(0)', transition: 'transform 0.2s', display: 'inline-block' }}>›</span>
                     </button>
 
-                    {/* Formular expand */}
+                    {/* ── Formular expandat ── */}
                     {isOpen && (() => {
-                      const semKeys: ('s1'|'s2')[] = ['s1','s2']
+                      const activeMk = getMk(activeModul)
+                      const semData = entry[activeMk]
+                      const medie = calcMedie(semData.note)
+                      const medieAn = calcMedieAnuala(entry)
+                      const totNote = totalNote(entry)
                       return (
-                      <div style={{ padding: '0 14px 16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        <div style={{ padding: '0 14px 16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
 
-                        {/* Tabs semestre */}
-                        <div style={{ display: 'flex', gap: '6px' }}>
-                          {semKeys.map((sk2, i) => {
-                            const sd = entry[sk2]
-                            const med = calcMedie(sd.note)
-                            const isCur = activeSem === i+1
-                            const isUnlocking = unlockSem?.elevNr === s.nr && unlockSem?.sem === i+1
-                            return (
-                              <div key={sk2} style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                <button onClick={() => {
-                                  if (sd.inchis) {
-                                    setUnlockSem({ elevNr: s.nr, sem: (i+1) as 1|2, pass: '', err: false })
-                                    setActiveSem((i+1) as 1|2)
-                                  } else {
-                                    setActiveSem((i+1) as 1|2)
-                                    setUnlockSem(null)
-                                  }
-                                }}
-                                  style={{ width: '100%', background: isCur ? (sd.inchis ? 'rgba(100,116,139,0.15)' : 'rgba(249,115,22,0.15)') : 'rgba(255,255,255,0.03)', border: `1px solid ${isCur ? (sd.inchis ? 'rgba(100,116,139,0.4)' : 'rgba(249,115,22,0.5)') : 'rgba(255,255,255,0.08)'}`, borderRadius: '10px', padding: '8px', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'center' }}>
-                                  <div style={{ fontSize: '11px', fontWeight: 700, color: isCur ? (sd.inchis ? '#94a3b8' : '#fb923c') : '#475569' }}>Sem {i+1} {sd.inchis ? '🔒' : ''}</div>
-                                  {med !== null && <div style={{ fontSize: '13px', fontWeight: 800, color: isCur ? (sd.inchis ? '#94a3b8' : '#fb923c') : '#64748b' }}>Media {med.toFixed(2)}</div>}
-                                </button>
-                                {/* Prompt unlock */}
-                                {isUnlocking && (
-                                  <div style={{ background: 'rgba(100,116,139,0.1)', border: '1px solid rgba(100,116,139,0.3)', borderRadius: '10px', padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                    <div style={{ fontSize: '11px', color: '#94a3b8' }}>Parolă pentru deblocare:</div>
-                                    <div style={{ display: 'flex', gap: '6px' }}>
-                                      <input autoFocus type="password" placeholder="Parolă" value={unlockSem.pass}
-                                        onChange={ev => setUnlockSem(prev => prev ? {...prev, pass: ev.target.value, err: false} : null)}
-                                        onKeyDown={ev => {
-                                          if (ev.key === 'Enter') {
-                                            if (unlockSem.pass === 'ARACIP') {
-                                              const sk3 = unlockSem.sem === 1 ? 's1' : 's2'
-                                              updateEntry(s.nr, e => ({ ...e, [sk3]: { ...e[sk3], inchis: false } }))
-                                              setUnlockSem(null)
-                                            } else {
-                                              setUnlockSem(prev => prev ? {...prev, err: true} : null)
-                                            }
-                                          }
-                                          if (ev.key === 'Escape') setUnlockSem(null)
-                                        }}
-                                        style={{ ...inputStyle, flex: 1, padding: '5px 10px', fontSize: '12px', border: `1px solid ${unlockSem.err ? '#f87171' : 'rgba(255,255,255,0.15)'}` }} />
-                                      <button onClick={() => {
-                                        if (unlockSem.pass === 'ARACIP') {
-                                          const sk3 = unlockSem.sem === 1 ? 's1' : 's2'
-                                          updateEntry(s.nr, e => ({ ...e, [sk3]: { ...e[sk3], inchis: false } }))
-                                          setUnlockSem(null)
-                                        } else {
-                                          setUnlockSem(prev => prev ? {...prev, err: true} : null)
-                                        }
-                                      }} style={{ background: 'rgba(249,115,22,0.2)', border: '1px solid rgba(249,115,22,0.4)', borderRadius: '8px', padding: '0 10px', color: '#fb923c', cursor: 'pointer', fontFamily: 'inherit', fontSize: '13px' }}>✓</button>
-                                      <button onClick={() => setUnlockSem(null)} style={{ background: 'none', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '0 8px', color: '#475569', cursor: 'pointer', fontFamily: 'inherit', fontSize: '13px' }}>✗</button>
-                                    </div>
-                                    {unlockSem.err && <div style={{ fontSize: '11px', color: '#f87171' }}>Parolă greșită</div>}
-                                  </div>
-                                )}
-                              </div>
-                            )
-                          })}
-                        </div>
-
-                        {/* Note semestru activ */}
-                        <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '12px', padding: '12px 14px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-                            <span style={{ fontSize: '11px', color: '#475569', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Note · Sem {activeSem}</span>
-                            {semData.inchis
-                              ? <span style={{ fontSize: '11px', color: '#64748b', background: 'rgba(100,116,139,0.1)', border: '1px solid rgba(100,116,139,0.3)', borderRadius: '8px', padding: '3px 10px' }}>🔒 Semestru închis · Media {medie?.toFixed(2)}</span>
-                              : <span style={{ fontSize: '11px', color: '#4ade80', fontWeight: 700 }}>
-                                  {medie !== null ? `Media: ${medie.toFixed(2)}` : 'Fără note'}
-                                  {savedFlash && selectedNr === s.nr && <span style={{ color: '#4ade80', marginLeft: '8px' }}>✓</span>}
-                                </span>
-                            }
-                          </div>
-
-                          {/* Chips note */}
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: semData.inchis ? 0 : '10px' }}>
-                            {semData.note.map(nt => {
-                              const isEditing = editingNota?.elevNr === s.nr && editingNota?.sem === activeSem && editingNota?.id === nt.id
-                              const nv = parseFloat(nt.v)
-                              const nc = nv < 5 ? '#f87171' : nv < 7 ? '#fbbf24' : '#4ade80'
+                          {/* ── Tabs 5 module ── */}
+                          <div style={{ display: 'flex', gap: '4px', overflowX: 'auto', paddingBottom: '2px' }}>
+                            {MODULE_KEYS.map((mk2, i) => {
+                              const md = entry[mk2]
+                              const med = calcMedie(md.note)
+                              const isCur = activeModul === i + 1
+                              const isUnlocking = unlockModul?.elevNr === s.nr && unlockModul?.modul === i + 1
                               return (
-                                <div key={nt.id} style={{ position: 'relative', display: 'flex', alignItems: 'center', background: `${nc}18`, border: `1px solid ${nc}44`, borderRadius: '10px', padding: '6px 10px', gap: '6px' }}>
-                                  {isEditing ? (
-                                    <>
-                                      <input autoFocus type="text" inputMode="numeric" value={editingNota.val}
-                                        onChange={ev => setEditingNota(prev => prev ? {...prev, val: ev.target.value} : null)}
-                                        onKeyDown={ev => { if (ev.key==='Enter') saveEditNota(); if (ev.key==='Escape') setEditingNota(null) }}
-                                        style={{ ...inputStyle, width: '48px', fontSize: '16px', fontWeight: 800, textAlign: 'center', padding: '2px 6px', color: nc, border: `1px solid ${nc}` }} />
-                                      <button onClick={saveEditNota} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#4ade80', fontSize: '14px', padding: 0 }}>✓</button>
-                                      <button onClick={() => setEditingNota(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#f87171', fontSize: '14px', padding: 0 }}>✗</button>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <span style={{ fontSize: '18px', fontWeight: 800, color: nc }}>{nt.v}</span>
-                                      {!semData.inchis && (
-                                        <button onClick={() => setEditingNota({ elevNr: s.nr, sem: activeSem, id: nt.id, val: nt.v })}
-                                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: '11px', padding: '0 0 0 2px', lineHeight: 1 }} title="Editează">✏️</button>
-                                      )}
-                                    </>
+                                <div key={mk2} style={{ flex: '0 0 auto', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                                  <button onClick={() => {
+                                    if (md.inchis) {
+                                      setUnlockModul({ elevNr: s.nr, modul: (i+1) as 1|2|3|4|5, pass: '', err: false })
+                                      setActiveModul((i+1) as 1|2|3|4|5)
+                                    } else {
+                                      setActiveModul((i+1) as 1|2|3|4|5)
+                                      setUnlockModul(null)
+                                    }
+                                  }} style={{
+                                    background: isCur ? (md.inchis ? 'rgba(100,116,139,0.15)' : 'rgba(249,115,22,0.15)') : 'rgba(255,255,255,0.03)',
+                                    border: `1px solid ${isCur ? (md.inchis ? 'rgba(100,116,139,0.4)' : 'rgba(249,115,22,0.5)') : 'rgba(255,255,255,0.08)'}`,
+                                    borderRadius: '8px', padding: '6px 10px', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'center', minWidth: '50px',
+                                  }}>
+                                    <div style={{ fontSize: '10px', fontWeight: 700, color: isCur ? (md.inchis ? '#94a3b8' : '#fb923c') : '#475569' }}>
+                                      M{i+1} {md.inchis ? '🔒' : ''}
+                                    </div>
+                                    <div style={{ fontSize: '9px', color: isCur ? '#f97316' : '#334155' }}>{MODULE_PERIOADA[i].split(' ')[0]}</div>
+                                    {med !== null
+                                      ? <div style={{ fontSize: '12px', fontWeight: 800, color: isCur ? (md.inchis ? '#94a3b8' : '#fb923c') : '#64748b' }}>{med.toFixed(1)}</div>
+                                      : <div style={{ fontSize: '10px', color: '#334155' }}>—</div>
+                                    }
+                                  </button>
+
+                                  {/* Prompt deblocare modul */}
+                                  {isUnlocking && (
+                                    <div style={{ background: 'rgba(100,116,139,0.1)', border: '1px solid rgba(100,116,139,0.3)', borderRadius: '8px', padding: '7px 8px', display: 'flex', flexDirection: 'column', gap: '5px', minWidth: '120px' }}>
+                                      <div style={{ fontSize: '10px', color: '#94a3b8' }}>Parolă deblocare:</div>
+                                      <div style={{ display: 'flex', gap: '4px' }}>
+                                        <input autoFocus type="password" placeholder="Parolă" value={unlockModul.pass}
+                                          onChange={ev => setUnlockModul(prev => prev ? {...prev, pass: ev.target.value, err: false} : null)}
+                                          onKeyDown={ev => {
+                                            if (ev.key === 'Enter') {
+                                              if (unlockModul.pass === 'ARACIP') {
+                                                updateEntry(s.nr, e => ({ ...e, [mk2]: { ...e[mk2], inchis: false } }))
+                                                setUnlockModul(null)
+                                              } else setUnlockModul(prev => prev ? {...prev, err: true} : null)
+                                            }
+                                            if (ev.key === 'Escape') setUnlockModul(null)
+                                          }}
+                                          style={{ ...inputStyle, flex: 1, padding: '4px 8px', fontSize: '11px', border: `1px solid ${unlockModul.err ? '#f87171' : 'rgba(255,255,255,0.15)'}` }} />
+                                        <button onClick={() => {
+                                          if (unlockModul.pass === 'ARACIP') {
+                                            updateEntry(s.nr, e => ({ ...e, [mk2]: { ...e[mk2], inchis: false } }))
+                                            setUnlockModul(null)
+                                          } else setUnlockModul(prev => prev ? {...prev, err: true} : null)
+                                        }} style={{ background: 'rgba(249,115,22,0.2)', border: '1px solid rgba(249,115,22,0.4)', borderRadius: '6px', padding: '0 7px', color: '#fb923c', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px' }}>✓</button>
+                                        <button onClick={() => setUnlockModul(null)} style={{ background: 'none', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', padding: '0 6px', color: '#475569', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px' }}>✗</button>
+                                      </div>
+                                      {unlockModul.err && <div style={{ fontSize: '10px', color: '#f87171' }}>Parolă greșită</div>}
+                                    </div>
                                   )}
                                 </div>
                               )
                             })}
+                          </div>
 
-                            {/* Adaugă notă */}
-                            {!semData.inchis && (
-                              addingNotaNr === s.nr ? (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.4)', borderRadius: '10px', padding: '4px 8px' }}>
-                                  <input autoFocus type="text" inputMode="numeric" placeholder="1-10" value={novaNotaVal}
-                                    onChange={ev => setNovaNotaVal(ev.target.value)}
-                                    onKeyDown={ev => { if (ev.key==='Enter') addNota(s.nr); if (ev.key==='Escape') { setAddingNotaNr(null); setNovaNotaVal('') } }}
-                                    style={{ ...inputStyle, width: '52px', fontSize: '16px', fontWeight: 800, textAlign: 'center', padding: '2px 6px', color: '#fb923c', border: '1px solid rgba(249,115,22,0.5)' }} />
-                                  <button onClick={() => addNota(s.nr)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#4ade80', fontSize: '16px', padding: 0 }}>✓</button>
-                                  <button onClick={() => { setAddingNotaNr(null); setNovaNotaVal('') }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#f87171', fontSize: '16px', padding: 0 }}>✗</button>
-                                </div>
-                              ) : (
-                                <button onClick={() => { setAddingNotaNr(s.nr); setNovaNotaVal('') }}
-                                  style={{ background: 'rgba(249,115,22,0.08)', border: '1px dashed rgba(249,115,22,0.35)', borderRadius: '10px', padding: '6px 12px', fontSize: '13px', color: '#fb923c', cursor: 'pointer', fontFamily: 'inherit' }}>
-                                  + Notă
-                                </button>
-                              )
+                          {/* ── Media anuală ── */}
+                          <div style={{ background: medieAn === null ? 'rgba(255,255,255,0.02)' : medieAn < 5 ? 'rgba(239,68,68,0.08)' : medieAn < 6 ? 'rgba(251,191,36,0.08)' : 'rgba(34,197,94,0.08)', border: `1px solid ${medieAn === null ? 'rgba(255,255,255,0.08)' : medieAn < 5 ? 'rgba(239,68,68,0.3)' : medieAn < 6 ? 'rgba(251,191,36,0.3)' : 'rgba(34,197,94,0.3)'}`, borderRadius: '12px', padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <div>
+                              <div style={{ fontSize: '10px', color: '#475569', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Media Anuală</div>
+                              <div style={{ fontSize: '10px', color: '#334155', marginTop: '2px' }}>din {MODULE_KEYS.filter(k => entry[k].note.length > 0).length}/5 module notate</div>
+                            </div>
+                            <div style={{ textAlign: 'right' }}>
+                              <div style={{ fontSize: '28px', fontWeight: 900, color: medieAn === null ? '#334155' : medieAn < 5 ? '#f87171' : medieAn < 6 ? '#fbbf24' : '#4ade80', lineHeight: 1 }}>
+                                {medieAn !== null ? medieAn.toFixed(2) : '—'}
+                              </div>
+                              {corigent && <div style={{ fontSize: '10px', color: '#f87171', fontWeight: 800 }}>CORIGENT</div>}
+                              {medieAn !== null && medieAn >= 5 && medieAn < 6 && <div style={{ fontSize: '10px', color: '#fbbf24', fontWeight: 800 }}>LIMITAT</div>}
+                            </div>
+                          </div>
+
+                          {/* ── Alertă minim note ── */}
+                          {totNote > 0 && totNote < MIN_NOTE_AN && (
+                            <div style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.3)', borderRadius: '10px', padding: '8px 12px', fontSize: '11px', color: '#fbbf24' }}>
+                              ⚠ Sub minimul legal: {totNote}/{MIN_NOTE_AN} note/an (ROFUIP 2024 — minim 4 note/an per disciplină)
+                            </div>
+                          )}
+
+                          {/* ── Note modul activ ── */}
+                          <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '12px', padding: '12px 14px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                              <span style={{ fontSize: '11px', color: '#475569', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Note · M{activeModul} ({MODULE_PERIOADA[activeModul-1]})</span>
+                              {semData.inchis
+                                ? <span style={{ fontSize: '11px', color: '#64748b', background: 'rgba(100,116,139,0.1)', border: '1px solid rgba(100,116,139,0.3)', borderRadius: '8px', padding: '3px 10px' }}>🔒 Modul închis · Media {medie?.toFixed(2)}</span>
+                                : <span style={{ fontSize: '11px', color: '#4ade80', fontWeight: 700 }}>
+                                    {medie !== null ? `Media: ${medie.toFixed(2)}` : 'Fără note'}
+                                    {savedFlash && selectedNr === s.nr && <span style={{ color: '#4ade80', marginLeft: '8px' }}>✓</span>}
+                                  </span>
+                              }
+                            </div>
+
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: semData.inchis ? 0 : '10px' }}>
+                              {semData.note.map(nt => {
+                                const isEditing = editingNota?.elevNr === s.nr && editingNota?.modul === activeModul && editingNota?.id === nt.id
+                                const nv = parseFloat(nt.v)
+                                const nc = nv < 5 ? '#f87171' : nv < 7 ? '#fbbf24' : '#4ade80'
+                                return (
+                                  <div key={nt.id} style={{ position: 'relative', display: 'flex', alignItems: 'center', background: `${nc}18`, border: `1px solid ${nc}44`, borderRadius: '10px', padding: '6px 10px', gap: '6px' }}>
+                                    {isEditing ? (
+                                      <>
+                                        <input autoFocus type="text" inputMode="numeric" value={editingNota.val}
+                                          onChange={ev => setEditingNota(prev => prev ? {...prev, val: ev.target.value} : null)}
+                                          onKeyDown={ev => { if (ev.key==='Enter') saveEditNota(); if (ev.key==='Escape') setEditingNota(null) }}
+                                          style={{ ...inputStyle, width: '48px', fontSize: '16px', fontWeight: 800, textAlign: 'center', padding: '2px 6px', color: nc, border: `1px solid ${nc}` }} />
+                                        <button onClick={saveEditNota} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#4ade80', fontSize: '14px', padding: 0 }}>✓</button>
+                                        <button onClick={() => setEditingNota(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#f87171', fontSize: '14px', padding: 0 }}>✗</button>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <span style={{ fontSize: '18px', fontWeight: 800, color: nc }}>{nt.v}</span>
+                                        {!semData.inchis && (
+                                          <button onClick={() => setEditingNota({ elevNr: s.nr, modul: activeModul, id: nt.id, val: nt.v })}
+                                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: '11px', padding: '0 0 0 2px', lineHeight: 1 }}>✏️</button>
+                                        )}
+                                      </>
+                                    )}
+                                  </div>
+                                )
+                              })}
+
+                              {!semData.inchis && (
+                                addingNotaNr === s.nr ? (
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.4)', borderRadius: '10px', padding: '4px 8px' }}>
+                                    <input autoFocus type="text" inputMode="numeric" placeholder="1-10" value={novaNotaVal}
+                                      onChange={ev => setNovaNotaVal(ev.target.value)}
+                                      onKeyDown={ev => { if (ev.key==='Enter') addNota(s.nr); if (ev.key==='Escape') { setAddingNotaNr(null); setNovaNotaVal('') } }}
+                                      style={{ ...inputStyle, width: '52px', fontSize: '16px', fontWeight: 800, textAlign: 'center', padding: '2px 6px', color: '#fb923c', border: '1px solid rgba(249,115,22,0.5)' }} />
+                                    <button onClick={() => addNota(s.nr)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#4ade80', fontSize: '16px', padding: 0 }}>✓</button>
+                                    <button onClick={() => { setAddingNotaNr(null); setNovaNotaVal('') }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#f87171', fontSize: '16px', padding: 0 }}>✗</button>
+                                  </div>
+                                ) : (
+                                  <button onClick={() => { setAddingNotaNr(s.nr); setNovaNotaVal('') }}
+                                    style={{ background: 'rgba(249,115,22,0.08)', border: '1px dashed rgba(249,115,22,0.35)', borderRadius: '10px', padding: '6px 12px', fontSize: '13px', color: '#fb923c', cursor: 'pointer', fontFamily: 'inherit' }}>
+                                    + Notă
+                                  </button>
+                                )
+                              )}
+                            </div>
+
+                            {!semData.inchis && semData.note.length > 0 && (
+                              <button onClick={() => closeModul(s.nr)}
+                                style={{ marginTop: '4px', background: 'rgba(100,116,139,0.08)', border: '1px solid rgba(100,116,139,0.3)', borderRadius: '8px', padding: '6px 14px', fontSize: '11px', color: '#64748b', cursor: 'pointer', fontFamily: 'inherit' }}>
+                                🔒 Închide Modulul {activeModul}
+                              </button>
                             )}
                           </div>
 
-                          {/* Buton Închide semestru */}
-                          {!semData.inchis && semData.note.length > 0 && (
-                            <button onClick={() => closeSemestru(s.nr)}
-                              style={{ marginTop: '8px', background: 'rgba(100,116,139,0.08)', border: '1px solid rgba(100,116,139,0.3)', borderRadius: '8px', padding: '6px 14px', fontSize: '11px', color: '#64748b', cursor: 'pointer', fontFamily: 'inherit' }}>
-                              🔒 Închide Semestrul {activeSem}
-                            </button>
-                          )}
-                        </div>
-
-                        {/* Absente */}
-                        <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '12px', padding: '12px 14px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                          <div style={{ fontSize: '11px', color: '#475569', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '10px' }}>Absențe · Sem {activeSem}</div>
-                          <div style={{ display: 'flex', gap: '16px' }}>
-                            {([['absMot','Motivate','#4ade80','rgba(34,197,94,0.15)','rgba(34,197,94,0.3)'],
-                              ['absNemot','Nemotivate','#f87171','rgba(239,68,68,0.15)','rgba(239,68,68,0.3)']] as const).map(([field, label, color, bg, bdr]) => (
-                              <div key={field} style={{ flex: 1, textAlign: 'center' }}>
-                                <div style={{ fontSize: '11px', marginBottom: '6px', color }}>{label}</div>
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                                  <button onClick={() => updateEntry(s.nr, e => ({ ...e, [sk]: { ...e[sk], [field]: Math.max(0, semData[field]-1) } }))}
-                                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', width: 30, height: 30, cursor: 'pointer', color: '#94a3b8', fontSize: '16px', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>−</button>
-                                  <span style={{ fontSize: '22px', fontWeight: 800, color, minWidth: '32px', textAlign: 'center' }}>{semData[field]}</span>
-                                  <button onClick={() => updateEntry(s.nr, e => ({ ...e, [sk]: { ...e[sk], [field]: semData[field]+1 } }))}
-                                    style={{ background: bg, border: `1px solid ${bdr}`, borderRadius: '8px', width: 30, height: 30, cursor: 'pointer', color, fontSize: '16px', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
+                          {/* ── Absențe per modul ── */}
+                          <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '12px', padding: '12px 14px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                              <span style={{ fontSize: '11px', color: '#475569', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Absențe · M{activeModul}</span>
+                              {totalAbsNemot > 0 && (
+                                <span style={{ fontSize: '10px', color: '#f87171', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '6px', padding: '2px 8px' }}>
+                                  Total nemotivate: {totalAbsNemot}
+                                </span>
+                              )}
+                            </div>
+                            <div style={{ display: 'flex', gap: '16px' }}>
+                              {([['absMot','Motivate','#4ade80','rgba(34,197,94,0.15)','rgba(34,197,94,0.3)'],
+                                ['absNemot','Nemotivate','#f87171','rgba(239,68,68,0.15)','rgba(239,68,68,0.3)']] as const).map(([field, label, color, bg, bdr]) => (
+                                <div key={field} style={{ flex: 1, textAlign: 'center' }}>
+                                  <div style={{ fontSize: '11px', marginBottom: '6px', color }}>{label}</div>
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                                    <button onClick={() => updateEntry(s.nr, e => ({ ...e, [activeMk]: { ...e[activeMk], [field]: Math.max(0, semData[field]-1) } }))}
+                                      style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', width: 30, height: 30, cursor: 'pointer', color: '#94a3b8', fontSize: '16px', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>−</button>
+                                    <span style={{ fontSize: '22px', fontWeight: 800, color, minWidth: '32px', textAlign: 'center' }}>{semData[field]}</span>
+                                    <button onClick={() => updateEntry(s.nr, e => ({ ...e, [activeMk]: { ...e[activeMk], [field]: semData[field]+1 } }))}
+                                      style={{ background: bg, border: `1px solid ${bdr}`, borderRadius: '8px', width: 30, height: 30, cursor: 'pointer', color, fontSize: '16px', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
+                                  </div>
                                 </div>
-                              </div>
-                            ))}
+                              ))}
+                            </div>
                           </div>
-                        </div>
 
-                        {/* Observatii */}
-                        <textarea placeholder="Observații (comportament, participare...)"
-                          value={entry.obs}
-                          onChange={ev => updateEntry(s.nr, e => ({ ...e, obs: ev.target.value }))}
-                          rows={2} style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.6, fontSize: '12px' }} />
-                      </div>
+                          {/* ── Observații ── */}
+                          <textarea placeholder="Observații (comportament, participare...)"
+                            value={entry.obs}
+                            onChange={ev => updateEntry(s.nr, e => ({ ...e, obs: ev.target.value }))}
+                            rows={2} style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.6, fontSize: '12px' }} />
+                        </div>
                       )
                     })()}
                   </div>
@@ -802,7 +890,7 @@ export default function ProfesoriPage() {
           </>)
         })()}
 
-        <button onClick={() => { setView('login'); setEmail(''); setPassword('') }}
+        <button onClick={() => { setView('login'); setEmail(''); setPassword(''); setLoggedEmail('') }}
           style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '12px', color: '#475569', cursor: 'pointer', fontSize: '13px', fontFamily: 'inherit' }}>
           Deconectare
         </button>
@@ -811,7 +899,6 @@ export default function ProfesoriPage() {
     </div>
   )
 }
-
 
 function statCard(color: string): React.CSSProperties {
   return { flex: 1, minWidth: '70px', background: `${color}14`, border: `1px solid ${color}33`, borderRadius: '10px', padding: '10px', textAlign: 'center', color }

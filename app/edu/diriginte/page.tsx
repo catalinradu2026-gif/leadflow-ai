@@ -70,7 +70,7 @@ export default function DirigintePage() {
   const [hydrated, setHydrated] = useState(false)
 
   // Catalog note + absente
-  type CatalogEntry = { elevNr: string; note: Record<string, string>; absMot: number; absNemot: number; observatii?: string }
+  type CatalogEntry = { elevNr: string; note: Record<string, string>; absMot: number; absNemot: number; observatii?: string; purtare?: Record<string, string> }
   const [catalog, setCatalog] = useState<CatalogEntry[]>([])
   const [hydrated2, setHydrated2] = useState(false)
   type ProfEntry = { nota: string; absMot: number; absNemot: number; observatii: string }
@@ -1155,6 +1155,48 @@ export default function DirigintePage() {
                                     </div>
                                   ))}
                                 </div>
+                              </div>
+
+                              {/* Purtare per modul — ROFUIP 2024 */}
+                              <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '12px', padding: '14px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                                  <div style={{ fontSize: '11px', color: '#475569', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Notă Purtare · per Modul</div>
+                                  <div style={{ fontSize: '9px', color: '#334155' }}>minim 6 pentru promovare</div>
+                                </div>
+                                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                                  {['M1','M2','M3','M4','M5'].map((ml, mi) => {
+                                    const purtareVal = entry.purtare?.[ml] || ''
+                                    const pv = parseFloat(purtareVal)
+                                    const pColor = !purtareVal ? '#475569' : pv < 6 ? '#f87171' : pv < 8 ? '#fbbf24' : '#4ade80'
+                                    return (
+                                      <div key={ml} style={{ flex: '0 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                                        <div style={{ fontSize: '10px', color: '#475569', fontWeight: 700 }}>{ml}</div>
+                                        <input
+                                          type="text" inputMode="numeric" placeholder="—"
+                                          value={purtareVal}
+                                          onChange={ev => {
+                                            const v = ev.target.value
+                                            if (v === '' || /^([1-9]|10)$/.test(v)) {
+                                              updateCatalog(c.nr, { purtare: { ...(entry.purtare || {}), [ml]: v } })
+                                            }
+                                          }}
+                                          style={{ width: '44px', textAlign: 'center', background: purtareVal ? `${pColor}18` : 'rgba(255,255,255,0.04)', border: `1px solid ${purtareVal ? pColor + '55' : 'rgba(255,255,255,0.1)'}`, borderRadius: '8px', padding: '6px 4px', fontSize: '16px', fontWeight: 800, color: pColor, outline: 'none', fontFamily: 'inherit' }}
+                                        />
+                                      </div>
+                                    )
+                                  })}
+                                </div>
+                                {(() => {
+                                  const notePurtare = ['M1','M2','M3','M4','M5'].map(ml => parseFloat(entry.purtare?.[ml] || '')).filter(v => !isNaN(v))
+                                  if (!notePurtare.length) return null
+                                  const mediePurtare = notePurtare.reduce((a,b)=>a+b,0)/notePurtare.length
+                                  const color = mediePurtare < 6 ? '#f87171' : mediePurtare < 8 ? '#fbbf24' : '#4ade80'
+                                  return (
+                                    <div style={{ marginTop: '10px', fontSize: '12px', color, fontWeight: 700 }}>
+                                      Media purtare: {mediePurtare.toFixed(2)} {mediePurtare < 6 ? '⚠ Sub minimul legal (6)' : ''}
+                                    </div>
+                                  )
+                                })()}
                               </div>
 
                               {/* Observatii */}
