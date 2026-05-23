@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Groq from 'groq-sdk'
 import { rateLimit, rateLimitDaily } from '@/lib/rateLimit'
+import { getKnowledge } from '@/app/api/ara-knowledge/route'
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
 
@@ -394,7 +395,35 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
     }
 
+    const knowledge = await getKnowledge()
     let systemPrompt = customSystemPrompt || buildSystemPrompt(pagina)
+
+    // Injectare cunoștințe dinamice
+    const kLines: string[] = []
+    if (knowledge.anunturi?.some(a => a.activ)) {
+      kLines.push('## ANUNȚURI ACTIVE PE PLATFORMĂ')
+      knowledge.anunturi.filter(a => a.activ).forEach(a => kLines.push(`- ${a.titlu}: ${a.continut}`))
+    }
+    if (knowledge.isj?.length) {
+      kLines.push('## DOCUMENTE ISJ ACTIVE')
+      knowledge.isj.forEach(d => {
+        const termen = d.termen ? ` (termen: ${d.termen})` : ''
+        const urg = d.urgent ? ' 🔴' : ''
+        kLines.push(`- ${d.titlu}${urg}${termen}: ${d.continut}`)
+      })
+    }
+    if (knowledge.module?.length) {
+      kLines.push('## MODULE DISPONIBILE PE PLATFORMĂ')
+      knowledge.module.forEach(m => kLines.push(`- ${m.titlu} → ${m.url}: ${m.descriere}`))
+    }
+    if (knowledge.general?.length) {
+      kLines.push('## INFORMAȚII GENERALE')
+      knowledge.general.forEach(g => kLines.push(`${g.titlu}: ${g.continut}`))
+    }
+    if (kLines.length > 0) {
+      systemPrompt += `\n\n━━━ CUNOȘTINȚE DINAMICE (actualizate ${knowledge.updatedAt.slice(0, 10)}) ━━━\n${kLines.join('\n')}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+    }
+
     if (userIdentity?.titlu && userIdentity?.rol && userIdentity?.nume) {
       systemPrompt += `\n\nPERSOANA CU CARE VORBEȘTI: ${userIdentity.titlu} ${userIdentity.rol} ${userIdentity.nume}. Adresează-te MEREU cu "${userIdentity.titlu} ${userIdentity.rol} ${userIdentity.nume}" sau "${userIdentity.titlu} ${userIdentity.rol}" când e mai scurt. NU folosi "Dumneavoastră" anonim — folosește MEREU numele.`
     }
