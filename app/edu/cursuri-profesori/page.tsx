@@ -252,10 +252,10 @@ export default function CursuriProfesori() {
     setMessages(newMessages)
     setLoading(true)
     try {
-      const res = await fetch('/api/acreditare-chat', {
+      const res = await fetch('/api/profesori-chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: newMessages, pagina: `Formare Profesori — Modulul ${modulActiv}` }),
+        body: JSON.stringify({ messages: newMessages, modulId: modulActiv }),
       })
       const data = await res.json()
       const reply = data.text || 'Eroare. Încercați din nou.'

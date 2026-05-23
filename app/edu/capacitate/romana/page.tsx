@@ -15,7 +15,7 @@ const INTREBARI_RAPIDE = [
   'Generează un subiect complet de Evaluare Națională',
 ]
 
-const SYSTEM_PROMPT = `Ești un profesor AI specializat în pregătirea elevilor de clasa a VIII-a pentru Evaluarea Națională (Capacitate) la Limba și Literatura Română.
+const SYSTEM_PROMPT = `Ești un profesor AI specializat în pregătirea elevilor de clasa a VIII-a pentru Evaluarea Națională (EN) la Limba și Literatura Română.
 
 PROGRAMA EN ROMÂNĂ cls. V-VIII:
 
