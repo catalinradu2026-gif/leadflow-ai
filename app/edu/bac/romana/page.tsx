@@ -53,10 +53,10 @@ function RomanaChat() {
     setMessages(newMessages)
     setLoading(true)
     try {
-      const res = await fetch('/api/acreditare-chat', {
+      const res = await fetch('/api/bac-chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: newMessages, pagina: `BAC Română ${profil}` }),
+        body: JSON.stringify({ messages: newMessages, materie: 'romana', profil }),
       })
       const data = await res.json()
       const reply = data.text || 'Eroare. Încercați din nou.'

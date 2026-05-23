@@ -111,24 +111,136 @@ export default function BACLanding() {
             </div>
           </div>
 
-          {/* Biologie — coming soon */}
-          <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid #1e293b', borderRadius: '16px', padding: '28px', position: 'relative', overflow: 'hidden' }}>
-            <div style={{ position: 'absolute', top: 12, right: 12, background: '#1e293b', color: '#475569', fontSize: '10px', fontWeight: 700, padding: '2px 10px', borderRadius: '20px' }}>
-              ÎN CURÂND
+          {/* Biologie */}
+          <div style={{ background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: '16px', padding: '28px', position: 'relative', overflow: 'hidden' }}>
+            <div style={{ position: 'absolute', top: 12, right: 12, background: '#14532d', color: '#86efac', fontSize: '10px', fontWeight: 700, padding: '2px 10px', borderRadius: '20px' }}>
+              DISPONIBIL
             </div>
-            <div style={{ fontSize: '44px', marginBottom: '16px', opacity: 0.4 }}>🧬</div>
-            <h2 style={{ fontSize: '22px', fontWeight: 800, color: '#475569', marginBottom: '8px' }}>Biologie</h2>
-            <p style={{ fontSize: '13px', color: '#334155', lineHeight: 1.7 }}>Celula, genetică, ecosisteme, anatomie. În pregătire.</p>
+            <div style={{ fontSize: '44px', marginBottom: '16px' }}>🧬</div>
+            <h2 style={{ fontSize: '22px', fontWeight: 800, color: '#fff', marginBottom: '8px' }}>Biologie</h2>
+            <div style={{ display: 'flex', gap: '6px', marginBottom: '14px', flexWrap: 'wrap' }}>
+              <span style={{ background: 'rgba(34,197,94,0.15)', color: '#86efac', fontSize: '11px', padding: '2px 8px', borderRadius: '20px' }}>Celulă & Genetică</span>
+              <span style={{ background: 'rgba(34,197,94,0.15)', color: '#86efac', fontSize: '11px', padding: '2px 8px', borderRadius: '20px' }}>Anatomie & Ecologie</span>
+            </div>
+            <p style={{ fontSize: '13px', color: '#64748b', lineHeight: 1.7, marginBottom: '20px' }}>
+              Celula, genetică, ecosisteme, anatomia omului, botanică și zoologie. Toată programa BAC biologie.
+            </p>
+            <button
+              onClick={() => router.push('/edu/bac/materie?materie=biologie')}
+              style={{ width: '100%', background: '#16a34a', color: '#fff', border: 'none', borderRadius: '10px', padding: '12px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}
+            >
+              Profesor AI Biologie →
+            </button>
           </div>
 
-          {/* Istorie — coming soon */}
-          <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid #1e293b', borderRadius: '16px', padding: '28px', position: 'relative', overflow: 'hidden' }}>
-            <div style={{ position: 'absolute', top: 12, right: 12, background: '#1e293b', color: '#475569', fontSize: '10px', fontWeight: 700, padding: '2px 10px', borderRadius: '20px' }}>
-              ÎN CURÂND
+          {/* Istorie */}
+          <div style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: '16px', padding: '28px', position: 'relative', overflow: 'hidden' }}>
+            <div style={{ position: 'absolute', top: 12, right: 12, background: '#78350f', color: '#fde68a', fontSize: '10px', fontWeight: 700, padding: '2px 10px', borderRadius: '20px' }}>
+              DISPONIBIL
             </div>
-            <div style={{ fontSize: '44px', marginBottom: '16px', opacity: 0.4 }}>🏛️</div>
-            <h2 style={{ fontSize: '22px', fontWeight: 800, color: '#475569', marginBottom: '8px' }}>Istorie</h2>
-            <p style={{ fontSize: '13px', color: '#334155', lineHeight: 1.7 }}>România modernă și contemporană, relații internaționale. În pregătire.</p>
+            <div style={{ fontSize: '44px', marginBottom: '16px' }}>🏛️</div>
+            <h2 style={{ fontSize: '22px', fontWeight: 800, color: '#fff', marginBottom: '8px' }}>Istorie</h2>
+            <div style={{ display: 'flex', gap: '6px', marginBottom: '14px', flexWrap: 'wrap' }}>
+              <span style={{ background: 'rgba(245,158,11,0.15)', color: '#fde68a', fontSize: '11px', padding: '2px 8px', borderRadius: '20px' }}>România modernă</span>
+              <span style={{ background: 'rgba(245,158,11,0.15)', color: '#fde68a', fontSize: '11px', padding: '2px 8px', borderRadius: '20px' }}>Relații internaționale</span>
+            </div>
+            <p style={{ fontSize: '13px', color: '#64748b', lineHeight: 1.7, marginBottom: '20px' }}>
+              Istoria românilor sec. XIX-XXI, state și relații internaționale, cultură și civilizație. Program BAC complet.
+            </p>
+            <button
+              onClick={() => router.push('/edu/bac/materie?materie=istorie')}
+              style={{ width: '100%', background: '#d97706', color: '#fff', border: 'none', borderRadius: '10px', padding: '12px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}
+            >
+              Profesor AI Istorie →
+            </button>
+          </div>
+
+          {/* Fizică */}
+          <div style={{ background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: '16px', padding: '28px', position: 'relative', overflow: 'hidden' }}>
+            <div style={{ position: 'absolute', top: 12, right: 12, background: '#312e81', color: '#a5b4fc', fontSize: '10px', fontWeight: 700, padding: '2px 10px', borderRadius: '20px' }}>
+              DISPONIBIL
+            </div>
+            <div style={{ fontSize: '44px', marginBottom: '16px' }}>⚡</div>
+            <h2 style={{ fontSize: '22px', fontWeight: 800, color: '#fff', marginBottom: '8px' }}>Fizică</h2>
+            <div style={{ display: 'flex', gap: '6px', marginBottom: '14px', flexWrap: 'wrap' }}>
+              <span style={{ background: 'rgba(99,102,241,0.15)', color: '#a5b4fc', fontSize: '11px', padding: '2px 8px', borderRadius: '20px' }}>Mecanică</span>
+              <span style={{ background: 'rgba(99,102,241,0.15)', color: '#a5b4fc', fontSize: '11px', padding: '2px 8px', borderRadius: '20px' }}>Electricitate & Optică</span>
+            </div>
+            <p style={{ fontSize: '13px', color: '#64748b', lineHeight: 1.7, marginBottom: '20px' }}>
+              Mecanică, termodinamică, electricitate, magnetism, optică, fizică modernă. Cu formule și exerciții rezolvate.
+            </p>
+            <button
+              onClick={() => router.push('/edu/bac/materie?materie=fizica')}
+              style={{ width: '100%', background: '#4f46e5', color: '#fff', border: 'none', borderRadius: '10px', padding: '12px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}
+            >
+              Profesor AI Fizică →
+            </button>
+          </div>
+
+          {/* Chimie */}
+          <div style={{ background: 'rgba(236,72,153,0.06)', border: '1px solid rgba(236,72,153,0.3)', borderRadius: '16px', padding: '28px', position: 'relative', overflow: 'hidden' }}>
+            <div style={{ position: 'absolute', top: 12, right: 12, background: '#831843', color: '#fbcfe8', fontSize: '10px', fontWeight: 700, padding: '2px 10px', borderRadius: '20px' }}>
+              DISPONIBIL
+            </div>
+            <div style={{ fontSize: '44px', marginBottom: '16px' }}>🧪</div>
+            <h2 style={{ fontSize: '22px', fontWeight: 800, color: '#fff', marginBottom: '8px' }}>Chimie</h2>
+            <div style={{ display: 'flex', gap: '6px', marginBottom: '14px', flexWrap: 'wrap' }}>
+              <span style={{ background: 'rgba(236,72,153,0.15)', color: '#fbcfe8', fontSize: '11px', padding: '2px 8px', borderRadius: '20px' }}>Organică</span>
+              <span style={{ background: 'rgba(236,72,153,0.15)', color: '#fbcfe8', fontSize: '11px', padding: '2px 8px', borderRadius: '20px' }}>Anorganică</span>
+            </div>
+            <p style={{ fontSize: '13px', color: '#64748b', lineHeight: 1.7, marginBottom: '20px' }}>
+              Chimie organică și anorganică, reacții, calcule stoechiometrice, soluții. Pregătire completă BAC chimie.
+            </p>
+            <button
+              onClick={() => router.push('/edu/bac/materie?materie=chimie')}
+              style={{ width: '100%', background: '#db2777', color: '#fff', border: 'none', borderRadius: '10px', padding: '12px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}
+            >
+              Profesor AI Chimie →
+            </button>
+          </div>
+
+          {/* Informatică */}
+          <div style={{ background: 'rgba(20,184,166,0.06)', border: '1px solid rgba(20,184,166,0.3)', borderRadius: '16px', padding: '28px', position: 'relative', overflow: 'hidden' }}>
+            <div style={{ position: 'absolute', top: 12, right: 12, background: '#134e4a', color: '#99f6e4', fontSize: '10px', fontWeight: 700, padding: '2px 10px', borderRadius: '20px' }}>
+              DISPONIBIL
+            </div>
+            <div style={{ fontSize: '44px', marginBottom: '16px' }}>💻</div>
+            <h2 style={{ fontSize: '22px', fontWeight: 800, color: '#fff', marginBottom: '8px' }}>Informatică</h2>
+            <div style={{ display: 'flex', gap: '6px', marginBottom: '14px', flexWrap: 'wrap' }}>
+              <span style={{ background: 'rgba(20,184,166,0.15)', color: '#99f6e4', fontSize: '11px', padding: '2px 8px', borderRadius: '20px' }}>C++ / Pascal</span>
+              <span style={{ background: 'rgba(20,184,166,0.15)', color: '#99f6e4', fontSize: '11px', padding: '2px 8px', borderRadius: '20px' }}>Algoritmi & Structuri</span>
+            </div>
+            <p style={{ fontSize: '13px', color: '#64748b', lineHeight: 1.7, marginBottom: '20px' }}>
+              Algoritmi, structuri de date, programare C++/Pascal, recursivitate, grafuri, sortări. BAC informatică intensiv.
+            </p>
+            <button
+              onClick={() => router.push('/edu/bac/materie?materie=informatica')}
+              style={{ width: '100%', background: '#0d9488', color: '#fff', border: 'none', borderRadius: '10px', padding: '12px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}
+            >
+              Profesor AI Informatică →
+            </button>
+          </div>
+
+          {/* Geografie */}
+          <div style={{ background: 'rgba(249,115,22,0.06)', border: '1px solid rgba(249,115,22,0.3)', borderRadius: '16px', padding: '28px', position: 'relative', overflow: 'hidden' }}>
+            <div style={{ position: 'absolute', top: 12, right: 12, background: '#7c2d12', color: '#fed7aa', fontSize: '10px', fontWeight: 700, padding: '2px 10px', borderRadius: '20px' }}>
+              DISPONIBIL
+            </div>
+            <div style={{ fontSize: '44px', marginBottom: '16px' }}>🌍</div>
+            <h2 style={{ fontSize: '22px', fontWeight: 800, color: '#fff', marginBottom: '8px' }}>Geografie</h2>
+            <div style={{ display: 'flex', gap: '6px', marginBottom: '14px', flexWrap: 'wrap' }}>
+              <span style={{ background: 'rgba(249,115,22,0.15)', color: '#fed7aa', fontSize: '11px', padding: '2px 8px', borderRadius: '20px' }}>România</span>
+              <span style={{ background: 'rgba(249,115,22,0.15)', color: '#fed7aa', fontSize: '11px', padding: '2px 8px', borderRadius: '20px' }}>Europa & Mondial</span>
+            </div>
+            <p style={{ fontSize: '13px', color: '#64748b', lineHeight: 1.7, marginBottom: '20px' }}>
+              Geografie fizică și umană, România și Europa, probleme mondiale, hărți și diagrame. Program BAC complet.
+            </p>
+            <button
+              onClick={() => router.push('/edu/bac/materie?materie=geografie')}
+              style={{ width: '100%', background: '#ea580c', color: '#fff', border: 'none', borderRadius: '10px', padding: '12px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}
+            >
+              Profesor AI Geografie →
+            </button>
           </div>
         </div>
 

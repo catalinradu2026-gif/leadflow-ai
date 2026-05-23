@@ -1066,7 +1066,32 @@ export default function DirigintePage() {
                   const medieGenerala = (() => {
                     if (!c || !entry) return null
                     const vals: number[] = []
-                    materiiProf.forEach(m => { const pe = profPentruClasa[m]?.[c.nr]; if (pe?.nota) vals.push(parseFloat(pe.nota)) })
+                    materiiProf.forEach(m => {
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      const pe = profPentruClasa[m]?.[c.nr] as any
+                      if (!pe) return
+                      if (pe.m1 !== undefined) {
+                        // new 5-module format
+                        const mediiMod: number[] = [];
+                        ['m1','m2','m3','m4','m5'].forEach(k => {
+                          const mod = pe[k]; if (!mod?.note?.length) return
+                          const avg = mod.note.reduce((s: number, n: { v: string }) => s + parseFloat(n.v), 0) / mod.note.length
+                          mediiMod.push(avg)
+                        })
+                        if (mediiMod.length) vals.push(mediiMod.reduce((s, v) => s + v, 0) / mediiMod.length)
+                      } else if (pe.s1 !== undefined) {
+                        // old 2-semester format
+                        const mediiSem: number[] = [];
+                        [pe.s1, pe.s2].forEach((sem: any) => {
+                          if (!sem?.note?.length) return
+                          const avg = sem.note.reduce((s: number, n: { v: string }) => s + parseFloat(n.v), 0) / sem.note.length
+                          mediiSem.push(avg)
+                        })
+                        if (mediiSem.length) vals.push(mediiSem.reduce((s, v) => s + v, 0) / mediiSem.length)
+                      } else if (pe.nota) {
+                        vals.push(parseFloat(pe.nota))
+                      }
+                    })
                     return vals.length ? vals.reduce((s, v) => s + v, 0) / vals.length : null
                   })()
 

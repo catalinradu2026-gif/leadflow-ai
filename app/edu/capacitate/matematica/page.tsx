@@ -79,10 +79,10 @@ export default function CapacitateMatematica() {
     setMessages(newMessages)
     setLoading(true)
     try {
-      const res = await fetch('/api/acreditare-chat', {
+      const res = await fetch('/api/bac-chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: newMessages, pagina: 'Capacitate — Matematică', systemPrompt: SYSTEM_PROMPT }),
+        body: JSON.stringify({ messages: newMessages, systemPrompt: SYSTEM_PROMPT }),
       })
       const data = await res.json()
       const reply = data.text || 'Eroare. Încearcă din nou.'

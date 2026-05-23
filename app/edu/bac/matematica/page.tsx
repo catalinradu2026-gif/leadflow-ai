@@ -456,10 +456,10 @@ function MatematicaChat() {
     setLoading(true)
     setBoardText('...')
     try {
-      const res = await fetch('/api/acreditare-chat', {
+      const res = await fetch('/api/bac-chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: newMessages, pagina: `BAC Matematică ${profil}`, systemPrompt: SYSTEM_PROMPTS[profil] }),
+        body: JSON.stringify({ messages: newMessages, materie: 'matematica', profil, systemPrompt: SYSTEM_PROMPTS[profil] }),
       })
       const data = await res.json()
 
