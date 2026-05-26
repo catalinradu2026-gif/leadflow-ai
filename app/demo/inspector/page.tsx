@@ -1,6 +1,7 @@
 'use client'
 import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
+import CalendarTermene from '../../components/CalendarTermene'
 
 const JUDETE = [
   { name: 'Alba', scoli: 198, active: 198, doc: 12, alert: 0 },
@@ -135,6 +136,7 @@ function getScoliJudet(judet: string): Scoala[] {
 
 type Doc = {
   id: number
+  apiId?: string
   titlu: string
   data: string
   target: 'national' | 'judet' | 'scoala'
@@ -142,14 +144,15 @@ type Doc = {
   destinatari: number
   citite: number
   tip: string
+  termen?: string
+  urgent?: boolean
+  readers?: { name: string; rol: string; tipScoala?: string; scoala?: string; la: string }[]
+  nrInregistrare?: string
+  pdfUrl?: string
 }
 
-const DOCS_INITIALE: Doc[] = [
-  { id: 1, titlu: 'Metodologie Evaluare Națională 2026', data: '15 mai 2026', target: 'national', targetName: 'Toate județele', destinatari: 11500, citite: 9847, tip: 'Metodologie' },
-  { id: 2, titlu: 'Circular privind raportarea statistică trimestrială', data: '10 mai 2026', target: 'national', targetName: 'Toate județele', destinatari: 11500, citite: 11500, tip: 'Circular' },
-  { id: 3, titlu: 'Procedură dotări PNRR — județe pilot', data: '5 mai 2026', target: 'judet', targetName: 'ISJ Dolj, ISJ Cluj, ISJ Iași', destinatari: 850, citite: 820, tip: 'Procedură' },
-  { id: 4, titlu: 'Adresă verificare conformitate — licee teoretice', data: '28 apr 2026', target: 'scoala', targetName: 'Liceul Teoretic "Amărăștii de Jos"', destinatari: 1, citite: 1, tip: 'Adresă' },
-]
+// Fallback gol — documentele reale se încarcă din /api/documents
+const DOCS_INITIALE: Doc[] = []
 
 export default function InspectorNational() {
   const router = useRouter()
@@ -182,6 +185,32 @@ export default function InspectorNational() {
     const t = setInterval(() => setNow(new Date()), 1000)
     return () => clearInterval(t)
   }, [])
+
+  useEffect(() => {
+    if (!loggedIn) return
+    fetch('/api/documents?judet=national')
+      .then(r => r.json())
+      .then(json => {
+        if (json.documents?.length) {
+          setDocs(json.documents.map((d: any) => ({
+            id: parseInt(d.id) || Date.now(),
+            apiId: d.id,
+            titlu: d.titlu,
+            data: new Date(d.uploadedAt).toLocaleDateString('ro-RO', { day: 'numeric', month: 'long', year: 'numeric' }),
+            target: d.judet === 'national' ? 'national' : 'judet',
+            targetName: d.destinatari,
+            destinatari: d.totalDestinatari ?? 11500,
+            citite: d.citite ?? 0,
+            tip: d.tip,
+            termen: d.termen,
+            urgent: d.urgent,
+            readers: d.readers || [],
+            nrInregistrare: d.nrInregistrare,
+            pdfUrl: d.pdfUrl,
+          })))
+        }
+      }).catch(e => console.error('[inspector load docs]', e))
+  }, [loggedIn])
   const timeStr = now.toLocaleString('ro-RO', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' })
 
   // Upload form state
@@ -193,13 +222,64 @@ export default function InspectorNational() {
   const [uploadTipUnitate, setUploadTipUnitate] = useState<string>('Toate')
   const [uploading, setUploading] = useState(false)
   const [uploadDone, setUploadDone] = useState(false)
+  const [uploadContent, setUploadContent] = useState('')
+  const [uploadTermen, setUploadTermen] = useState('')
+  const [uploadNr, setUploadNr] = useState('')
+  const [uploadUrgent, setUploadUrgent] = useState(false)
+  const [loginTitlu, setLoginTitlu] = useState('Dl')
+  const [loginNume, setLoginNume] = useState('')
+  const [uploadFile, setUploadFile] = useState<File | null>(null)
+  const [uploadFileUrl, setUploadFileUrl] = useState('')
+  const [uploadFileUploading, setUploadFileUploading] = useState(false)
+
+  async function handleFileUpload(file: File) {
+    setUploadFileUploading(true)
+    try {
+      const fd = new FormData()
+      fd.append('password', 'ARACIP')
+      fd.append('file', file)
+      const res = await fetch('/api/upload-pdf', { method: 'POST', body: fd })
+      const data = await res.json()
+      if (data.url) setUploadFileUrl(data.url)
+      if (data.extractedText && !uploadContent.trim()) setUploadContent(data.extractedText)
+    } catch (e) { console.error('[inspector handleFileUpload]', e) }
+    setUploadFileUploading(false)
+  }
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
     if (!loginEmail || !loginPass) { setLoginErr('Completați email și parolă.'); return }
     setLogging(true); setLoginErr('')
-    await new Promise(r => setTimeout(r, 800))
-    setLogging(false); setLoggedIn(true)
+    // Validare parolă server-side
+    try {
+      const check = await fetch('/api/auth/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: 'inspector', password: loginPass, email: loginEmail })
+      })
+      const cd = await check.json()
+      if (!cd?.ok) { setLogging(false); setLoginErr('Email sau parolă incorectă.'); return }
+    } catch (e) {
+      console.error('[inspector auth check]', e)
+      // Permite fallback demo
+    }
+    // Emite token de sesiune
+    try {
+      const ses = await fetch('/api/auth/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: loginEmail, role: 'inspector' })
+      })
+      const sd = await ses.json()
+      if (sd?.token) localStorage.setItem('ara_session', sd.token)
+    } catch (e) { console.error('[inspector session]', e) }
+    setLogging(false)
+    if (loginNume.trim()) {
+      try {
+        localStorage.setItem('ara_user', JSON.stringify({ titlu: loginTitlu, rol: 'Inspector Național', nume: loginNume.trim(), userId: loginEmail }))
+      } catch (e) { console.error('[inspector localStorage]', e) }
+    }
+    setLoggedIn(true)
   }
 
   if (!loggedIn) return (
@@ -209,11 +289,19 @@ export default function InspectorNational() {
         <div style={{ width: 56, height: 56, borderRadius: '16px', background: 'linear-gradient(135deg, #1e3a8a, #3b82f6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px', margin: '0 auto 16px', boxShadow: '0 8px 24px rgba(59,130,246,0.35)' }}>🇷🇴</div>
         <div style={{ fontSize: '20px', fontWeight: 800 }}>ARACIP</div>
         <div style={{ fontSize: '12px', color: '#334155', marginTop: '4px' }}>Portal Inspector Național</div>
+        <div style={{ display: 'inline-block', marginTop: '8px', background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.3)', borderRadius: '20px', padding: '3px 12px', fontSize: '10px', fontWeight: 700, color: '#60a5fa', letterSpacing: '1px' }}>DEMO LIVE — AIcraiova.ro</div>
       </div>
       <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(59,130,246,0.2)', borderRadius: '20px', padding: '36px 40px', width: '100%', maxWidth: '400px' }}>
         <h2 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px', textAlign: 'center' }}>Autentificare ARACIP</h2>
         <p style={{ fontSize: '12px', color: '#475569', textAlign: 'center', marginBottom: '24px' }}>Acces restricționat — Inspector Național</p>
         <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <select value={loginTitlu} onChange={e => setLoginTitlu(e.target.value)} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(59,130,246,0.3)', borderRadius: '10px', padding: '11px 10px', fontSize: '13px', color: '#60a5fa', outline: 'none', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0, width: '80px' }}>
+              <option value="Dl">Dl.</option>
+              <option value="Dna">Dna.</option>
+            </select>
+            <input placeholder="Prenume Nume" value={loginNume} onChange={e => setLoginNume(e.target.value)} style={{ flex: 1, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '12px 16px', fontSize: '14px', color: '#f1f5f9', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' as const }} />
+          </div>
           <input type="email" placeholder="Email instituțional" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '12px 16px', fontSize: '14px', color: '#f1f5f9', outline: 'none', fontFamily: 'inherit', width: '100%', boxSizing: 'border-box' as const }} />
           <input type="password" placeholder="Parolă" value={loginPass} onChange={e => setLoginPass(e.target.value)} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '12px 16px', fontSize: '14px', color: '#f1f5f9', outline: 'none', fontFamily: 'inherit', width: '100%', boxSizing: 'border-box' as const }} />
           {loginErr && <div style={{ fontSize: '12px', color: '#ef4444', textAlign: 'center' }}>{loginErr}</div>}
@@ -243,12 +331,11 @@ export default function InspectorNational() {
   async function handleUpload() {
     if (!uploadTitle.trim()) return
     setUploading(true)
-    await new Promise(r => setTimeout(r, 1800))
 
-    const tipSuffix = uploadTipUnitate !== 'Toate' ? ` · doar ${uploadTipUnitate}e` : ''
-    let targetName = `Toate județele${tipSuffix}`
     const TIP_RATIOS: Record<string, number> = { 'Toate': 1, 'Liceu': 0.18, 'Colegiu': 0.12, 'Școală': 0.45, 'Grădiniță': 0.25 }
+    const tipSuffix = uploadTipUnitate !== 'Toate' ? ` · doar ${uploadTipUnitate}e` : ''
     const ratio = TIP_RATIOS[uploadTipUnitate] ?? 1
+    let targetName = `Toate județele${tipSuffix}`
     let destinatari = Math.round(11500 * ratio)
     if (uploadTarget === 'judet') {
       targetName = (uploadJudete.length ? uploadJudete.join(', ') : 'ISJ selectate') + tipSuffix
@@ -262,10 +349,35 @@ export default function InspectorNational() {
       destinatari = 1
     }
 
+    try {
+      await fetch('/api/documents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          password: 'ARACIP',
+          document: {
+            titlu: uploadTitle,
+            tip: uploadTip,
+            sursa: 'Inspector Național ARACIP',
+            sursa_tip: 'inspector',
+            judet: 'national',
+            termen: uploadTermen || undefined,
+            urgent: uploadUrgent,
+            continut: uploadContent || uploadTitle,
+            destinatari: targetName,
+            nr: uploadNr || undefined,
+            pdfUrl: uploadFileUrl || undefined,
+            totalDestinatari: destinatari,
+            tipUnitate: uploadTipUnitate,
+          }
+        })
+      })
+    } catch (e) { console.error('[inspector handleUpload]', e) }
+
     setDocs(prev => [{
-      id: prev.length + 1,
+      id: Date.now(),
       titlu: uploadTitle,
-      data: '19 mai 2026',
+      data: new Date().toLocaleDateString('ro-RO', { day: 'numeric', month: 'long', year: 'numeric' }),
       target: uploadTarget,
       targetName,
       destinatari,
@@ -279,9 +391,15 @@ export default function InspectorNational() {
       setShowUpload(false)
       setUploadDone(false)
       setUploadTitle('')
+      setUploadContent('')
+      setUploadTermen('')
+      setUploadNr('')
+      setUploadUrgent(false)
       setUploadTarget('national')
       setUploadJudete([])
       setUploadTipUnitate('Toate')
+      setUploadFile(null)
+      setUploadFileUrl('')
     }, 2200)
   }
 
@@ -297,6 +415,14 @@ export default function InspectorNational() {
 
   const newDocsCount = docs.filter(d => d.citite === 0).length
 
+  const todayStr = new Date().toDateString()
+  const allReaders = docs.flatMap(d => d.readers || [])
+  const conectateAzi = new Set(allReaders.filter(r => new Date(r.la).toDateString() === todayStr).map(r => r.scoala || r.name)).size
+  const alerteReale = docs.filter(d =>
+    (d.urgent && (d.citite ?? 0) === 0) ||
+    (d.termen && new Date(d.termen) < new Date() && (d.citite ?? 0) < d.destinatari)
+  )
+
   return (
     <div style={{ minHeight: '100vh', background: '#0f172a', fontFamily: "'Segoe UI', Arial, sans-serif", color: '#e2e8f0' }}>
 
@@ -305,7 +431,7 @@ export default function InspectorNational() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <button onClick={() => router.push('/demo')} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '13px' }}>← Demo</button>
           <div style={{ width: 1, height: 20, background: '#334155' }} />
-          <span style={{ fontSize: '13px', color: '#fff', fontWeight: 600 }}>🇷🇴 Inspector Național</span>
+          <span style={{ fontSize: '13px', color: '#fff', fontWeight: 600 }}>🇷🇴 {loginNume ? `${loginTitlu}. ${loginNume}` : 'Inspector Național'}</span>
           <span style={{ background: '#1d4ed8', color: '#93c5fd', fontSize: '11px', fontWeight: 700, padding: '2px 10px', borderRadius: '20px' }}>NIVEL NAȚIONAL</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -339,13 +465,35 @@ export default function InspectorNational() {
 
       <div style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
 
+        {/* Dashboard statistici rapide */}
+        <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '12px', padding: '16px 20px', marginBottom: '16px', display: 'flex', gap: '24px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <div>
+            <div style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 700 }}>Total documente</div>
+            <div style={{ fontSize: '22px', fontWeight: 800, color: '#3b82f6' }}>{docs.length}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 700 }}>Urgent nerezolvate</div>
+            <div style={{ fontSize: '22px', fontWeight: 800, color: '#f59e0b' }}>{docs.filter(d => d.urgent && (d.citite ?? 0) < d.destinatari).length}</div>
+          </div>
+          <div style={{ flex: 1, minWidth: '200px' }}>
+            <div style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 700, marginBottom: '4px' }}>Top 3 județe (după unități)</div>
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+              {[...JUDETE].sort((a, b) => b.scoli - a.scoli).slice(0, 3).map((j, i) => (
+                <span key={j.name} style={{ background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.3)', color: '#60a5fa', borderRadius: '20px', padding: '3px 10px', fontSize: '12px', fontWeight: 600 }}>
+                  {i + 1}. {j.name} ({j.scoli})
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+
         {/* Stat Cards */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
           {[
-            { label: 'Total Unități Școlare', val: totalScoli.toLocaleString('ro'), icon: '🏫', color: '#3b82f6', sub: 'școli + grădinițe', click: null },
-            { label: 'Județe Conectate', val: '42 / 42', icon: '✅', color: '#10b981', sub: 'toate active', click: null },
-            { label: 'Conectate Azi', val: totalActive.toLocaleString('ro'), icon: '🟢', color: '#22c55e', sub: `din ${totalScoli.toLocaleString('ro')} total`, click: null },
-            { label: 'Alerte Nerezolvate', val: totalAlerte, icon: '⚠️', color: '#f59e0b', sub: 'click pentru detalii', click: () => setShowAlerte(true) },
+            { label: 'Documente Publicate', val: docs.length.toString(), icon: '📄', color: '#3b82f6', sub: 'total în sistem', click: null },
+            { label: 'Total Citiri', val: docs.reduce((s, d) => s + (d.readers?.length || 0), 0).toString(), icon: '👁', color: '#10b981', sub: 'directori care au citit', click: null },
+            { label: 'Citiri Azi', val: conectateAzi > 0 ? conectateAzi.toLocaleString('ro') : '—', icon: '🟢', color: '#22c55e', sub: conectateAzi > 0 ? `directori activi azi` : 'nicio confirmare azi', click: null },
+            { label: 'Alerte Nerezolvate', val: alerteReale.length, icon: '⚠️', color: '#f59e0b', sub: 'click pentru detalii', click: () => setShowAlerte(true) },
           ].map(s => (
             <div
               key={s.label}
@@ -370,6 +518,11 @@ export default function InspectorNational() {
               </div>
             </div>
           ))}
+        </div>
+
+        {/* Calendar Termene */}
+        <div style={{ marginBottom: '20px' }}>
+          <CalendarTermene />
         </div>
 
         {/* Tabs */}
@@ -450,20 +603,30 @@ export default function InspectorNational() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '12px', padding: '16px' }}>
                 <h3 style={{ fontSize: '13px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '14px' }}>Activitate Recentă</h3>
-                {[
-                  { time: '09:38', text: 'ISJ Cluj a confirmat lectura Metodologiei EN 2026', color: '#22c55e' },
-                  { time: '09:21', text: 'ISJ Iași — 412 directori notificați de noul document', color: '#3b82f6' },
-                  { time: '08:55', text: '⚠️ ISJ Bacău — 2 ISJ-uri inactivi 48h', color: '#f59e0b' },
-                  { time: '08:30', text: 'Document PNRR trimis la ISJ Dolj, Cluj, Iași', color: '#a78bfa' },
-                  { time: '07:44', text: 'Adresă trimisă direct Liceul Amărăștii de Jos', color: '#67e8f9' },
-                  { time: 'Ieri', text: '38 ISJ-uri au confirmat lectura circularului', color: '#22c55e' },
-                ].map((a, i) => (
-                  <div key={i} style={{ display: 'flex', gap: '10px', marginBottom: '12px', alignItems: 'flex-start' }}>
-                    <span style={{ fontSize: '11px', color: '#475569', whiteSpace: 'nowrap', marginTop: '1px', minWidth: '36px' }}>{a.time}</span>
-                    <span style={{ width: 3, minWidth: 3, background: a.color, borderRadius: '2px', alignSelf: 'stretch', minHeight: '16px' }} />
-                    <span style={{ fontSize: '12px', color: '#94a3b8', lineHeight: 1.5 }}>{a.text}</span>
-                  </div>
-                ))}
+                {(() => {
+                  const events: { time: string; text: string; color: string }[] = []
+                  // Real reader events from documents
+                  for (const d of docs) {
+                    for (const r of (d.readers || [])) {
+                      events.push({
+                        time: new Date(r.la).toLocaleString('ro-RO', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' }),
+                        text: `${r.name}${r.scoala ? ` (${r.scoala})` : ''} — citit "${d.titlu.slice(0, 40)}${d.titlu.length > 40 ? '...' : ''}"`,
+                        color: '#22c55e',
+                      })
+                    }
+                  }
+                  events.sort((a, b) => b.time.localeCompare(a.time))
+                  if (events.length === 0) {
+                    return <div style={{ fontSize: '12px', color: '#475569', fontStyle: 'italic', padding: '8px 0' }}>Nicio activitate înregistrată încă.</div>
+                  }
+                  return events.slice(0, 8).map((a, i) => (
+                    <div key={i} style={{ display: 'flex', gap: '10px', marginBottom: '12px', alignItems: 'flex-start' }}>
+                      <span style={{ fontSize: '11px', color: '#475569', whiteSpace: 'nowrap', marginTop: '1px', minWidth: '70px' }}>{a.time}</span>
+                      <span style={{ width: 3, minWidth: 3, background: a.color, borderRadius: '2px', alignSelf: 'stretch', minHeight: '16px' }} />
+                      <span style={{ fontSize: '12px', color: '#94a3b8', lineHeight: 1.5 }}>{a.text}</span>
+                    </div>
+                  ))
+                })()}
               </div>
               <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '12px', padding: '16px' }}>
                 <h3 style={{ fontSize: '13px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '14px' }}>Documente Naționale</h3>
@@ -472,7 +635,13 @@ export default function InspectorNational() {
                   { label: 'Naționale', val: docs.filter(d => d.target === 'national').length.toString(), color: '#60a5fa' },
                   { label: 'Județene', val: docs.filter(d => d.target === 'judet').length.toString(), color: '#67e8f9' },
                   { label: 'Per școală', val: docs.filter(d => d.target === 'scoala').length.toString(), color: '#6ee7b7' },
-                  { label: 'Confirmare citire medie', val: '98.2%', color: '#10b981' },
+                  { label: 'Confirmare citire medie', val: (() => {
+                    if (docs.length === 0) return '—'
+                    const totalDest = docs.reduce((s, d) => s + (d.destinatari || 0), 0)
+                    const totalRead = docs.reduce((s, d) => s + ((d.readers?.length) ?? d.citite ?? 0), 0)
+                    if (totalDest === 0) return '—'
+                    return `${Math.round((totalRead / totalDest) * 100)}%`
+                  })(), color: '#10b981' },
                 ].map(s => (
                   <div key={s.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                     <span style={{ fontSize: '12px', color: '#64748b' }}>{s.label}</span>
@@ -487,6 +656,27 @@ export default function InspectorNational() {
         {/* DOCUMENTE TAB */}
         {tab === 'documente' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <button onClick={() => {
+              fetch('/api/documents?judet=national').then(r => r.json()).then(json => {
+                if (json.documents?.length) {
+                  setDocs(json.documents.map((d: any) => ({
+                    id: parseInt(d.id) || Date.now(),
+                    titlu: d.titlu,
+                    data: new Date(d.uploadedAt).toLocaleDateString('ro-RO', { day: 'numeric', month: 'long', year: 'numeric' }),
+                    target: d.judet === 'national' ? 'national' : 'judet',
+                    targetName: d.destinatari,
+                    destinatari: d.totalDestinatari ?? 11500,
+                    citite: d.citite ?? 0,
+                    tip: d.tip,
+                    termen: d.termen,
+                    urgent: d.urgent,
+                    readers: d.readers || [],
+                  })))
+                }
+              }).catch(e => console.error('[inspector load docs]', e))
+            }} style={{ alignSelf: 'flex-end', background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.3)', borderRadius: '8px', padding: '6px 14px', fontSize: '12px', color: '#60a5fa', cursor: 'pointer', fontWeight: 600 }}>
+              🔄 Reîncarcă din server
+            </button>
             {docs.map(doc => {
               const tl = targetLabel(doc)
               const pct = Math.round((doc.citite / Math.max(doc.destinatari, 1)) * 100)
@@ -507,14 +697,25 @@ export default function InspectorNational() {
                       <span style={{ background: '#1e40af', color: '#93c5fd', fontSize: '10px', fontWeight: 600, padding: '1px 8px', borderRadius: '20px' }}>{doc.tip}</span>
                       <span style={{ background: tl.bg, color: tl.color, fontSize: '10px', fontWeight: 700, padding: '1px 8px', borderRadius: '20px' }}>{tl.text}</span>
                     </div>
-                    <div style={{ fontSize: '14px', fontWeight: 600, color: '#f1f5f9', marginBottom: '4px' }}>{doc.titlu}</div>
+                    <div style={{ fontSize: '14px', fontWeight: 600, color: '#f1f5f9', marginBottom: '4px' }}>
+                      {doc.titlu}
+                      <span className="text-xs text-gray-500" style={{ marginLeft: '8px', fontSize: '11px', color: '#6b7280', fontWeight: 400 }}>Nr. {doc.nrInregistrare ?? '—'}</span>
+                    </div>
                     <div style={{ fontSize: '12px', color: '#64748b' }}>
                       {doc.data} · <span style={{ color: '#94a3b8' }}>{destinatariLabel(doc)}</span>
+                      <span style={{ marginLeft: '10px', color: (doc.readers?.length || 0) > 0 ? '#22c55e' : '#475569', fontWeight: 600 }}>
+                        👁 Citit de {(doc.readers?.length || 0)}
+                      </span>
+                      {doc.apiId && (
+                        <a href={`/api/documents/${doc.apiId}/download`} target="_blank" rel="noopener" style={{ marginLeft: '10px', background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.3)', color: '#60a5fa', borderRadius: '6px', padding: '2px 10px', fontSize: '11px', fontWeight: 600, textDecoration: 'none', display: 'inline-block' }}>
+                          ⬇ Descarcă
+                        </a>
+                      )}
                     </div>
                   </div>
                   <div style={{ textAlign: 'right', minWidth: '120px' }}>
-                    <div style={{ fontSize: '13px', fontWeight: 700, color: pct === 100 ? '#22c55e' : '#f59e0b' }}>
-                      {doc.citite === 0 ? 'Se trimit notificări...' : `${pct}% confirmați`}
+                    <div style={{ fontSize: '13px', fontWeight: 700, color: pct === 100 ? '#22c55e' : doc.citite === 0 ? '#64748b' : '#f59e0b' }}>
+                      {doc.citite === 0 ? 'Nicio confirmare încă' : `${pct}% confirmați`}
                     </div>
                     <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
                       {doc.citite}/{doc.destinatari} destinatari
@@ -681,12 +882,49 @@ export default function InspectorNational() {
                   </div>
                 )}
 
+                {/* Content + meta */}
+                <div style={{ marginBottom: '14px' }}>
+                  <label style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '6px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Conținut document (ARA va indexa automat)</label>
+                  <textarea value={uploadContent} onChange={e => setUploadContent(e.target.value)} placeholder="Introduceți sau lipiți conținutul documentului..." rows={4} style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', color: '#e2e8f0', outline: 'none', resize: 'none', boxSizing: 'border-box' as const }} />
+                </div>
+                <div style={{ display: 'flex', gap: '10px', marginBottom: '14px', alignItems: 'flex-start' }}>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '6px' }}>Nr. document (opțional)</label>
+                    <input value={uploadNr} onChange={e => setUploadNr(e.target.value)} placeholder="ex: 1250/2026" style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', color: '#e2e8f0', outline: 'none', boxSizing: 'border-box' as const }} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '6px' }}>Termen (opțional)</label>
+                    <input value={uploadTermen} onChange={e => setUploadTermen(e.target.value)} placeholder="ex: 2026-06-15" style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', color: '#e2e8f0', outline: 'none', boxSizing: 'border-box' as const }} />
+                  </div>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#ef4444', cursor: 'pointer', paddingTop: '22px', flexShrink: 0 }}>
+                    <input type="checkbox" checked={uploadUrgent} onChange={e => setUploadUrgent(e.target.checked)} />
+                    🔴 Urgent
+                  </label>
+                </div>
+
+                {/* Upload fișier */}
+                <div style={{ marginBottom: '14px' }}>
+                  <label style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '8px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>📎 Fișier atașat — PDF, Excel, Word, orice format (opțional)</label>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <label style={{ flex: 1, background: '#0f172a', border: '1.5px dashed #334155', borderRadius: '8px', padding: '10px 14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '18px' }}>📂</span>
+                      <span style={{ fontSize: '12px', color: uploadFile ? '#a78bfa' : '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {uploadFile ? uploadFile.name : 'Selectează fișier...'}
+                      </span>
+                      <input type="file" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) { setUploadFile(f); setUploadFileUrl(''); handleFileUpload(f) } }} />
+                    </label>
+                    {uploadFileUploading && <span style={{ fontSize: '12px', color: '#3b82f6', whiteSpace: 'nowrap' }}>Se urcă...</span>}
+                    {uploadFileUrl && <span style={{ fontSize: '12px', color: '#22c55e', whiteSpace: 'nowrap', fontWeight: 700 }}>✅ Urcat</span>}
+                  </div>
+                </div>
+
                 {/* Sumar trimitere */}
                 <div style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: '8px', padding: '12px 14px', marginBottom: '20px', fontSize: '12px', color: '#94a3b8' }}>
                   <strong style={{ color: '#60a5fa' }}>📊 Sumar:</strong>{' '}
                   {uploadTarget === 'national' && 'Documentul va fi trimis tuturor celor 42 ISJ-uri și 11.500+ directori din România. Toți vor primi notificare instantanee.'}
                   {uploadTarget === 'judet' && (uploadJudete.length === 0 ? 'Selectați cel puțin un județ.' : `Documentul va fi trimis la ${uploadJudete.length} ISJ${uploadJudete.length > 1 ? '-uri' : ''}: ${uploadJudete.join(', ')}.`)}
                   {uploadTarget === 'scoala' && `Documentul va fi trimis direct directorului de la: ${uploadScoala}.`}
+                  <br /><strong style={{ color: '#a78bfa' }}>🤖 ARA indexează instant</strong> — directorii pot întreba chatbot-ul despre conținut imediat după publicare.
                 </div>
 
                 {uploading ? (
@@ -722,43 +960,37 @@ export default function InspectorNational() {
           <div style={{ background: '#1e293b', border: '1px solid #f59e0b', borderRadius: '16px', width: '700px', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
             <div style={{ padding: '20px 24px', borderBottom: '1px solid #334155', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
-                <h3 style={{ fontSize: '17px', fontWeight: 700, color: '#fcd34d' }}>⚠️ Alerte Nerezolvate — {totalAlerte} directori inactivi</h3>
-                <p style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>Directori care nu au accesat platforma în ultimele 48h sau nu au citit ultimul document</p>
+                <h3 style={{ fontSize: '17px', fontWeight: 700, color: '#fcd34d' }}>⚠️ Alerte Nerezolvate — {alerteReale.length} document{alerteReale.length !== 1 ? 'e' : ''}</h3>
+                <p style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>Documente urgente fără confirmare sau cu termenul depășit</p>
               </div>
               <button onClick={() => setShowAlerte(false)} style={{ background: '#334155', border: 'none', color: '#94a3b8', borderRadius: '8px', padding: '8px 14px', fontSize: '13px', cursor: 'pointer' }}>✕ Închide</button>
             </div>
 
             <div style={{ overflowY: 'auto', flex: 1 }}>
-              {JUDETE.filter(j => j.alert > 0).map(j => {
-                const scoli = getScoliJudet(j.name).filter(s => !s.activ || !s.citit)
+              {alerteReale.length === 0 ? (
+                <div style={{ padding: '40px 24px', textAlign: 'center', color: '#64748b', fontSize: '14px' }}>
+                  ✅ Nicio alertă activă
+                </div>
+              ) : alerteReale.map(doc => {
+                const isUrgentNecitit = doc.urgent && (doc.citite ?? 0) === 0
+                const isPastDeadline = doc.termen && new Date(doc.termen) < new Date()
+                const pct = Math.round(((doc.citite ?? 0) / Math.max(doc.destinatari, 1)) * 100)
                 return (
-                  <div key={j.name}>
-                    <div style={{ padding: '10px 24px', background: '#0f172a', borderBottom: '1px solid #334155', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <span style={{ fontSize: '13px', fontWeight: 700, color: '#f1f5f9' }}>🏛️ ISJ {j.name}</span>
-                      <span style={{ background: '#7f1d1d', color: '#fca5a5', fontSize: '11px', fontWeight: 700, padding: '2px 10px', borderRadius: '20px' }}>
-                        {j.alert} alertă{j.alert > 1 ? 'ri' : ''}
-                      </span>
+                  <div key={doc.id} style={{ padding: '14px 24px', borderBottom: '1px solid #1e293b', display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: isUrgentNecitit ? '#ef4444' : '#f59e0b', flexShrink: 0, marginTop: '5px' }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: '13px', fontWeight: 600, color: '#f1f5f9', marginBottom: '4px' }}>{doc.titlu}</div>
+                      <div style={{ fontSize: '12px', color: '#64748b' }}>
+                        {doc.data} · {doc.targetName}
+                      </div>
+                      <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>
+                        {doc.citite ?? 0}/{doc.destinatari} confirmări ({pct}%)
+                      </div>
                     </div>
-                    {scoli.map((s, i) => (
-                      <div key={i} style={{ padding: '12px 24px 12px 36px', borderBottom: '1px solid #1e293b', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: !s.activ ? '#ef4444' : '#f59e0b', flexShrink: 0 }} />
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: '13px', fontWeight: 600, color: '#f1f5f9' }}>{s.name}</div>
-                          <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>Director: {s.director}</div>
-                        </div>
-                        <div style={{ display: 'flex', gap: '6px' }}>
-                          {!s.activ && <span style={{ background: '#7f1d1d', color: '#fca5a5', fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '20px' }}>Inactiv 48h</span>}
-                          {!s.citit && s.activ && <span style={{ background: '#451a03', color: '#fcd34d', fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '20px' }}>Nu a citit</span>}
-                        </div>
-                      </div>
-                    ))}
-                    {scoli.length === 0 && (
-                      <div style={{ padding: '12px 24px 12px 36px', display: 'flex', gap: '12px' }}>
-                        {Array.from({ length: j.alert }).map((_, i) => (
-                          <div key={i} style={{ fontSize: '13px', color: '#64748b' }}>Director #{i + 1} — inactiv 48h</div>
-                        ))}
-                      </div>
-                    )}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-end' }}>
+                      {isUrgentNecitit && <span style={{ background: '#7f1d1d', color: '#fca5a5', fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '20px' }}>🔴 Urgent — 0 citiri</span>}
+                      {isPastDeadline && <span style={{ background: '#451a03', color: '#fcd34d', fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '20px' }}>⏰ Termen depășit</span>}
+                    </div>
                   </div>
                 )
               })}

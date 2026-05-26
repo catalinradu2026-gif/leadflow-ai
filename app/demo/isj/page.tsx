@@ -1,9 +1,16 @@
 'use client'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useIsMobile } from '../../hooks/useIsMobile'
+import CalendarTermene from '../../components/CalendarTermene'
 
 type TipUnitate = 'Liceu' | 'Colegiu' | 'Școală' | 'Grădiniță'
+
+type UIDoc = {
+  id: number; apiId?: string; titlu: string; data: string; citite: number; total: number
+  tip: string; sursa: string; nou: boolean; citit: boolean; urgent: boolean
+  termen?: string; readers?: any[]; nrInregistrare?: string; pdfUrl?: string
+}
 const TIP_COLORS: Record<TipUnitate, { bg: string; color: string }> = {
   'Liceu':     { bg: '#1e3a5f', color: '#93c5fd' },
   'Colegiu':   { bg: '#4c1d95', color: '#c4b5fd' },
@@ -26,13 +33,8 @@ const SCOLI_DOLJ = [
   { name: 'Liceul Tehnologic Calafat', loc: 'Calafat', director: 'Cristina Barbu', citit: true, activ: true, tip: 'Liceu' as TipUnitate },
 ]
 
-const DOCUMENTE = [
-  { id: 1, titlu: 'Metodologie Evaluare Națională 2026', data: '19 mai 2026', citite: 0, total: 240, tip: 'Metodologie', sursa: 'Inspector Național', nou: true, citit: false },
-  { id: 2, titlu: 'Circular nr. 1247/2026 — Raportare absențe mai 2026', data: '17 mai 2026', citite: 198, total: 240, tip: 'Circular', sursa: 'ISJ Dolj', nou: false, citit: true },
-  { id: 3, titlu: 'Procedura nr. 892/2026 — Examene naționale 2026', data: '14 mai 2026', citite: 236, total: 240, tip: 'Procedură', sursa: 'ISJ Dolj', nou: false, citit: true },
-  { id: 4, titlu: 'Adresa nr. 2103/2026 — Dotări informatice PNRR', data: '10 mai 2026', citite: 240, total: 240, tip: 'Adresă', sursa: 'Inspector Național', nou: false, citit: true },
-  { id: 5, titlu: 'Circular nr. 1198/2026 — Situație statistică an școlar', data: '5 mai 2026', citite: 240, total: 240, tip: 'Circular', sursa: 'ISJ Dolj', nou: false, citit: true },
-]
+// Fallback gol — documentele reale se încarcă din /api/documents?judet=Dolj
+const DOCUMENTE: UIDoc[] = []
 
 export default function ISJDolj() {
   const router = useRouter()
@@ -57,27 +59,109 @@ export default function ISJDolj() {
   const [tipFilter, setTipFilter] = useState<string>('Toate')
   const [uploadTipDoc, setUploadTipDoc] = useState('Circular')
   const [uploadTipUnitate, setUploadTipUnitate] = useState<string>('Toate')
+  const [loginTitlu, setLoginTitlu] = useState('Dl')
+  const [loginNume, setLoginNume] = useState('')
+  const [uploadTermen, setUploadTermen] = useState('')
+  const [uploadNr, setUploadNr] = useState('')
+  const [uploadUrgent, setUploadUrgent] = useState(false)
+  const [uploadDestinatar, setUploadDestinatar] = useState('')
+  const [uploadFile, setUploadFile] = useState<File | null>(null)
+  const [uploadFileUrl, setUploadFileUrl] = useState('')
+  const [uploadFileUploading, setUploadFileUploading] = useState(false)
+
+  async function handleFileUpload(file: File) {
+    setUploadFileUploading(true)
+    try {
+      const fd = new FormData()
+      fd.append('password', 'ARACIP')
+      fd.append('file', file)
+      const res = await fetch('/api/upload-pdf', { method: 'POST', body: fd })
+      const data = await res.json()
+      if (data.url) setUploadFileUrl(data.url)
+      if (data.extractedText && !uploadContent.trim()) setUploadContent(data.extractedText)
+    } catch {}
+    setUploadFileUploading(false)
+  }
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
     if (!loginEmail || !loginPass) { setLoginErr('Completați email și parolă.'); return }
     setLogging(true); setLoginErr('')
-    await new Promise(r => setTimeout(r, 800))
-    setLogging(false); setLoggedIn(true)
+    try {
+      const check = await fetch('/api/auth/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: 'isj', password: loginPass, email: loginEmail })
+      })
+      const cd = await check.json()
+      if (!cd?.ok) { setLogging(false); setLoginErr('Email sau parolă incorectă.'); return }
+    } catch (e) { console.error('[isj auth check]', e) }
+    try {
+      const ses = await fetch('/api/auth/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: loginEmail, role: 'isj' })
+      })
+      const sd = await ses.json()
+      if (sd?.token) localStorage.setItem('ara_session', sd.token)
+    } catch (e) { console.error('[isj session]', e) }
+    setLogging(false)
+    if (loginNume.trim()) {
+      try { localStorage.setItem('ara_user', JSON.stringify({ titlu: loginTitlu, rol: 'Inspector ISJ', nume: loginNume.trim(), userId: loginEmail })) } catch {}
+    }
+    setLoggedIn(true)
   }
+
+  useEffect(() => {
+    if (!loggedIn) return
+    fetch('/api/documents?judet=Dolj')
+      .then(r => r.json())
+      .then(json => {
+        if (json.documents?.length) {
+          let readIds: string[] = []
+          try { readIds = JSON.parse(localStorage.getItem('isj_read_ids') || '[]') } catch {}
+          setDocs(json.documents.map((d: any, i: number) => ({
+            id: i + 1,
+            apiId: d.id,
+            titlu: d.titlu,
+            data: new Date(d.uploadedAt).toLocaleDateString('ro-RO', { day: 'numeric', month: 'long', year: 'numeric' }),
+            citite: d.citite ?? 0,
+            total: d.totalDestinatari || 240,
+            tip: d.tip,
+            sursa: d.sursa,
+            nou: !readIds.includes(d.id) && i === 0,
+            citit: readIds.includes(d.id),
+            urgent: d.urgent,
+            termen: d.termen,
+            readers: d.readers || [],
+            nrInregistrare: d.nrInregistrare,
+            pdfUrl: d.pdfUrl,
+          })))
+        }
+      })
+      .catch(() => {})
+  }, [loggedIn])
 
   if (!loggedIn) return (
     <div style={{ minHeight: '100vh', background: '#060b14', fontFamily: "'Segoe UI', Arial, sans-serif", color: '#f1f5f9', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-      <button onClick={() => router.back()} style={{ position: 'fixed', top: 20, left: 20, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '8px 16px', color: '#94a3b8', cursor: 'pointer', fontSize: '13px', fontFamily: 'inherit' }}>← Înapoi</button>
+      <button onClick={() => router.push('/aracip')} style={{ position: 'fixed', top: 20, left: 20, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '8px 16px', color: '#94a3b8', cursor: 'pointer', fontSize: '13px', fontFamily: 'inherit' }}>← ARACIP</button>
       <div style={{ textAlign: 'center', marginBottom: '32px' }}>
         <div style={{ width: 56, height: 56, borderRadius: '16px', background: 'linear-gradient(135deg, #164e63, #0ea5e9)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px', margin: '0 auto 16px', boxShadow: '0 8px 24px rgba(14,165,233,0.35)' }}>🏛️</div>
         <div style={{ fontSize: '20px', fontWeight: 800 }}>ISJ Dolj</div>
         <div style={{ fontSize: '12px', color: '#334155', marginTop: '4px' }}>Inspectoratul Școlar Județean</div>
+        <div style={{ display: 'inline-block', marginTop: '8px', background: 'rgba(14,165,233,0.12)', border: '1px solid rgba(14,165,233,0.3)', borderRadius: '20px', padding: '3px 12px', fontSize: '10px', fontWeight: 700, color: '#38bdf8', letterSpacing: '1px' }}>DEMO LIVE — AIcraiova.ro</div>
       </div>
       <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(14,165,233,0.2)', borderRadius: '20px', padding: isMobile ? '28px 20px' : '36px 40px', width: '100%', maxWidth: '400px' }}>
         <h2 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px', textAlign: 'center' }}>Autentificare ISJ</h2>
         <p style={{ fontSize: '12px', color: '#475569', textAlign: 'center', marginBottom: '24px' }}>Acces restricționat — Inspector Județean</p>
         <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <select value={loginTitlu} onChange={e => setLoginTitlu(e.target.value)} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(14,165,233,0.3)', borderRadius: '10px', padding: '11px 10px', fontSize: '13px', color: '#38bdf8', outline: 'none', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0, width: '80px' }}>
+              <option value="Dl">Dl.</option>
+              <option value="Dna">Dna.</option>
+            </select>
+            <input placeholder="Prenume Nume" value={loginNume} onChange={e => setLoginNume(e.target.value)} style={{ flex: 1, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '12px 16px', fontSize: '14px', color: '#f1f5f9', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' as const }} />
+          </div>
           <input type="email" placeholder="Email instituțional" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '12px 16px', fontSize: '14px', color: '#f1f5f9', outline: 'none', fontFamily: 'inherit', width: '100%', boxSizing: 'border-box' as const }} />
           <input type="password" placeholder="Parolă" value={loginPass} onChange={e => setLoginPass(e.target.value)} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '12px 16px', fontSize: '14px', color: '#f1f5f9', outline: 'none', fontFamily: 'inherit', width: '100%', boxSizing: 'border-box' as const }} />
           {loginErr && <div style={{ fontSize: '12px', color: '#ef4444', textAlign: 'center' }}>{loginErr}</div>}
@@ -92,29 +176,75 @@ export default function ISJDolj() {
 
   const TIP_RATII: Record<string, number> = { 'Toate': 1, 'Liceu': 0.18, 'Colegiu': 0.12, 'Școală': 0.45, 'Grădiniță': 0.25 }
 
-  function markDocRead(id: number) {
+  function markDocRead(id: number, apiId?: string) {
     setDocs(prev => prev.map(d => d.id === id ? { ...d, citit: true, nou: false } : d))
+    if (apiId) {
+      try {
+        const existing: string[] = JSON.parse(localStorage.getItem('isj_read_ids') || '[]')
+        if (!existing.includes(apiId)) localStorage.setItem('isj_read_ids', JSON.stringify([...existing, apiId]))
+      } catch {}
+      const viewerName = loginNume.trim() ? `${loginTitlu} ${loginNume.trim()}` : 'Inspector ISJ'
+      let sessionToken = ''
+      try { sessionToken = localStorage.getItem('ara_session') || '' } catch {}
+      fetch('/api/documents', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'X-User-Session': sessionToken },
+        body: JSON.stringify({ id: apiId, action: 'read', viewer: { name: viewerName, rol: 'Inspector ISJ Dolj' } }),
+      }).catch(() => {})
+    }
   }
 
   async function handleUpload() {
     if (!uploadTitle.trim()) return
     setUploading(true)
-    await new Promise(r => setTimeout(r, 1800))
-    const total = Math.round(240 * (TIP_RATII[uploadTipUnitate] ?? 1))
-    setDocs(prev => [{
-      id: prev.length + 1,
-      titlu: uploadTitle + (uploadTipUnitate !== 'Toate' ? ` — ${uploadTipUnitate}e` : ''),
-      data: '19 mai 2026',
-      citite: 0,
-      total,
-      tip: uploadTipDoc,
-      sursa: 'ISJ Dolj',
-      nou: true,
-      citit: true,
-    }, ...prev])
+    try {
+      const destinatari = uploadDestinatar || `Toți directorii din județul Dolj${uploadTipUnitate !== 'Toate' ? ` — ${uploadTipUnitate}e` : ''}`
+      const res = await fetch('/api/documents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          password: 'ARACIP',
+          document: {
+            titlu: uploadTitle,
+            tip: uploadTipDoc,
+            sursa: 'ISJ Dolj',
+            sursa_tip: 'isj',
+            judet: 'Dolj',
+            termen: uploadTermen || undefined,
+            urgent: uploadUrgent,
+            continut: uploadContent || uploadTitle,
+            destinatari,
+            nr: uploadNr || undefined,
+            pdfUrl: uploadFileUrl || undefined,
+            tipUnitate: uploadTipUnitate,
+            totalDestinatari: Math.round(240 * (TIP_RATII[uploadTipUnitate] ?? 1)),
+          }
+        })
+      })
+      const data = await res.json()
+      if (data.ok) {
+        const total = Math.round(240 * (TIP_RATII[uploadTipUnitate] ?? 1))
+        setDocs(prev => [{
+          id: prev.length + 1,
+          titlu: uploadTitle + (uploadTipUnitate !== 'Toate' ? ` — ${uploadTipUnitate}e` : ''),
+          data: new Date().toLocaleDateString('ro-RO', { day: 'numeric', month: 'long', year: 'numeric' }),
+          citite: 0,
+          total,
+          tip: uploadTipDoc,
+          sursa: 'ISJ Dolj',
+          nou: true,
+          citit: true,
+          urgent: uploadUrgent,
+        }, ...prev])
+        setUploadDone(true)
+        setTimeout(() => {
+          setShowUpload(false); setUploadDone(false); setUploadTitle(''); setUploadContent('')
+          setUploadTipUnitate('Toate'); setUploadTermen(''); setUploadNr(''); setUploadUrgent(false)
+          setUploadFile(null); setUploadFileUrl('')
+        }, 2000)
+      }
+    } catch {}
     setUploading(false)
-    setUploadDone(true)
-    setTimeout(() => { setShowUpload(false); setUploadDone(false); setUploadTitle(''); setUploadContent(''); setUploadTipUnitate('Toate') }, 2000)
   }
 
   async function sendChat() {
@@ -132,10 +262,11 @@ export default function ISJDolj() {
       {/* Topbar */}
       <div style={{ background: '#1e293b', borderBottom: '1px solid #334155', padding: isMobile ? '8px 12px' : '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: '56px', flexWrap: 'wrap', gap: '8px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <button onClick={() => router.push('/demo')} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '13px' }}>← Demo</button>
+          <button onClick={() => router.push('/aracip')} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '13px' }}>← ARACIP</button>
           <div style={{ width: 1, height: 20, background: '#334155' }} />
           <span style={{ fontSize: '13px', color: '#fff', fontWeight: 600 }}>🏛️ ISJ Dolj</span>
           <span style={{ background: '#164e63', color: '#67e8f9', fontSize: '11px', fontWeight: 700, padding: '2px 10px', borderRadius: '20px' }}>INSPECTOR ȘEF</span>
+          <span style={{ background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.3)', color: '#22c55e', fontSize: '10px', fontWeight: 700, padding: '2px 10px', borderRadius: '20px', letterSpacing: '0.5px' }}>● DEMO LIVE</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           {docs.some(d => !d.citit && d.sursa === 'Inspector Național') && (
@@ -144,7 +275,7 @@ export default function ISJDolj() {
               <span style={{ fontSize: '12px', color: '#fcd34d', fontWeight: 700 }}>🔔 {docs.filter(d => !d.citit && d.sursa === 'Inspector Național').length} document{docs.filter(d => !d.citit && d.sursa === 'Inspector Național').length > 1 ? 'e' : ''} nou{docs.filter(d => !d.citit && d.sursa === 'Inspector Național').length > 1 ? 'ă' : ''} de la Inspector Național</span>
             </div>
           )}
-          <span style={{ fontSize: '12px', color: '#64748b' }}>Inspector: <strong style={{ color: '#e2e8f0' }}>Popescu Dumitru</strong></span>
+          <span style={{ fontSize: '12px', color: '#64748b' }}>Inspector: <strong style={{ color: '#e2e8f0' }}>{loginNume ? `${loginTitlu}. ${loginNume}` : 'ISJ Dolj'}</strong></span>
           <button
             onClick={() => setShowUpload(true)}
             style={{ background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '8px', padding: '8px 16px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
@@ -156,12 +287,19 @@ export default function ISJDolj() {
 
       {/* Stats */}
       <div style={{ padding: isMobile ? '12px 12px 0' : '20px 24px 0', display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: '14px', maxWidth: '1200px', margin: '0 auto' }}>
-        {[
-          { label: 'Unități Școlare Dolj', val: '240', icon: '🏫', color: '#3b82f6' },
-          { label: 'Conectate Azi', val: '238', icon: '🟢', color: '#22c55e' },
-          { label: 'Documente Publicate', val: docs.length.toString(), icon: '📄', color: '#a78bfa' },
-          { label: 'Directori cu Alertă', val: '2', icon: '⚠️', color: '#f59e0b' },
-        ].map(s => (
+        {(() => {
+          const today = new Date().toDateString()
+          const allReaders = docs.flatMap((d: any) => d.readers || [])
+          const conectateAzi = new Set(allReaders.filter((r: any) => new Date(r.la).toDateString() === today).map((r: any) => r.scoala || r.name)).size
+          const alerte = docs.filter(d => (d.urgent && (d.citite ?? 0) === 0) || ((d as any).termen && new Date((d as any).termen) < new Date() && (d.citite ?? 0) < d.total)).length
+          const totalCitiri = docs.reduce((s: number, d: any) => s + (d.readers?.length || 0), 0)
+          return [
+            { label: 'Documente Publicate', val: docs.length.toString(), icon: '📄', color: '#3b82f6' },
+            { label: 'Total Citiri', val: totalCitiri.toString(), icon: '👁', color: '#a78bfa' },
+            { label: 'Citiri Azi', val: conectateAzi > 0 ? conectateAzi.toString() : '—', icon: '🟢', color: '#22c55e' },
+            { label: 'Alerte Nerezolvate', val: alerte.toString(), icon: '⚠️', color: alerte > 0 ? '#f59e0b' : '#22c55e' },
+          ]
+        })().map(s => (
           <div key={s.label} style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '10px', padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '6px' }}>{s.label}</div>
@@ -170,6 +308,11 @@ export default function ISJDolj() {
             <span style={{ fontSize: '24px' }}>{s.icon}</span>
           </div>
         ))}
+      </div>
+
+      {/* Calendar Termene */}
+      <div style={{ padding: isMobile ? '12px 12px 0' : '20px 24px 0', maxWidth: '1200px', margin: '0 auto' }}>
+        <CalendarTermene />
       </div>
 
       {/* Tabs */}
@@ -205,10 +348,20 @@ export default function ISJDolj() {
         {/* DOCUMENTE TAB */}
         {tab === 'docs' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {/* Alerte termen */}
+            {docs.filter(d => d.termen && (() => { const z = (new Date(d.termen!).getTime() - Date.now()) / 86400000; return z >= 0 && z <= 5 })()).map(d => (
+              <div key={`alert-${d.id}`} style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.4)', borderRadius: '10px', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ fontSize: '18px' }}>⚠️</span>
+                <div>
+                  <div style={{ fontSize: '12px', fontWeight: 700, color: '#f87171' }}>TERMEN APROAPE — {d.titlu.slice(0, 50)}</div>
+                  <div style={{ fontSize: '11px', color: '#94a3b8' }}>Scadent: {new Date(d.termen!).toLocaleDateString('ro-RO', { day: 'numeric', month: 'long', year: 'numeric' })} · {Math.ceil((new Date(d.termen!).getTime() - Date.now()) / 86400000)} zile rămase</div>
+                </div>
+              </div>
+            ))}
             {docs.map(doc => (
               <div
                 key={doc.id}
-                onClick={() => !doc.citit && markDocRead(doc.id)}
+                onClick={() => !doc.citit && markDocRead(doc.id, doc.apiId)}
                 style={{
                   background: '#1e293b',
                   border: `1px solid ${!doc.citit ? (doc.sursa === 'Inspector Național' ? '#3b82f6' : '#f59e0b') : '#334155'}`,
@@ -234,8 +387,28 @@ export default function ISJDolj() {
                       {doc.sursa === 'Inspector Național' ? '🇾🇴 Inspector Național' : '🏛️ ISJ Dolj'}
                     </span>
                   </div>
-                  <div style={{ fontSize: '14px', fontWeight: !doc.citit ? 700 : 500, color: !doc.citit ? '#f1f5f9' : '#94a3b8', marginBottom: '4px' }}>{doc.titlu}</div>
-                  <div style={{ fontSize: '12px', color: '#475569' }}>{doc.sursa} · {doc.data} · AI indexat ✓</div>
+                  <div style={{ fontSize: '14px', fontWeight: !doc.citit ? 700 : 500, color: !doc.citit ? '#f1f5f9' : '#94a3b8', marginBottom: '4px' }}>
+                    {doc.titlu}
+                    <span className="text-xs text-gray-500" style={{ marginLeft: '8px', fontSize: '11px', color: '#6b7280', fontWeight: 400 }}>Nr. {doc.nrInregistrare ?? '—'}</span>
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#475569' }}>
+                    {doc.sursa} · {doc.data} · AI indexat ✓
+                    <span style={{ marginLeft: '10px', color: (doc.readers?.length || 0) > 0 ? '#22c55e' : '#475569', fontWeight: 600 }}>
+                      👁 Citit de {(doc.readers?.length || 0)}
+                    </span>
+                    {doc.apiId && (
+                      <a
+                        href={`/api/documents/${doc.apiId}/download`}
+                        target="_blank"
+                        rel="noopener"
+                        onClick={e => e.stopPropagation()}
+                        className="ml-2 inline-block rounded border border-blue-500/30 bg-blue-500/10 px-2 py-0.5 text-xs font-semibold text-blue-400 no-underline hover:bg-blue-500/20"
+                        style={{ marginLeft: '10px', background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.3)', color: '#60a5fa', borderRadius: '6px', padding: '2px 10px', fontSize: '11px', fontWeight: 600, textDecoration: 'none', display: 'inline-block' }}
+                      >
+                        ⬇ Descarcă
+                      </a>
+                    )}
+                  </div>
                 </div>
                 <div style={{ textAlign: 'right', flexShrink: 0, minWidth: '140px' }}>
                   {!doc.citit ? (
@@ -254,6 +427,24 @@ export default function ISJDolj() {
                 </div>
               </div>
             ))}
+            {/* Confirmări directori per document */}
+            {docs.filter(d => d.citit && (d as any).readers?.length > 0).map(doc => (
+              <div key={`readers-${doc.id}`} style={{ background: 'rgba(34,197,94,0.04)', border: '1px solid rgba(34,197,94,0.12)', borderRadius: '10px', padding: '12px 16px' }}>
+                <div style={{ fontSize: '11px', fontWeight: 700, color: '#4ade80', marginBottom: '8px' }}>✅ Confirmări directori — {doc.titlu.slice(0, 45)}...</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  {(doc as any).readers?.map((r: any, i: number) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', padding: '3px 0', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                      <div>
+                        <span style={{ color: '#e2e8f0', fontWeight: 600 }}>{r.name}</span>
+                        {r.scoala && <span style={{ color: '#64748b', marginLeft: '8px' }}>{r.scoala}</span>}
+                        {r.tipScoala && <span style={{ marginLeft: '6px', background: 'rgba(124,58,237,0.15)', color: '#a78bfa', padding: '1px 5px', borderRadius: '6px', fontSize: '9px', fontWeight: 700 }}>{r.tipScoala}</span>}
+                      </div>
+                      <span style={{ color: '#475569' }}>{new Date(r.la).toLocaleString('ro-RO', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
             {docs.every(d => d.citit) && (
               <div style={{ textAlign: 'center', padding: '16px', color: '#22c55e', fontSize: '14px' }}>
                 ✅ Toate documentele au fost citite!
@@ -263,13 +454,60 @@ export default function ISJDolj() {
         )}
 
         {/* SCOLI TAB */}
-        {tab === 'scoli' && (
+        {tab === 'scoli' && (() => {
+          // Build real school status from readers
+          const allReaders = docs.flatMap((d: any) => d.readers || [])
+          const now48 = 48 * 60 * 60 * 1000
+          const readerMap = new Map<string, { la: Date; tipScoala?: string; directorName?: string }>()
+          for (const r of allReaders) {
+            if (!r.scoala) continue
+            const la = new Date(r.la)
+            const ex = readerMap.get(r.scoala)
+            if (!ex || la > ex.la) readerMap.set(r.scoala, { la, tipScoala: r.tipScoala, directorName: r.name })
+          }
+
+          // Enrich static list with real status
+          const scoliCuStatus = SCOLI_DOLJ.map(s => {
+            let match = readerMap.get(s.name)
+            if (!match) {
+              // Try partial name match
+              for (const [key, val] of readerMap) {
+                const a = s.name.toLowerCase().replace(/[""]/g, '"')
+                const b = key.toLowerCase().replace(/[""]/g, '"')
+                if (a.includes(b.slice(0, 12)) || b.includes(a.slice(0, 12))) { match = val; break }
+              }
+            }
+            return {
+              ...s,
+              citit: !!match,
+              activ: match ? (Date.now() - match.la.getTime()) < now48 : false,
+              director: match?.directorName || s.director,
+              lastSeen: match?.la,
+            }
+          })
+
+          // Add real schools from readers not in static list
+          const extraScoli: typeof scoliCuStatus = []
+          for (const [scoala, data] of readerMap) {
+            const already = scoliCuStatus.some(s => {
+              const a = s.name.toLowerCase(); const b = scoala.toLowerCase()
+              return a === b || a.includes(b.slice(0, 12)) || b.includes(a.slice(0, 12))
+            })
+            if (!already) {
+              const tip = (data.tipScoala || 'Școală') as TipUnitate
+              extraScoli.push({ name: scoala, loc: 'Dolj', director: data.directorName || 'Director', citit: true, activ: (Date.now() - data.la.getTime()) < now48, tip, lastSeen: data.la })
+            }
+          }
+
+          const toateScolile = [...extraScoli, ...scoliCuStatus]
+
+          return (
           <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '12px', overflow: 'hidden' }}>
             {/* Filtre tip */}
             <div style={{ padding: '12px 16px', borderBottom: '1px solid #334155', display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
               <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Tip:</span>
               {(['Toate', 'Liceu', 'Colegiu', 'Școală', 'Grădiniță'] as const).map(t => {
-                const count = t === 'Toate' ? SCOLI_DOLJ.length : SCOLI_DOLJ.filter(s => s.tip === t).length
+                const count = t === 'Toate' ? toateScolile.length : toateScolile.filter(s => s.tip === t).length
                 if (count === 0) return null
                 const sel = tipFilter === t
                 const tc = t !== 'Toate' ? TIP_COLORS[t] : { bg: '#334155', color: '#94a3b8' }
@@ -284,6 +522,9 @@ export default function ISJDolj() {
                   </button>
                 )
               })}
+              <span style={{ fontSize: '11px', color: '#4ade80', marginLeft: 'auto' }}>
+                {toateScolile.filter(s => s.citit).length} confirmate · {toateScolile.filter(s => s.activ).length} active azi
+              </span>
             </div>
             <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -295,11 +536,18 @@ export default function ISJDolj() {
                 </tr>
               </thead>
               <tbody>
-                {SCOLI_DOLJ.filter(s => tipFilter === 'Toate' || s.tip === tipFilter).map((s, i) => {
+                {toateScolile.filter(s => tipFilter === 'Toate' || s.tip === tipFilter).map((s, i) => {
                   const tc = TIP_COLORS[s.tip]
                   return (
-                    <tr key={i} style={{ borderBottom: '1px solid #334155' }}>
-                      <td style={{ padding: '12px 16px', fontSize: '13px', fontWeight: 600, color: '#f1f5f9' }}>{s.name}</td>
+                    <tr key={i} style={{ borderBottom: '1px solid #334155', background: s.citit && s.activ ? 'rgba(34,197,94,0.03)' : 'transparent' }}>
+                      <td style={{ padding: '12px 16px', fontSize: '13px', fontWeight: 600, color: '#f1f5f9' }}>
+                        {s.name}
+                        {(s as any).lastSeen && (
+                          <div style={{ fontSize: '10px', color: '#4ade80', marginTop: '2px' }}>
+                            ✓ {new Date((s as any).lastSeen).toLocaleString('ro-RO', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                          </div>
+                        )}
+                      </td>
                       <td style={{ padding: '12px 16px' }}>
                         <span style={{ background: tc.bg, color: tc.color, fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '20px' }}>{s.tip}</span>
                       </td>
@@ -320,7 +568,8 @@ export default function ISJDolj() {
             </table>
             </div>
           </div>
-        )}
+          )
+        })()}
 
         {/* CHAT TAB */}
         {tab === 'chat' && (
@@ -386,7 +635,7 @@ export default function ISJDolj() {
       {/* Upload Modal */}
       {showUpload && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
-          <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '16px', padding: isMobile ? '20px' : '32px', width: isMobile ? 'calc(100vw - 32px)' : '520px', maxHeight: isMobile ? '90vh' : 'none', overflowY: isMobile ? 'auto' : 'visible' }}>
+          <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '16px', padding: isMobile ? '20px' : '32px', width: isMobile ? 'calc(100vw - 32px)' : '540px', maxHeight: '90vh', overflowY: 'auto' }}>
             {uploadDone ? (
               <div style={{ textAlign: 'center', padding: '20px' }}>
                 <div style={{ fontSize: '48px', marginBottom: '16px' }}>✅</div>
@@ -448,15 +697,50 @@ export default function ISJDolj() {
                     style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', borderRadius: '8px', padding: '10px 14px', fontSize: '14px', color: '#e2e8f0', outline: 'none', boxSizing: 'border-box' }}
                   />
                 </div>
-                <div style={{ marginBottom: '20px' }}>
+                <div style={{ display: 'flex', gap: '10px', marginBottom: '14px' }}>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '6px' }}>Nr. document (opțional)</label>
+                    <input value={uploadNr} onChange={e => setUploadNr(e.target.value)} placeholder="ex: 1250/2026" style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', color: '#e2e8f0', outline: 'none', boxSizing: 'border-box' as const }} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '6px' }}>Termen (opțional)</label>
+                    <input value={uploadTermen} onChange={e => setUploadTermen(e.target.value)} placeholder="ex: 2026-06-15" style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', color: '#e2e8f0', outline: 'none', boxSizing: 'border-box' as const }} />
+                  </div>
+                </div>
+                <div style={{ marginBottom: '14px' }}>
                   <label style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '6px' }}>Conținut document (AI va indexa acest text)</label>
                   <textarea
                     value={uploadContent}
                     onChange={e => setUploadContent(e.target.value)}
                     placeholder="Introduceți sau lipiți conținutul documentului..."
-                    rows={5}
-                    style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', color: '#e2e8f0', outline: 'none', resize: 'none', boxSizing: 'border-box' }}
+                    rows={4}
+                    style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', color: '#e2e8f0', outline: 'none', resize: 'none', boxSizing: 'border-box' as const }}
                   />
+                </div>
+                <div style={{ display: 'flex', gap: '10px', marginBottom: '14px', alignItems: 'flex-start' }}>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '6px' }}>Destinatari (text)</label>
+                    <input value={uploadDestinatar} onChange={e => setUploadDestinatar(e.target.value)} placeholder="ex: Toți directorii din județul Dolj" style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', color: '#e2e8f0', outline: 'none', boxSizing: 'border-box' as const }} />
+                  </div>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#ef4444', cursor: 'pointer', paddingTop: '22px', flexShrink: 0 }}>
+                    <input type="checkbox" checked={uploadUrgent} onChange={e => setUploadUrgent(e.target.checked)} />
+                    🔴 Urgent
+                  </label>
+                </div>
+                {/* Upload fișier */}
+                <div style={{ marginBottom: '20px' }}>
+                  <label style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '8px', fontWeight: 600 }}>📎 Atașează fișier — PDF, Excel, Word, orice format (opțional)</label>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <label style={{ flex: 1, background: '#0f172a', border: '1.5px dashed #334155', borderRadius: '8px', padding: '10px 14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '18px' }}>📂</span>
+                      <span style={{ fontSize: '12px', color: uploadFile ? '#a78bfa' : '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {uploadFile ? uploadFile.name : 'Selectează fișier...'}
+                      </span>
+                      <input type="file" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) { setUploadFile(f); setUploadFileUrl(''); handleFileUpload(f) } }} />
+                    </label>
+                    {uploadFileUploading && <span style={{ fontSize: '12px', color: '#3b82f6', whiteSpace: 'nowrap' }}>Se urcă...</span>}
+                    {uploadFileUrl && <span style={{ fontSize: '12px', color: '#22c55e', whiteSpace: 'nowrap', fontWeight: 700 }}>✅ Urcat</span>}
+                  </div>
                 </div>
                 <div style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: '8px', padding: '12px', marginBottom: '20px', fontSize: '12px', color: '#64748b' }}>
                   <strong style={{ color: '#a78bfa' }}>🤖 AI automat:</strong> Documentul va fi indexat instant. Directorii pot întreba chatbot-ul despre conținut imediat după publicare.

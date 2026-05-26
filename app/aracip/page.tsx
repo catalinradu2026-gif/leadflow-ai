@@ -3,203 +3,9 @@ import { useRouter } from 'next/navigation'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { useEffect, useState } from 'react'
 
-function _AraChatbotRemoved({ isMobile }: { isMobile: boolean }) {
-  const [open, setOpen] = useState(false)
-  const [messages, setMessages] = useState<Msg[]>([
-    { role: 'assistant', content: ARA_GREETING }
-  ])
-  const [input, setInput] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [voiceEnabled, setVoiceEnabled] = useState(true)
-  const [speaking, setSpeaking] = useState(false)
-  const [listening, setListening] = useState(false)
-  const [unread, setUnread] = useState(0)
-  const [introduced, setIntroduced] = useState(false)
-  const recognitionRef = useRef<SpeechRecognition | null>(null)
-  const bottomRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (open) {
-      setUnread(0)
-      setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50)
-      if (!introduced) {
-        setIntroduced(true)
-        setSpeaking(true)
-        speak(ARA_GREETING, () => setSpeaking(false))
-      }
-    }
-  }, [open, messages, introduced])
-
-  function startListening() {
-    const SR = (window as typeof window & { SpeechRecognition?: typeof SpeechRecognition; webkitSpeechRecognition?: typeof SpeechRecognition }).SpeechRecognition
-      || (window as typeof window & { webkitSpeechRecognition?: typeof SpeechRecognition }).webkitSpeechRecognition
-    if (!SR) return
-    if (listening) { recognitionRef.current?.stop(); setListening(false); return }
-    window.speechSynthesis?.cancel(); setSpeaking(false)
-    const rec = new SR()
-    rec.lang = 'ro-RO'
-    rec.continuous = false
-    rec.interimResults = true
-    rec.onstart = () => setListening(true)
-    rec.onresult = (e: SpeechRecognitionEvent) => {
-      const transcript = Array.from(e.results).map(r => r[0].transcript).join('')
-      setInput(transcript)
-      if (e.results[e.results.length - 1].isFinal) { rec.stop(); send(transcript) }
-    }
-    rec.onerror = () => setListening(false)
-    rec.onend = () => setListening(false)
-    recognitionRef.current = rec
-    rec.start()
-  }
-
-  async function send(text?: string) {
-    const content = text || input.trim()
-    if (!content || loading) return
-    setInput('')
-    const newMessages: Msg[] = [...messages, { role: 'user', content }]
-    setMessages(newMessages)
-    setLoading(true)
-    try {
-      const res = await fetch('/api/acreditare-chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: newMessages }),
-      })
-      const data = await res.json()
-      setMessages(prev => [...prev, { role: 'assistant', content: data.text }])
-      if (!open) setUnread(u => u + 1)
-      if (voiceEnabled && data.text) { setSpeaking(true); speak(data.text, () => setSpeaking(false)) }
-    } catch {
-      setMessages(prev => [...prev, { role: 'assistant', content: 'Eroare de conexiune. Încercați din nou.' }])
-    }
-    setLoading(false)
-  }
-
-  const QUICK = ['Ce documente trebuie pentru autorizare?', 'Cum funcționează acreditarea?', 'Ce este evaluarea periodică?']
-
-  return (
-    <>
-      {open && (
-        <div style={{
-          position: 'fixed', bottom: '90px', right: '24px', zIndex: 1000,
-          width: isMobile ? 'calc(100vw - 32px)' : '380px',
-          maxHeight: '540px',
-          background: '#0d1117',
-          border: '1px solid rgba(167,139,250,0.2)',
-          borderRadius: '20px',
-          display: 'flex', flexDirection: 'column', overflow: 'hidden',
-          boxShadow: '0 24px 64px rgba(0,0,0,0.6), 0 0 0 1px rgba(167,139,250,0.1)',
-          fontFamily: "'Segoe UI', Arial, sans-serif",
-        }}>
-          {/* Header */}
-          <div style={{ background: 'linear-gradient(135deg, rgba(124,58,237,0.2), rgba(20,184,166,0.1))', borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg, #7c3aed, #14b8a6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', flexShrink: 0, boxShadow: '0 4px 12px rgba(124,58,237,0.4)' }}>🏛️</div>
-            <div>
-              <div style={{ fontSize: '14px', fontWeight: 800, color: '#f1f5f9', letterSpacing: '-0.3px' }}>ARA</div>
-              <div style={{ fontSize: '11px', color: '#22c55e', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', display: 'inline-block', boxShadow: '0 0 6px #22c55e' }} />
-                {speaking ? 'Vorbește...' : listening ? 'Ascultă...' : 'Expert ARACIP · Online'}
-              </div>
-            </div>
-            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <button
-                onClick={() => { if (voiceEnabled) { window.speechSynthesis?.cancel(); setSpeaking(false) } setVoiceEnabled(v => !v) }}
-                style={{ background: voiceEnabled ? 'rgba(20,184,166,0.2)' : 'rgba(255,255,255,0.05)', border: `1px solid ${voiceEnabled ? '#14b8a6' : 'rgba(255,255,255,0.1)'}`, borderRadius: '8px', padding: '5px 9px', fontSize: '14px', cursor: 'pointer', color: voiceEnabled ? '#14b8a6' : '#475569' }}
-              >{voiceEnabled ? '🔊' : '🔇'}</button>
-              <button onClick={() => setOpen(false)} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', padding: '5px 9px', color: '#475569', cursor: 'pointer', fontSize: '14px', fontWeight: 700 }}>×</button>
-            </div>
-          </div>
-
-          {/* Messages */}
-          <div style={{ flex: 1, overflowY: 'auto', padding: '14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {messages.map((m, i) => (
-              <div key={i} style={{ display: 'flex', justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start', gap: '8px', alignItems: 'flex-end' }}>
-                {m.role === 'assistant' && (
-                  <div style={{ width: 26, height: 26, borderRadius: '50%', background: 'linear-gradient(135deg, #7c3aed, #14b8a6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', flexShrink: 0 }}>🏛️</div>
-                )}
-                <div style={{
-                  maxWidth: '82%',
-                  background: m.role === 'user' ? 'linear-gradient(135deg, #7c3aed, #6366f1)' : 'rgba(255,255,255,0.04)',
-                  border: m.role === 'user' ? 'none' : '1px solid rgba(255,255,255,0.06)',
-                  color: '#e2e8f0',
-                  borderRadius: m.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
-                  padding: '10px 14px',
-                  fontSize: '13px',
-                  lineHeight: 1.65,
-                  boxShadow: m.role === 'user' ? '0 4px 12px rgba(124,58,237,0.3)' : 'none',
-                }}>
-                  {m.content}
-                </div>
-              </div>
-            ))}
-            {loading && (
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
-                <div style={{ width: 26, height: 26, borderRadius: '50%', background: 'linear-gradient(135deg, #7c3aed, #14b8a6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px' }}>🏛️</div>
-                <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '16px 16px 16px 4px', padding: '12px 16px', display: 'flex', gap: '5px', alignItems: 'center' }}>
-                  {[0,1,2].map(i => <span key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: '#7c3aed', display: 'inline-block', animation: `bounce 1.2s ${i*0.2}s infinite` }} />)}
-                </div>
-              </div>
-            )}
-            <div ref={bottomRef} />
-          </div>
-
-          {/* Quick questions */}
-          {messages.length <= 1 && (
-            <div style={{ padding: '0 12px 10px', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-              {QUICK.map(q => (
-                <button key={q} onClick={() => send(q)} style={{ background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.25)', borderRadius: '20px', padding: '5px 12px', fontSize: '11px', color: '#a78bfa', cursor: 'pointer', fontFamily: 'inherit' }}>
-                  {q}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* Input */}
-          <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '10px 12px', display: 'flex', gap: '8px', background: 'rgba(0,0,0,0.2)' }}>
-            <input
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && !e.shiftKey && send()}
-              placeholder={listening ? '🎙️ Ascult...' : 'Întrebați-o pe ARA...'}
-              style={{ flex: 1, background: listening ? 'rgba(239,68,68,0.07)' : 'rgba(255,255,255,0.04)', border: `1px solid ${listening ? '#ef444466' : 'rgba(255,255,255,0.08)'}`, borderRadius: '10px', padding: '9px 13px', fontSize: '13px', color: '#e2e8f0', outline: 'none', fontFamily: 'inherit', transition: 'all 0.2s' }}
-            />
-            <button onClick={startListening} style={{ background: listening ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.04)', border: `1px solid ${listening ? '#ef444466' : 'rgba(255,255,255,0.08)'}`, borderRadius: '10px', width: '38px', cursor: 'pointer', fontSize: '16px', animation: listening ? 'pulse-red 1s infinite' : 'none' }}>🎙️</button>
-            <button onClick={() => send()} disabled={!input.trim() || loading} style={{ background: input.trim() && !loading ? 'linear-gradient(135deg, #7c3aed, #6366f1)' : 'rgba(255,255,255,0.04)', color: '#fff', border: 'none', borderRadius: '10px', width: '38px', cursor: input.trim() && !loading ? 'pointer' : 'not-allowed', fontSize: '16px', boxShadow: input.trim() && !loading ? '0 4px 12px rgba(124,58,237,0.35)' : 'none' }}>↑</button>
-          </div>
-        </div>
-      )}
-
-      {/* FAB */}
-      <button
-        onClick={() => setOpen(o => !o)}
-        style={{
-          position: 'fixed', bottom: '24px', right: '24px', zIndex: 1000,
-          width: '60px', height: '60px', borderRadius: '50%',
-          background: open ? 'rgba(255,255,255,0.1)' : 'linear-gradient(135deg, #7c3aed, #14b8a6)',
-          border: open ? '1px solid rgba(255,255,255,0.15)' : 'none',
-          cursor: 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: open ? '22px' : '26px',
-          boxShadow: open ? 'none' : '0 8px 28px rgba(124,58,237,0.5)',
-          transition: 'all 0.25s cubic-bezier(0.4,0,0.2,1)',
-        }}
-      >
-        {open ? '×' : '🏛️'}
-        {!open && unread > 0 && (
-          <div style={{ position: 'absolute', top: -3, right: -3, background: '#ef4444', color: '#fff', borderRadius: '50%', width: 20, height: 20, fontSize: '11px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(239,68,68,0.5)' }}>{unread}</div>
-        )}
-      </button>
-
-      <style>{`
-        @keyframes bounce { 0%,80%,100%{transform:translateY(0)} 40%{transform:translateY(-6px)} }
-        @keyframes pulse-red { 0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,0.4)} 50%{box-shadow:0 0 0 8px rgba(239,68,68,0)} }
-      `}</style>
-    </>
-  )
-}
-
+// Parolele NU mai sunt hardcoded client-side. Verificarea se face server-side via /api/auth/check.
+// Parola pentru upload este transmisă temporar la apelurile POST/PATCH/DELETE (server o validează).
 const LOGIN_EMAIL = 'contact@aicraiova.ro'
-const LOGIN_PAROLA = 'ARACIP'
 
 export default function AracipHome() {
   const router = useRouter()
@@ -210,6 +16,144 @@ export default function AracipHome() {
   const [loginEmail, setLoginEmail] = useState('')
   const [parola, setParola] = useState('')
   const [parolaErr, setParolaErr] = useState(false)
+
+  // Management panel state
+  const [showMgmt, setShowMgmt] = useState(false)
+  const [mgmtPassInput, setMgmtPassInput] = useState('')
+  const [mgmtPassOk, setMgmtPassOk] = useState(false)
+  const [mgmtPassErr, setMgmtPassErr] = useState(false)
+  // Parola este reținută DOAR în memorie după validarea server-side; nu se persistă.
+  const [mgmtPass, setMgmtPass] = useState('')
+  const [mgmtView, setMgmtView] = useState<'list' | 'add' | 'edit'>('list')
+  const [mgmtDocs, setMgmtDocs] = useState<any[]>([])
+  const [mgmtLoading, setMgmtLoading] = useState(false)
+  const [editDoc, setEditDoc] = useState<any | null>(null)
+  // Form fields (shared for add/edit)
+  const [fTitle, setFTitle] = useState('')
+  const [fTip, setFTip] = useState('Metodologie')
+  const [fContent, setFContent] = useState('')
+  const [fNr, setFNr] = useState('')
+  const [fTermen, setFTermen] = useState('')
+  const [fUrgent, setFUrgent] = useState(false)
+  const [fPdfFile, setFPdfFile] = useState<File | null>(null)
+  const [fPdfUrl, setFPdfUrl] = useState('')
+  const [fPdfUploading, setFPdfUploading] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [saveMsg, setSaveMsg] = useState('')
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
+  const [expandedReaders, setExpandedReaders] = useState<string | null>(null)
+
+  function openMgmt() { setShowMgmt(true); setMgmtPassInput(''); setMgmtPassOk(false); setMgmtPassErr(false); setMgmtPass('') }
+  function closeMgmt() { setShowMgmt(false); setMgmtPassOk(false); setMgmtView('list'); setMgmtPass('') }
+
+  async function checkMgmtPass(e: React.FormEvent) {
+    e.preventDefault()
+    try {
+      const res = await fetch('/api/auth/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: 'aracip-admin', password: mgmtPassInput })
+      })
+      const data = await res.json()
+      if (data?.ok) {
+        setMgmtPassOk(true); setMgmtPassErr(false); setMgmtPass(mgmtPassInput)
+        try { localStorage.setItem('ara_aracip_admin_ok', '1') } catch (e) { console.error('[aracip storage]', e) }
+        loadDocs()
+      } else {
+        setMgmtPassErr(true); setMgmtPassInput('')
+      }
+    } catch (e) {
+      console.error('[aracip checkMgmtPass]', e)
+      setMgmtPassErr(true); setMgmtPassInput('')
+    }
+  }
+
+  async function loadDocs() {
+    setMgmtLoading(true)
+    try {
+      const res = await fetch('/api/documents')
+      const data = await res.json()
+      setMgmtDocs(data.documents || [])
+    } catch (e) { console.error('[aracip loadDocs]', e) }
+    setMgmtLoading(false)
+  }
+
+  function clearForm() { setFTitle(''); setFTip('Metodologie'); setFContent(''); setFNr(''); setFTermen(''); setFUrgent(false); setFPdfFile(null); setFPdfUrl('') }
+
+  function startAdd() { clearForm(); setEditDoc(null); setMgmtView('add'); setSaveMsg('') }
+  function startEdit(doc: any) {
+    setFTitle(doc.titlu); setFTip(doc.tip); setFContent(doc.continut || ''); setFNr(doc.nr || '')
+    setFTermen(doc.termen || ''); setFUrgent(doc.urgent || false); setFPdfUrl(doc.pdfUrl || ''); setFPdfFile(null)
+    setEditDoc(doc); setMgmtView('edit'); setSaveMsg('')
+  }
+
+  async function uploadPdf() {
+    if (!fPdfFile) return
+    setFPdfUploading(true)
+    try {
+      const fd = new FormData()
+      fd.append('password', mgmtPass)
+      fd.append('file', fPdfFile)
+      const res = await fetch('/api/upload-pdf', { method: 'POST', body: fd })
+      const data = await res.json()
+      if (data.url) setFPdfUrl(data.url)
+      if (data.extractedText && !fContent.trim()) setFContent(data.extractedText)
+    } catch (e) { console.error('[aracip uploadPdf]', e) }
+    setFPdfUploading(false)
+  }
+
+  async function handleSave() {
+    if (!fTitle.trim()) { setSaveMsg('Titlul este obligatoriu.'); return }
+    setSaving(true); setSaveMsg('')
+    try {
+      if (mgmtView === 'add') {
+        const res = await fetch('/api/documents', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            password: mgmtPass,
+            document: {
+              titlu: fTitle, tip: fTip, sursa: 'ARACIP', sursa_tip: 'aracip', judet: 'national',
+              termen: fTermen || undefined, urgent: fUrgent, continut: fContent || fTitle,
+              destinatari: 'Toate ISJ-urile din România', nr: fNr || undefined,
+              pdfUrl: fPdfUrl || undefined,
+              tipUnitate: 'Toate',
+            }
+          })
+        })
+        const data = await res.json()
+        if (data.ok) { setSaveMsg('✅ Salvat! ARA a indexat documentul.'); await loadDocs(); setTimeout(() => { setMgmtView('list'); setSaveMsg('') }, 1500) }
+        else setSaveMsg('❌ Eroare: ' + (data.error || 'necunoscută'))
+      } else if (mgmtView === 'edit' && editDoc) {
+        const res = await fetch('/api/documents', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            password: mgmtPass, id: editDoc.id,
+            updates: { titlu: fTitle, tip: fTip, continut: fContent, nr: fNr || undefined, termen: fTermen || undefined, urgent: fUrgent, pdfUrl: fPdfUrl || undefined }
+          })
+        })
+        const data = await res.json()
+        if (data.ok) { setSaveMsg('✅ Actualizat!'); await loadDocs(); setTimeout(() => { setMgmtView('list'); setSaveMsg('') }, 1500) }
+        else setSaveMsg('❌ Eroare: ' + (data.error || 'necunoscută'))
+      }
+    } catch (err: any) { setSaveMsg('❌ Eroare rețea: ' + err.message) }
+    setSaving(false)
+  }
+
+  async function handleDelete(id: string) {
+    setDeleteConfirmId(null)
+    try {
+      const res = await fetch('/api/documents', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: mgmtPass, id })
+      })
+      const data = await res.json()
+      if (data.ok) await loadDocs()
+      else setSaveMsg('❌ Eroare ștergere: ' + (data.error || 'necunoscută'))
+    } catch (e) { console.error('[aracip handleDelete]', e) }
+  }
 
   useEffect(() => { setMounted(true) }, [])
 
@@ -224,14 +168,25 @@ export default function AracipHome() {
     }
   }
 
-  function submitParola(e: React.FormEvent) {
+  async function submitParola(e: React.FormEvent) {
     e.preventDefault()
-    if (loginEmail.trim().toLowerCase() === LOGIN_EMAIL && parola === LOGIN_PAROLA) {
-      router.push(modalCard!.route)
-      setModalCard(null)
-    } else {
-      setParolaErr(true)
-      setParola('')
+    try {
+      const res = await fetch('/api/auth/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: 'aracip-login', email: loginEmail.trim().toLowerCase(), password: parola })
+      })
+      const data = await res.json()
+      if (data?.ok) {
+        try { localStorage.setItem('ara_aracip_login_ok', '1') } catch (e) { console.error('[aracip storage]', e) }
+        router.push(modalCard!.route)
+        setModalCard(null)
+      } else {
+        setParolaErr(true); setParola('')
+      }
+    } catch (e) {
+      console.error('[aracip submitParola]', e)
+      setParolaErr(true); setParola('')
     }
   }
 
@@ -240,14 +195,13 @@ export default function AracipHome() {
       id: 'isj',
       icon: '🏫',
       tag: 'Portal ISJ',
-      title: 'Portal\nInspectorate ISJ',
+      title: 'Portal Inspectorate\n& Directori',
       desc: 'Dashboard centralizat pentru toate unitățile din județ. Raportare, documente și comunicare în timp real.',
       color: '#6366f1',
       colorLight: 'rgba(99,102,241,0.1)',
       colorBorder: 'rgba(99,102,241,0.25)',
       colorHover: 'rgba(99,102,241,0.18)',
       route: '/demo',
-      securizat: true,
     },
     {
       id: 'acreditare',
@@ -323,6 +277,7 @@ export default function AracipHome() {
           background: 'rgba(6,11,20,0.8)',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <button onClick={() => router.push('/')} style={{ background: 'none', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', padding: '6px 12px', color: '#475569', cursor: 'pointer', fontSize: '12px', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>← Acasă</button>
             <div style={{
               width: 42, height: 42, borderRadius: '12px',
               background: 'linear-gradient(135deg, #7c3aed 0%, #14b8a6 100%)',
@@ -335,10 +290,23 @@ export default function AracipHome() {
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             {!isMobile && (
               <span style={{ fontSize: '12px', color: '#334155' }}>România · 2026</span>
             )}
+            <button
+              onClick={openMgmt}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '6px',
+                background: 'rgba(124,58,237,0.15)',
+                border: '1px solid rgba(124,58,237,0.4)',
+                borderRadius: '10px', padding: '8px 16px',
+                fontSize: '13px', color: '#a78bfa', fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              📤 {isMobile ? 'Upload' : 'Încarcă Document'}
+            </button>
             <div style={{
               display: 'flex', alignItems: 'center', gap: '6px',
               background: 'rgba(34,197,94,0.08)',
@@ -347,7 +315,7 @@ export default function AracipHome() {
               fontSize: '12px', color: '#22c55e', fontWeight: 600,
             }}>
               <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#22c55e', display: 'inline-block', boxShadow: '0 0 8px #22c55e', animation: mounted ? 'pulse 2s infinite' : 'none' }} />
-              Sistem Activ
+              {isMobile ? 'Activ' : 'Sistem Activ'}
             </div>
           </div>
         </header>
@@ -661,6 +629,242 @@ export default function AracipHome() {
           50% { box-shadow: 0 0 16px #22c55e, 0 0 24px #22c55e44; }
         }
       `}</style>
+
+      {/* Panou Management Documente ARACIP */}
+      {showMgmt && (
+        <div onClick={closeMgmt} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px', backdropFilter: 'blur(8px)' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: '#0d1117', border: '1px solid rgba(124,58,237,0.3)', borderRadius: '20px', width: '100%', maxWidth: '640px', maxHeight: '90vh', overflowY: 'auto', fontFamily: "'Segoe UI', Arial, sans-serif" }}>
+
+            {/* Header panou */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ fontSize: '20px' }}>📋</span>
+                <div>
+                  <div style={{ fontSize: '15px', fontWeight: 800, color: '#f1f5f9' }}>Documente ARACIP</div>
+                  {mgmtPassOk && <div style={{ fontSize: '11px', color: '#64748b' }}>Administrator · {mgmtDocs.length} doc · {mgmtDocs.reduce((s, d) => s + (d.citite ?? 0), 0)} confirmări totale</div>}
+                </div>
+              </div>
+              <button onClick={closeMgmt} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '6px 12px', color: '#64748b', cursor: 'pointer', fontSize: '13px' }}>✕ Închide</button>
+            </div>
+
+            <div style={{ padding: '20px 24px' }}>
+              {!mgmtPassOk ? (
+                /* Ecran parolă */
+                <>
+                  <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+                    <div style={{ fontSize: '32px', marginBottom: '10px' }}>🔒</div>
+                    <div style={{ fontSize: '16px', fontWeight: 800, color: '#f1f5f9' }}>Parolă administrator ARACIP</div>
+                  </div>
+                  <form onSubmit={checkMgmtPass} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <input type="password" placeholder="Parolă ARACIP" value={mgmtPassInput} onChange={e => { setMgmtPassInput(e.target.value); setMgmtPassErr(false) }} autoFocus
+                      style={{ background: mgmtPassErr ? 'rgba(239,68,68,0.08)' : 'rgba(255,255,255,0.05)', border: `1px solid ${mgmtPassErr ? '#ef4444' : 'rgba(255,255,255,0.1)'}`, borderRadius: '12px', padding: '13px 16px', fontSize: '14px', color: '#f1f5f9', outline: 'none', width: '100%', boxSizing: 'border-box' as const }} />
+                    {mgmtPassErr && <div style={{ fontSize: '12px', color: '#ef4444', textAlign: 'center' }}>Parolă incorectă.</div>}
+                    <button type="submit" style={{ background: 'linear-gradient(135deg, #7c3aed, #6366f1)', border: 'none', borderRadius: '12px', padding: '13px', fontSize: '14px', fontWeight: 700, color: '#fff', cursor: 'pointer' }}>Intră →</button>
+                  </form>
+                </>
+              ) : mgmtView === 'list' ? (
+                /* Lista documente */
+                <>
+                  {/* Stats sistem */}
+                  {mgmtDocs.length > 0 && (() => {
+                    const totalCitiri = mgmtDocs.reduce((s, d) => s + (d.citite ?? 0), 0)
+                    const totalDestinatari = mgmtDocs.reduce((s, d) => s + (d.totalDestinatari ?? 0), 0)
+                    const allReaders = mgmtDocs.flatMap((d: any) => d.readers || [])
+                    const byTip: Record<string, number> = {}
+                    allReaders.forEach((r: any) => { if (r.tipScoala) byTip[r.tipScoala] = (byTip[r.tipScoala] || 0) + 1 })
+                    const docUrg = mgmtDocs.filter((d: any) => d.urgent).length
+                    return (
+                      <div style={{ background: 'rgba(124,58,237,0.06)', border: '1px solid rgba(124,58,237,0.15)', borderRadius: '12px', padding: '14px 16px', marginBottom: '16px' }}>
+                        <div style={{ fontSize: '11px', fontWeight: 800, color: '#a78bfa', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>📊 Dashboard Sistem</div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '10px' }}>
+                          {[
+                            { label: 'Documente', val: mgmtDocs.length, color: '#a78bfa' },
+                            { label: 'Urgente', val: docUrg, color: '#f87171' },
+                            { label: 'Confirmări', val: totalCitiri, color: '#22c55e' },
+                          ].map(s => (
+                            <div key={s.label} style={{ textAlign: 'center', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', padding: '8px' }}>
+                              <div style={{ fontSize: '20px', fontWeight: 800, color: s.color }}>{s.val}</div>
+                              <div style={{ fontSize: '10px', color: '#475569' }}>{s.label}</div>
+                            </div>
+                          ))}
+                        </div>
+                        {Object.keys(byTip).length > 0 && (
+                          <div>
+                            <div style={{ fontSize: '10px', color: '#475569', marginBottom: '6px' }}>Confirmări pe tip unitate:</div>
+                            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                              {Object.entries(byTip).map(([tip, cnt]) => (
+                                <span key={tip} style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: '10px', padding: '2px 8px', fontSize: '11px', color: '#4ade80', fontWeight: 600 }}>{tip}: {cnt}</span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })()}
+                  <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+                    <button type="button" onClick={startAdd} style={{ flex: 1, background: 'rgba(124,58,237,0.15)', border: '1.5px dashed rgba(124,58,237,0.5)', borderRadius: '10px', padding: '12px', fontSize: '14px', fontWeight: 700, color: '#a78bfa', cursor: 'pointer' }}>
+                      + Adaugă document nou
+                    </button>
+                    <button type="button" onClick={loadDocs} disabled={mgmtLoading} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '10px', padding: '12px 16px', fontSize: '13px', color: '#94a3b8', cursor: 'pointer', fontWeight: 600, flexShrink: 0 }}>
+                      {mgmtLoading ? '...' : '🔄 Reîncarcă'}
+                    </button>
+                  </div>
+                  {mgmtLoading ? (
+                    <div style={{ textAlign: 'center', padding: '24px', color: '#64748b' }}>Se încarcă...</div>
+                  ) : mgmtDocs.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '24px', color: '#64748b' }}>Niciun document. Adaugă primul document.</div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {mgmtDocs.map(doc => (
+                        <div key={doc.id} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '14px 16px' }}>
+                          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ display: 'flex', gap: '6px', marginBottom: '4px', flexWrap: 'wrap' }}>
+                                {doc.urgent && <span style={{ background: 'rgba(239,68,68,0.15)', color: '#f87171', fontSize: '10px', fontWeight: 700, padding: '1px 7px', borderRadius: '10px' }}>URGENT</span>}
+                                <span style={{ background: 'rgba(124,58,237,0.15)', color: '#a78bfa', fontSize: '10px', fontWeight: 600, padding: '1px 7px', borderRadius: '10px' }}>{doc.tip}</span>
+                                <span style={{ background: 'rgba(255,255,255,0.06)', color: '#64748b', fontSize: '10px', padding: '1px 7px', borderRadius: '10px' }}>{doc.sursa_tip?.toUpperCase()}</span>
+                              </div>
+                              <div style={{ fontSize: '13px', fontWeight: 600, color: '#e2e8f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{doc.titlu}</div>
+                              <div style={{ fontSize: '11px', color: '#475569', marginTop: '2px' }}>
+                                {new Date(doc.uploadedAt).toLocaleDateString('ro-RO')} {doc.nr ? `· ${doc.nr}` : ''} {doc.pdfUrl ? '· 📎 atașat' : ''}
+                              </div>
+                              {/* Citite info */}
+                              <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                <span style={{ fontSize: '11px', color: (doc.citite ?? 0) > 0 ? '#22c55e' : '#475569', fontWeight: 600 }}>
+                                  👁 {doc.citite ?? 0} {(doc.citite ?? 0) === 1 ? 'vizualizare' : 'vizualizări'}
+                                </span>
+                                {(doc.readers?.length ?? 0) > 0 && (
+                                  <button
+                                    type="button"
+                                    onClick={e => { e.stopPropagation(); setExpandedReaders(expandedReaders === doc.id ? null : doc.id) }}
+                                    style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: '6px', padding: '2px 8px', fontSize: '10px', color: '#4ade80', cursor: 'pointer', fontWeight: 600 }}
+                                  >
+                                    {expandedReaders === doc.id ? '▲ Ascunde' : '▼ Cine a văzut'}
+                                  </button>
+                                )}
+                              </div>
+                              {/* Readers list */}
+                              {expandedReaders === doc.id && doc.readers?.length > 0 && (
+                                <div style={{ marginTop: '8px', background: 'rgba(34,197,94,0.05)', border: '1px solid rgba(34,197,94,0.15)', borderRadius: '8px', padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                  {doc.readers.map((r: any, idx: number) => (
+                                    <div key={idx} style={{ borderBottom: idx < doc.readers.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none', paddingBottom: idx < doc.readers.length - 1 ? '6px' : 0 }}>
+                                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px' }}>
+                                        <span style={{ color: '#e2e8f0', fontWeight: 700 }}>{r.name}</span>
+                                        <span style={{ color: '#64748b', fontSize: '10px' }}>{new Date(r.la).toLocaleString('ro-RO', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                                      </div>
+                                      <div style={{ fontSize: '10px', color: '#475569', marginTop: '2px' }}>
+                                        {r.rol}{r.scoala ? ` · ${r.scoala}` : ''}
+                                        {r.tipScoala && <span style={{ marginLeft: '6px', background: 'rgba(124,58,237,0.15)', color: '#a78bfa', padding: '1px 6px', borderRadius: '8px', fontSize: '9px', fontWeight: 700 }}>{r.tipScoala}</span>}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                            <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
+                              {deleteConfirmId === doc.id ? (
+                                <>
+                                  <button type="button" onClick={e => { e.stopPropagation(); handleDelete(doc.id) }} style={{ background: 'rgba(239,68,68,0.2)', border: '1px solid #ef4444', borderRadius: '7px', padding: '6px 10px', fontSize: '11px', color: '#f87171', cursor: 'pointer', fontWeight: 700 }}>Confirm</button>
+                                  <button type="button" onClick={e => { e.stopPropagation(); setDeleteConfirmId(null) }} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '7px', padding: '6px 10px', fontSize: '11px', color: '#94a3b8', cursor: 'pointer' }}>Anulează</button>
+                                </>
+                              ) : (
+                                <>
+                                  <button type="button" onClick={e => { e.stopPropagation(); startEdit(doc) }} style={{ background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.3)', borderRadius: '7px', padding: '6px 12px', fontSize: '12px', color: '#60a5fa', cursor: 'pointer', fontWeight: 600 }}>✏️</button>
+                                  <button type="button" onClick={e => { e.stopPropagation(); setDeleteConfirmId(doc.id) }} style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: '7px', padding: '6px 12px', fontSize: '12px', color: '#f87171', cursor: 'pointer', fontWeight: 600 }}>🗑️</button>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              ) : (
+                /* Form adăugare / editare */
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
+                    <button onClick={() => setMgmtView('list')} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '6px 12px', color: '#94a3b8', cursor: 'pointer', fontSize: '13px' }}>← Înapoi</button>
+                    <div style={{ fontSize: '15px', fontWeight: 700, color: '#f1f5f9' }}>{mgmtView === 'add' ? '📤 Document nou' : '✏️ Editează document'}</div>
+                  </div>
+
+                  {/* Tip */}
+                  <div style={{ marginBottom: '14px' }}>
+                    <label style={{ fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '6px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Tip document</label>
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                      {['Metodologie', 'Ordin', 'Procedură', 'Circular', 'Adresă'].map(t => (
+                        <button key={t} onClick={() => setFTip(t)} style={{ background: fTip === t ? 'rgba(124,58,237,0.3)' : 'rgba(255,255,255,0.04)', border: `1px solid ${fTip === t ? '#a78bfa' : 'rgba(255,255,255,0.1)'}`, color: fTip === t ? '#a78bfa' : '#64748b', borderRadius: '20px', padding: '5px 14px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>{t}</button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Titlu */}
+                  <div style={{ marginBottom: '12px' }}>
+                    <label style={{ fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '6px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Titlu *</label>
+                    <input value={fTitle} onChange={e => setFTitle(e.target.value)} placeholder="ex: Metodologie evaluare periodică 2026" style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '10px 14px', fontSize: '14px', color: '#f1f5f9', outline: 'none', boxSizing: 'border-box' as const }} />
+                  </div>
+
+                  {/* Nr + Termen */}
+                  <div style={{ display: 'flex', gap: '10px', marginBottom: '12px' }}>
+                    <div style={{ flex: 1 }}>
+                      <label style={{ fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '6px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Nr. document</label>
+                      <input value={fNr} onChange={e => setFNr(e.target.value)} placeholder="ex: 4798/2026" style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', color: '#f1f5f9', outline: 'none', boxSizing: 'border-box' as const }} />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <label style={{ fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '6px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Termen</label>
+                      <input value={fTermen} onChange={e => setFTermen(e.target.value)} placeholder="ex: 2026-07-01" style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', color: '#f1f5f9', outline: 'none', boxSizing: 'border-box' as const }} />
+                    </div>
+                  </div>
+
+                  {/* Conținut */}
+                  <div style={{ marginBottom: '12px' }}>
+                    <label style={{ fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '6px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Conținut (ARA indexează acest text)</label>
+                    <textarea value={fContent} onChange={e => setFContent(e.target.value)} placeholder="Introduceți sau lipiți conținutul documentului..." rows={4} style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', color: '#f1f5f9', outline: 'none', resize: 'none', boxSizing: 'border-box' as const }} />
+                  </div>
+
+                  {/* Upload PDF */}
+                  <div style={{ marginBottom: '12px' }}>
+                    <label style={{ fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '8px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>📎 Fișier atașat — PDF, Excel, Word, orice format (opțional)</label>
+                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                      <label style={{ flex: 1, background: 'rgba(255,255,255,0.04)', border: '1.5px dashed rgba(255,255,255,0.15)', borderRadius: '8px', padding: '10px 14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '18px' }}>📂</span>
+                        <span style={{ fontSize: '13px', color: fPdfFile ? '#a78bfa' : '#64748b' }}>{fPdfFile ? fPdfFile.name : 'Selectează fișier (PDF, Excel, Word, imagine...)' }</span>
+                        <input type="file" accept="*" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) { setFPdfFile(f); setFPdfUrl('') } }} />
+                      </label>
+                      {fPdfFile && !fPdfUrl && (
+                        <button onClick={uploadPdf} disabled={fPdfUploading} style={{ background: 'rgba(124,58,237,0.2)', border: '1px solid rgba(124,58,237,0.4)', borderRadius: '8px', padding: '10px 16px', fontSize: '13px', color: '#a78bfa', cursor: 'pointer', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                          {fPdfUploading ? 'Se urcă...' : '⬆️ Upload'}
+                        </button>
+                      )}
+                      {fPdfUrl && <span style={{ fontSize: '12px', color: '#22c55e', fontWeight: 600 }}>✅ Urcat</span>}
+                    </div>
+                    {fPdfUrl && <div style={{ marginTop: '6px', fontSize: '11px', color: '#475569', wordBreak: 'break-all' }}>URL: {fPdfUrl}</div>}
+                  </div>
+
+                  {/* Urgent */}
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#ef4444', cursor: 'pointer', marginBottom: '20px' }}>
+                    <input type="checkbox" checked={fUrgent} onChange={e => setFUrgent(e.target.checked)} />
+                    🔴 Document urgent
+                  </label>
+
+                  {saveMsg && <div style={{ padding: '10px 14px', borderRadius: '8px', background: saveMsg.startsWith('✅') ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)', border: `1px solid ${saveMsg.startsWith('✅') ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}`, fontSize: '13px', color: saveMsg.startsWith('✅') ? '#22c55e' : '#f87171', marginBottom: '16px' }}>{saveMsg}</div>}
+
+                  {saving ? (
+                    <div style={{ textAlign: 'center', padding: '14px', color: '#a78bfa', fontSize: '14px' }}>🤖 ARA indexează documentul...</div>
+                  ) : (
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                      <button onClick={() => setMgmtView('list')} style={{ flex: 1, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8', borderRadius: '10px', padding: '12px', fontSize: '14px', cursor: 'pointer' }}>Anulează</button>
+                      <button onClick={handleSave} style={{ flex: 2, background: 'linear-gradient(135deg, #7c3aed, #6366f1)', border: 'none', borderRadius: '10px', padding: '12px', fontSize: '14px', fontWeight: 700, color: '#fff', cursor: 'pointer' }}>
+                        {mgmtView === 'add' ? '📤 Publică Național →' : '💾 Salvează modificările →'}
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal parolă */}
       {modalCard && (
