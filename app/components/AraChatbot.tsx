@@ -157,7 +157,7 @@ function getGreeting(pathname: string): string {
   if (pathname === '/acreditare/faq')
     return 'Bună ziua! Sunt ARA, asistentul digital al ARACIP. Dacă nu găsiți răspunsul în lista de mai jos, întrebați-mă direct. Cu ce vă pot ajuta?'
   if (pathname === '/aracip')
-    return 'Bună ziua! Sunt ARA, asistentul digital oficial al ARACIP — Agenția Română de Asigurare a Calității în Învățământul Preuniversitar. Vă pot ajuta cu informații despre autorizare, acreditare și evaluarea periodică a unităților de învățământ, cu termenele și documentele cerute de comisie, cu legislația și cu navigarea în portal — Inspector Național, ISJ, Director de școală sau grădiniță, profesori, diriginți, părinți sau elevi. Spuneți-mi cine sunteți sau ce vă interesează — vă duc direct la secțiunea potrivită.'
+    return 'Bună ziua! Sunt ARA, asistentul digital oficial al ARACIP — Agenția Română de Asigurare a Calității în Învățământul Preuniversitar. Spuneți-mi cu ce vă pot ajuta?'
   if (pathname === '/edu/diriginte')
     return 'Bună ziua! Sunt ARA, asistentul platformei EDU Digital. Vă ajut să activați sesiunea de dirigenție, să gestionați conturile elevilor și să monitorizați activitatea clasei. Cu ce vă pot ajuta?'
   if (pathname === '/edu/elevi')
