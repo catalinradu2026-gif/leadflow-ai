@@ -231,12 +231,18 @@ export default function AraChatbot() {
   const greetingSpokenRef = useRef(false)
 
   useEffect(() => {
+    // Personalizare salut DOAR pe portalurile autentificate.
+    // Pe homepage / pagini publice → vizitator nou, indiferent de localStorage.
+    const isPortalAutentificat = /^\/(demo\/(director|isj|inspector)|edu\/diriginte)/.test(pathname)
+    if (!isPortalAutentificat) {
+      setUserCtx(null)
+      return
+    }
     try {
       const saved = localStorage.getItem('ara_user')
       if (saved) {
         const u = JSON.parse(saved)
         setUserCtx(u)
-        // Personalizează salutul pe TOATE paginile dacă utilizatorul s-a logat
         setMessages(prev => {
           if (prev.length !== 1 || prev[0].role !== 'assistant') return prev
           const base = getGreeting(pathname)
