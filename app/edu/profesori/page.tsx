@@ -32,6 +32,8 @@ export default function ProfesoriPage() {
   const [view, setView] = useState<'login' | 'materii' | 'catalog'>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [loginTitlu, setLoginTitlu] = useState('Dl')
+  const [loginNume, setLoginNume] = useState('')
   const [loginErr, setLoginErr] = useState('')
   const [logging, setLogging] = useState(false)
   const [loggedEmail, setLoggedEmail] = useState('')
@@ -73,6 +75,14 @@ export default function ProfesoriPage() {
 
   // ── Hydration ──
   useEffect(() => {
+    try {
+      const profRaw = localStorage.getItem('prof_profile')
+      if (profRaw) {
+        const p = JSON.parse(profRaw)
+        if (p.titlu) setLoginTitlu(p.titlu)
+        if (p.nume) setLoginNume(p.nume)
+      }
+    } catch {}
     try {
       const pc = localStorage.getItem('prof_catalogs')
       if (pc) setProfCatalogs(JSON.parse(pc))
@@ -302,6 +312,9 @@ export default function ProfesoriPage() {
     }
     const em = email.trim().toLowerCase()
     setLoggedEmail(em)
+    if (loginNume.trim()) {
+      try { localStorage.setItem('prof_profile', JSON.stringify({ titlu: loginTitlu, nume: loginNume.trim() })) } catch {}
+    }
     const cloudMaterii = await loadFromCloud(em)
     setLogging(false)
     setSelectedNr(null)
@@ -350,6 +363,14 @@ export default function ProfesoriPage() {
         <h2 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px', textAlign: 'center' }}>Autentificare Profesor</h2>
         <p style={{ fontSize: '12px', color: '#475569', textAlign: 'center', marginBottom: '24px' }}>Accesați catalogul clasei și introduceți situația elevilor</p>
         <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <select value={loginTitlu} onChange={e => setLoginTitlu(e.target.value)} style={{ ...inputStyle, width: '90px', flex: '0 0 auto' }}>
+              <option value="Dl">Dl.</option>
+              <option value="Dna">Dna.</option>
+              <option value="Prof">Prof.</option>
+            </select>
+            <input type="text" placeholder="Numele dvs." value={loginNume} onChange={e => setLoginNume(e.target.value)} style={{ ...inputStyle, flex: 1 }} autoComplete="name" />
+          </div>
           <input type="email" placeholder="Email școlar" value={email} onChange={e => setEmail(e.target.value)} style={inputStyle} autoComplete="email" />
           <input type="password" placeholder="Parolă" value={password} onChange={e => setPassword(e.target.value)} style={inputStyle} autoComplete="current-password" />
           {loginErr && <div style={{ fontSize: '12px', color: '#ef4444', textAlign: 'center' }}>{loginErr}</div>}
@@ -420,7 +441,7 @@ export default function ProfesoriPage() {
       <button onClick={() => router.push('/scoala')} style={backBtn}>← Înapoi</button>
       <div style={{ textAlign: 'center', marginBottom: '16px' }}>
         <div style={{ width: 44, height: 44, borderRadius: '13px', background: 'linear-gradient(135deg, #c2410c, #f97316)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', margin: '0 auto 8px', boxShadow: '0 6px 20px rgba(249,115,22,0.3)' }}>🧑‍💻</div>
-        <div style={{ fontSize: '16px', fontWeight: 800 }}>Catalog Profesor</div>
+        <div style={{ fontSize: '16px', fontWeight: 800 }}>{loginNume.trim() ? `${loginTitlu}. ${loginNume.trim()}` : 'Catalog Profesor'}</div>
         <div style={{ fontSize: '11px', color: '#334155', marginTop: '2px' }}>EDU DIGITAL · AIcraiova — An școlar 2025–2026 · 5 module</div>
         {cloudSyncStatus !== 'idle' && (
           <div style={{ fontSize: '10px', color: cloudSyncStatus === 'saving' ? '#fbbf24' : cloudSyncStatus === 'saved' ? '#4ade80' : '#f87171', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', padding: '3px 10px', marginTop: '6px', display: 'inline-block' }}>

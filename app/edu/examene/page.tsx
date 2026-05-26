@@ -116,6 +116,49 @@ export default function ExameneLanding() {
           </div>
         </div>
 
+        {/* Alte materii BAC */}
+        <div style={{ marginBottom: '32px' }}>
+          <div style={{ fontSize: '13px', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '16px' }}>
+            Alte materii BAC — Profesor AI
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(3, 1fr)', gap: '12px' }}>
+            {[
+              { icon: '🧬', label: 'Biologie', m: 'biologie', color: '#16a34a' },
+              { icon: '⚡', label: 'Fizică', m: 'fizica', color: '#4f46e5' },
+              { icon: '🧪', label: 'Chimie', m: 'chimie', color: '#db2777' },
+              { icon: '💻', label: 'Informatică', m: 'informatica', color: '#0891b2' },
+              { icon: '🌍', label: 'Geografie', m: 'geografie', color: '#d97706' },
+              { icon: '📜', label: 'Istorie', m: 'istorie', color: '#7c3aed' },
+            ].map(s => (
+              <button
+                key={s.m}
+                onClick={() => router.push(`/edu/bac/materie?m=${s.m}`)}
+                style={{
+                  background: `rgba(0,0,0,0.3)`,
+                  border: `1.5px solid ${s.color}44`,
+                  borderRadius: '14px',
+                  padding: '18px 16px',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  fontFamily: 'inherit',
+                  transition: 'all 0.2s',
+                }}
+                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = s.color; (e.currentTarget as HTMLButtonElement).style.background = `${s.color}10` }}
+                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = `${s.color}44`; (e.currentTarget as HTMLButtonElement).style.background = 'rgba(0,0,0,0.3)' }}
+              >
+                <span style={{ fontSize: '24px' }}>{s.icon}</span>
+                <div>
+                  <div style={{ fontSize: '14px', fontWeight: 700, color: '#f1f5f9' }}>{s.label}</div>
+                  <div style={{ fontSize: '10px', color: '#64748b', marginTop: '2px' }}>Profesor AI · BAC 2026</div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Info */}
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: '12px' }}>
           {[

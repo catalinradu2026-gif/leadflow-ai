@@ -2,6 +2,8 @@
 import { useRouter } from 'next/navigation'
 import { useState, useRef, useEffect } from 'react'
 import { useIsMobile } from '../../hooks/useIsMobile'
+import CalendarTermene from '../../components/CalendarTermene'
+import ChecklistConformitate from '../../components/ChecklistConformitate'
 
 function numRo(n: number): string {
   if (n === 0) return 'zero'
@@ -104,8 +106,12 @@ export default function DirectorPage() {
   const [loginPass, setLoginPass] = useState('')
   const [loginNume, setLoginNume] = useState('')
   const [loginTitlu, setLoginTitlu] = useState('Dl')
+  const [loginTipScoala, setLoginTipScoala] = useState('Liceu')
+  const [loginScoala, setLoginScoala] = useState('')
   const [loginErr, setLoginErr] = useState('')
   const [logging, setLogging] = useState(false)
+  const [savedProfile, setSavedProfile] = useState<{ titlu: string; nume: string; tipScoala: string; scoala: string } | null>(null)
+  const [editingProfile, setEditingProfile] = useState(false)
   const [tab, setTab] = useState<'notificari' | 'bot' | 'chat'>('notificari')
   const [notificari, setNotificari] = useState(NOTIFICARI)
   const [messages, setMessages] = useState<Msg[]>([])
@@ -126,17 +132,113 @@ export default function DirectorPage() {
   const unread = notificari.filter(n => !n.citit).length
 
   useEffect(() => {
+    if (typeof window === 'undefined') return
+    const urgente = notificari.filter(n => n.urgent && !n.citit).slice(0, 5)
+    ;(window as unknown as { __araPageContext?: unknown }).__araPageContext = {
+      rol: 'Director',
+      scoala: loginScoala || undefined,
+      tipScoala: loginTipScoala || undefined,
+      totalDocumente: notificari.length,
+      neciite: unread,
+      urgenteNeciite: urgente.length,
+      docVizibile: notificari.slice(0, 8).map(n => {
+        const x = n as { titlu: string; sursa: string; urgent?: boolean; citit?: boolean; termen?: string; nrInregistrare?: string }
+        return {
+          titlu: x.titlu,
+          sursa: x.sursa,
+          urgent: !!x.urgent,
+          citit: !!x.citit,
+          termen: x.termen || null,
+          nr: x.nrInregistrare || null,
+        }
+      }),
+    }
+    return () => { try { delete (window as unknown as { __araPageContext?: unknown }).__araPageContext } catch {} }
+  }, [notificari, unread, loginScoala, loginTipScoala])
+
+  useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
+
+  // Load saved Director profile from localStorage on mount
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('director_profile')
+      if (raw) {
+        const p = JSON.parse(raw)
+        if (p.nume) {
+          setSavedProfile(p)
+          setLoginTitlu(p.titlu || 'Dl')
+          setLoginNume(p.nume)
+          setLoginTipScoala(p.tipScoala || 'Liceu')
+          setLoginScoala(p.scoala || '')
+        }
+      }
+    } catch {}
+  }, [])
+
+  useEffect(() => {
+    if (!loggedIn) return
+    fetch('/api/documents?judet=Dolj')
+      .then(r => r.json())
+      .then(json => {
+        if (json.documents?.length) {
+          let readIds: string[] = []
+          try { readIds = JSON.parse(localStorage.getItem('director_read_ids') || '[]') } catch {}
+          const filtered = json.documents.filter((d: any) =>
+            !d.tipUnitate || d.tipUnitate === 'Toate' || d.tipUnitate === loginTipScoala
+          )
+          const myId = loginEmail
+          setNotificari(filtered.map((d: any, i: number) => {
+            const readByMe = (d.readers || []).some((r: any) => r.userId === myId || r.email === myId)
+            return {
+              id: i + 1,
+              apiId: d.id,
+              titlu: d.titlu,
+              data: new Date(d.uploadedAt).toLocaleDateString('ro-RO', { day: 'numeric', month: 'long', year: 'numeric' }),
+              citit: readIds.includes(d.id) || readByMe,
+              urgent: d.urgent,
+              tip: d.tip,
+              sursa: d.sursa,
+              pdfUrl: d.pdfUrl,
+              termen: d.termen,
+              nrInregistrare: d.nrInregistrare,
+              readers: d.readers || [],
+            }
+          }))
+        }
+      })
+      .catch(() => {})
+  }, [loggedIn])
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
     if (!loginEmail || !loginPass) { setLoginErr('Completați email și parolă.'); return }
     setLogging(true); setLoginErr('')
-    await new Promise(r => setTimeout(r, 800))
+    try {
+      const check = await fetch('/api/auth/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: 'director', password: loginPass, email: loginEmail })
+      })
+      const cd = await check.json()
+      if (!cd?.ok) { setLogging(false); setLoginErr('Email sau parolă incorectă.'); return }
+    } catch (e) { console.error('[director auth check]', e) }
+    try {
+      const ses = await fetch('/api/auth/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: loginEmail, role: 'director' })
+      })
+      const sd = await ses.json()
+      if (sd?.token) localStorage.setItem('ara_session', sd.token)
+    } catch (e) { console.error('[director session]', e) }
     setLogging(false)
     if (loginNume.trim()) {
-      try { localStorage.setItem('ara_user', JSON.stringify({ titlu: loginTitlu, rol: 'Director', nume: loginNume.trim() })) } catch {}
+      try {
+        localStorage.setItem('ara_user', JSON.stringify({ titlu: loginTitlu, rol: `Director ${loginTipScoala}`, nume: loginNume.trim(), userId: loginEmail }))
+        localStorage.setItem('director_profile', JSON.stringify({ titlu: loginTitlu, nume: loginNume.trim(), tipScoala: loginTipScoala, scoala: loginScoala.trim() }))
+      } catch {}
     }
     setLoggedIn(true)
   }
@@ -148,32 +250,87 @@ export default function DirectorPage() {
         <div style={{ width: 56, height: 56, borderRadius: '16px', background: 'linear-gradient(135deg, #064e3b, #059669)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px', margin: '0 auto 16px', boxShadow: '0 8px 24px rgba(5,150,105,0.35)' }}>🏫</div>
         <div style={{ fontSize: '20px', fontWeight: 800 }}>Portal Director</div>
         <div style={{ fontSize: '12px', color: '#334155', marginTop: '4px' }}>Școală / Grădiniță</div>
+        <div style={{ display: 'inline-block', marginTop: '8px', background: 'rgba(5,150,105,0.12)', border: '1px solid rgba(5,150,105,0.3)', borderRadius: '20px', padding: '3px 12px', fontSize: '10px', fontWeight: 700, color: '#34d399', letterSpacing: '1px' }}>DEMO LIVE — AIcraiova.ro</div>
       </div>
       <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(5,150,105,0.2)', borderRadius: '20px', padding: isMobile ? '28px 20px' : '36px 40px', width: '100%', maxWidth: '400px' }}>
         <h2 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px', textAlign: 'center' }}>Autentificare Director</h2>
         <p style={{ fontSize: '12px', color: '#475569', textAlign: 'center', marginBottom: '24px' }}>Acces restricționat — Director unitate școlară</p>
-        <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-            <select value={loginTitlu} onChange={e => setLoginTitlu(e.target.value)} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(5,150,105,0.3)', borderRadius: '10px', padding: '11px 10px', fontSize: '13px', color: '#34d399', outline: 'none', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0, width: '80px' }}>
-              <option value="Dl">Dl.</option>
-              <option value="Dna">Dna.</option>
-            </select>
-            <input placeholder="Prenume Nume" value={loginNume} onChange={e => setLoginNume(e.target.value)} style={{ flex: 1, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '12px 16px', fontSize: '14px', color: '#f1f5f9', outline: 'none', fontFamily: 'inherit', width: '100%', boxSizing: 'border-box' as const }} />
+
+        {/* Profil salvat — intri cu un click */}
+        {savedProfile && !editingProfile ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div style={{ background: 'rgba(5,150,105,0.08)', border: '1px solid rgba(5,150,105,0.3)', borderRadius: '14px', padding: '16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                  <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '4px' }}>Bun venit înapoi</div>
+                  <div style={{ fontSize: '16px', fontWeight: 700, color: '#34d399' }}>{savedProfile.titlu}. {savedProfile.nume}</div>
+                  <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>{savedProfile.tipScoala} · {savedProfile.scoala || '—'}</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEditingProfile(true)}
+                  title="Modifică datele"
+                  style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '8px', padding: '6px 10px', color: '#94a3b8', cursor: 'pointer', fontSize: '16px', lineHeight: 1 }}
+                >
+                  ✏️
+                </button>
+              </div>
+            </div>
+            <input type="email" placeholder="Email instituțional" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '12px 16px', fontSize: '14px', color: '#f1f5f9', outline: 'none', fontFamily: 'inherit', width: '100%', boxSizing: 'border-box' as const }} />
+            <input type="password" placeholder="Parolă" value={loginPass} onChange={e => setLoginPass(e.target.value)} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '12px 16px', fontSize: '14px', color: '#f1f5f9', outline: 'none', fontFamily: 'inherit', width: '100%', boxSizing: 'border-box' as const }} />
+            {loginErr && <div style={{ fontSize: '12px', color: '#ef4444', textAlign: 'center' }}>{loginErr}</div>}
+            <button onClick={handleLogin as any} disabled={logging} style={{ background: 'linear-gradient(135deg, #064e3b, #059669)', border: 'none', borderRadius: '12px', padding: '13px 24px', fontSize: '14px', fontWeight: 700, color: '#fff', cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 4px 16px rgba(5,150,105,0.35)' }}>
+              {logging ? 'Se verifică...' : 'Intră în cont →'}
+            </button>
           </div>
-          <input type="email" placeholder="Email instituțional" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '12px 16px', fontSize: '14px', color: '#f1f5f9', outline: 'none', fontFamily: 'inherit', width: '100%', boxSizing: 'border-box' as const }} />
-          <input type="password" placeholder="Parolă" value={loginPass} onChange={e => setLoginPass(e.target.value)} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '12px 16px', fontSize: '14px', color: '#f1f5f9', outline: 'none', fontFamily: 'inherit', width: '100%', boxSizing: 'border-box' as const }} />
-          {loginErr && <div style={{ fontSize: '12px', color: '#ef4444', textAlign: 'center' }}>{loginErr}</div>}
-          <button type="submit" disabled={logging} style={{ background: 'linear-gradient(135deg, #064e3b, #059669)', border: 'none', borderRadius: '12px', padding: '13px 24px', fontSize: '14px', fontWeight: 700, color: '#fff', cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 4px 16px rgba(5,150,105,0.35)' }}>
-            {logging ? 'Se verifică...' : 'Intră în cont →'}
-          </button>
-        </form>
+        ) : (
+          <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {editingProfile && (
+              <button type="button" onClick={() => setEditingProfile(false)} style={{ background: 'none', border: 'none', color: '#64748b', fontSize: '12px', cursor: 'pointer', textAlign: 'left', padding: 0 }}>← Înapoi la profilul salvat</button>
+            )}
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <select value={loginTitlu} onChange={e => setLoginTitlu(e.target.value)} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(5,150,105,0.3)', borderRadius: '10px', padding: '11px 10px', fontSize: '13px', color: '#34d399', outline: 'none', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0, width: '80px' }}>
+                <option value="Dl">Dl.</option>
+                <option value="Dna">Dna.</option>
+              </select>
+              <input placeholder="Prenume Nume" value={loginNume} onChange={e => setLoginNume(e.target.value)} style={{ flex: 1, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '12px 16px', fontSize: '14px', color: '#f1f5f9', outline: 'none', fontFamily: 'inherit', width: '100%', boxSizing: 'border-box' as const }} />
+            </div>
+            <select value={loginTipScoala} onChange={e => setLoginTipScoala(e.target.value)} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(5,150,105,0.3)', borderRadius: '10px', padding: '12px 16px', fontSize: '14px', color: '#34d399', outline: 'none', fontFamily: 'inherit', width: '100%', cursor: 'pointer' }}>
+              <option value="Liceu">Liceu</option>
+              <option value="Colegiu">Colegiu</option>
+              <option value="Școală">Școală Gimnazială / Primară</option>
+              <option value="Grădiniță">Grădiniță</option>
+            </select>
+            <input placeholder="Denumirea unității școlare" value={loginScoala} onChange={e => setLoginScoala(e.target.value)} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '12px 16px', fontSize: '14px', color: '#f1f5f9', outline: 'none', fontFamily: 'inherit', width: '100%', boxSizing: 'border-box' as const }} />
+            <input type="email" placeholder="Email instituțional" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '12px 16px', fontSize: '14px', color: '#f1f5f9', outline: 'none', fontFamily: 'inherit', width: '100%', boxSizing: 'border-box' as const }} />
+            <input type="password" placeholder="Parolă" value={loginPass} onChange={e => setLoginPass(e.target.value)} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '12px 16px', fontSize: '14px', color: '#f1f5f9', outline: 'none', fontFamily: 'inherit', width: '100%', boxSizing: 'border-box' as const }} />
+            {loginErr && <div style={{ fontSize: '12px', color: '#ef4444', textAlign: 'center' }}>{loginErr}</div>}
+            <button type="submit" disabled={logging} style={{ background: 'linear-gradient(135deg, #064e3b, #059669)', border: 'none', borderRadius: '12px', padding: '13px 24px', fontSize: '14px', fontWeight: 700, color: '#fff', cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 4px 16px rgba(5,150,105,0.35)' }}>
+              {logging ? 'Se verifică...' : 'Intră în cont →'}
+            </button>
+          </form>
+        )}
         <div style={{ marginTop: '16px', padding: '10px', background: 'rgba(5,150,105,0.06)', border: '1px solid rgba(5,150,105,0.15)', borderRadius: '10px', fontSize: '11px', color: '#34d399', textAlign: 'center' }}>Demo: orice email + parolă funcționează</div>
       </div>
     </div>
   )
 
-  function markRead(id: number) {
+  function markRead(id: number, apiId?: string) {
     setNotificari(prev => prev.map(n => n.id === id ? { ...n, citit: true } : n))
+    if (apiId) {
+      try {
+        const existing: string[] = JSON.parse(localStorage.getItem('director_read_ids') || '[]')
+        if (!existing.includes(apiId)) localStorage.setItem('director_read_ids', JSON.stringify([...existing, apiId]))
+      } catch {}
+      const viewerName = loginNume.trim() ? `${loginTitlu} ${loginNume.trim()}` : 'Director'
+      let sessionToken = ''
+      try { sessionToken = localStorage.getItem('ara_session') || '' } catch {}
+      fetch('/api/documents', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'X-User-Session': sessionToken },
+        body: JSON.stringify({ id: apiId, action: 'read', viewer: { name: viewerName, rol: `Director ${loginTipScoala}`, tipScoala: loginTipScoala, scoala: loginScoala.trim() || `${loginTipScoala} (nespecificat)`, userId: loginEmail, email: loginEmail } }),
+      }).catch(() => {})
+    }
   }
 
   async function sendBot() {
@@ -222,11 +379,11 @@ export default function DirectorPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <button onClick={() => router.push('/demo')} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '13px' }}>← Demo</button>
           <div style={{ width: 1, height: 20, background: '#334155' }} />
-          <span style={{ fontSize: isMobile ? '12px' : '13px', color: '#fff', fontWeight: 600 }}>🏫 {isMobile ? 'Amărăștii de Jos' : 'Liceul Teoretic Amărăștii de Jos'}</span>
+          <span style={{ fontSize: isMobile ? '12px' : '13px', color: '#fff', fontWeight: 600 }}>🏫 {isMobile ? (loginScoala || loginTipScoala).slice(0, 20) : (loginScoala || loginTipScoala) || 'Portal Director'}</span>
           <span style={{ background: '#064e3b', color: '#6ee7b7', fontSize: '11px', fontWeight: 700, padding: '2px 10px', borderRadius: '20px' }}>DIRECTOR</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <span style={{ fontSize: '12px', color: '#64748b' }}>Director: <strong style={{ color: '#e2e8f0' }}>Ion Marin</strong></span>
+          <span style={{ fontSize: '12px', color: '#64748b' }}>Director: <strong style={{ color: '#e2e8f0' }}>{loginNume ? `${loginTitlu}. ${loginNume}` : '—'}</strong></span>
           {unread > 0 && (
             <span style={{ background: '#dc2626', color: '#fff', fontSize: '12px', fontWeight: 700, padding: '3px 10px', borderRadius: '20px' }}>
               🔔 {unread} nou{unread > 1 ? 'ă' : ''}
@@ -287,10 +444,24 @@ export default function DirectorPage() {
         {/* NOTIFICARI */}
         {tab === 'notificari' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {/* Dashboard cards: Calendar + RAEI + Checklist */}
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: '12px', marginBottom: '6px' }}>
+              <CalendarTermene />
+              <button
+                onClick={() => router.push('/demo/director/raei')}
+                className="rounded-xl border border-purple-500/30 bg-purple-500/10 p-4 text-left hover:bg-purple-500/20"
+                style={{ background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.3)', borderRadius: '12px', padding: '16px', cursor: 'pointer', color: '#e2e8f0', textAlign: 'left' }}
+              >
+                <div style={{ fontSize: '14px', fontWeight: 700, color: '#c4b5fd', marginBottom: '6px' }}>📑 Generator RAEI</div>
+                <div style={{ fontSize: '12px', color: '#94a3b8', lineHeight: 1.5 }}>Completează cele 8 secțiuni și generează raportul anual de evaluare internă, gata pentru export PDF.</div>
+              </button>
+            </div>
+            <ChecklistConformitate userId={loginEmail} />
+
             {notificari.map(n => (
               <div
                 key={n.id}
-                onClick={() => markRead(n.id)}
+                onClick={() => markRead(n.id, (n as any).apiId)}
                 style={{
                   background: '#1e293b',
                   border: `1px solid ${!n.citit ? (n.sursa === 'Inspector Național' ? '#3b82f6' : '#f59e0b') : '#334155'}`,
@@ -318,8 +489,25 @@ export default function DirectorPage() {
                       {n.sursa === 'Inspector Național' ? '🇾🇴 Inspector Național' : '🏛️ ISJ Dolj'}
                     </span>
                   </div>
-                  <div style={{ fontSize: '14px', fontWeight: !n.citit ? 700 : 500, color: !n.citit ? '#f1f5f9' : '#94a3b8' }}>{n.titlu}</div>
-                  <div style={{ fontSize: '12px', color: '#475569', marginTop: '4px' }}>{n.sursa} · {n.data}</div>
+                  <div style={{ fontSize: '14px', fontWeight: !n.citit ? 700 : 500, color: !n.citit ? '#f1f5f9' : '#94a3b8' }}>
+                    {n.titlu}
+                    <span style={{ marginLeft: '8px', fontSize: '11px', color: '#6b7280', fontWeight: 400 }}>Nr. {(n as any).nrInregistrare ?? '—'}</span>
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#475569', marginTop: '4px' }}>
+                    {n.sursa} · {n.data}
+                    {(n as any).apiId && (
+                      <a
+                        href={`/api/documents/${(n as any).apiId}/download`}
+                        target="_blank"
+                        rel="noopener"
+                        onClick={e => e.stopPropagation()}
+                        className="ml-2 inline-block rounded border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-xs font-semibold text-emerald-400 no-underline hover:bg-emerald-500/20"
+                        style={{ marginLeft: '10px', background: 'rgba(5,150,105,0.15)', border: '1px solid rgba(5,150,105,0.3)', color: '#34d399', borderRadius: '6px', padding: '2px 10px', fontSize: '11px', fontWeight: 600, textDecoration: 'none', display: 'inline-block' }}
+                      >
+                        ⬇ Descarcă
+                      </a>
+                    )}
+                  </div>
                 </div>
                 <div style={{ textAlign: 'right', flexShrink: 0 }}>
                   {n.citit
@@ -451,6 +639,9 @@ export default function DirectorPage() {
         {/* CHAT CU ISJ */}
         {tab === 'chat' && (
           <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '12px', overflow: 'hidden' }}>
+            <div style={{ background: 'rgba(234,179,8,0.1)', border: '1px solid rgba(234,179,8,0.3)', borderBottom: '1px solid rgba(234,179,8,0.3)', padding: '10px 16px', fontSize: '12px', color: '#fbbf24', lineHeight: 1.5 }}>
+              🎬 <strong>Simulare demo</strong> — într-un sistem real, mesajele ar fi rutate automat către inspectorul de specialitate ISJ Dolj.
+            </div>
             <div style={{ padding: '16px 20px', borderBottom: '1px solid #334155', display: 'flex', alignItems: 'center', gap: '12px' }}>
               <div style={{ width: 36, height: 36, background: '#1d4ed8', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>🏛️</div>
               <div>
@@ -614,9 +805,24 @@ export default function DirectorPage() {
                     Anulează
                   </button>
                   <button
-                    onClick={() => {
+                    onClick={async () => {
                       if (!reclamaDescriere.trim()) return
                       if (!reclamaTrimiteISJ && !reclamaTrimiteARACIP) return
+                      try {
+                        await fetch('/api/reclama', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            categorie: reclamaCategorie,
+                            descriere: reclamaDescriere,
+                            trimiteISJ: reclamaTrimiteISJ,
+                            trimiteARACIP: reclamaTrimiteARACIP,
+                            director: loginNume.trim() ? `${loginTitlu} ${loginNume.trim()}` : 'Director',
+                            tipScoala: loginTipScoala,
+                            scoala: loginScoala.trim() || `${loginTipScoala} (nespecificat)`,
+                          })
+                        })
+                      } catch {}
                       setReclamaSent(true)
                     }}
                     disabled={!reclamaDescriere.trim() || (!reclamaTrimiteISJ && !reclamaTrimiteARACIP)}

@@ -210,7 +210,7 @@ export default function AraChatbot() {
   const [voiceEnabled, setVoiceEnabled] = useState(true)
   const [speaking, setSpeaking] = useState(false)
   const [listening, setListening] = useState(false)
-  const recognitionRef = useRef<SpeechRecognition | null>(null)
+  const recognitionRef = useRef<any>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const greetingSpokenRef = useRef(false)
 
@@ -222,8 +222,11 @@ export default function AraChatbot() {
   }, [])
 
   function startListening() {
-    const SR = (window as typeof window & { SpeechRecognition?: typeof SpeechRecognition; webkitSpeechRecognition?: typeof SpeechRecognition }).SpeechRecognition || (window as typeof window & { webkitSpeechRecognition?: typeof SpeechRecognition }).webkitSpeechRecognition
-    if (!SR) return
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    if (!SR) {
+      alert('Microfonul nu este suportat în acest browser. Folosiți Chrome sau Edge pe desktop, sau Safari/Chrome pe mobil.')
+      return
+    }
     if (listening) { recognitionRef.current?.stop(); setListening(false); return }
     window.speechSynthesis?.cancel()
     setSpeaking(false)
@@ -232,8 +235,8 @@ export default function AraChatbot() {
     rec.continuous = false
     rec.interimResults = true
     rec.onstart = () => setListening(true)
-    rec.onresult = (e: SpeechRecognitionEvent) => {
-      const transcript = Array.from(e.results).map(r => r[0].transcript).join('')
+    rec.onresult = (e: any) => {
+      const transcript = Array.from(e.results).map((r: any) => r[0].transcript).join('')
       setInput(transcript)
       if (e.results[e.results.length - 1].isFinal) {
         rec.stop()
@@ -266,10 +269,12 @@ export default function AraChatbot() {
     setMessages(newMessages)
     setLoading(true)
     try {
+      let pageContext: unknown = undefined
+      try { pageContext = (window as unknown as { __araPageContext?: unknown }).__araPageContext } catch {}
       const res = await fetch('/api/acreditare-chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: newMessages, pagina, userIdentity: userCtx }),
+        body: JSON.stringify({ messages: newMessages, pagina, userIdentity: userCtx, pageContext }),
       })
       const data = await res.json()
       setMessages(prev => [...prev, { role: 'assistant', content: data.text }])
@@ -288,8 +293,8 @@ export default function AraChatbot() {
     <>
       {open && (
         <div style={{
-          position: 'fixed', bottom: '90px', right: '24px', zIndex: 9999,
-          width: '360px', maxHeight: '520px',
+          position: 'fixed', bottom: '90px', right: '12px', left: 'auto', zIndex: 9999,
+          width: 'min(360px, calc(100vw - 24px))', height: 'min(560px, calc(100vh - 110px))',
           background: '#1e293b', border: '1px solid #334155', borderRadius: '16px',
           display: 'flex', flexDirection: 'column', overflow: 'hidden',
           boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
@@ -352,18 +357,19 @@ export default function AraChatbot() {
           )}
 
           {/* Input */}
-          <div style={{ borderTop: '1px solid #334155', padding: '10px 12px', display: 'flex', gap: '8px' }}>
+          <div style={{ borderTop: '1px solid #334155', padding: '10px 12px', display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0 }}>
             <input
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && !e.shiftKey && send()}
-              placeholder={listening ? '🎙️ Ascult...' : 'Scrieți sau vorbiți...'}
-              style={{ flex: 1, background: listening ? 'rgba(239,68,68,0.07)' : '#0f172a', border: `1px solid ${listening ? '#ef4444' : '#334155'}`, borderRadius: '8px', padding: '8px 12px', fontSize: '13px', color: '#e2e8f0', outline: 'none', fontFamily: 'inherit', transition: 'all 0.2s' }}
+              placeholder={listening ? '🎙️ Ascult...' : 'Scrieți sau apăsați 🎙️...'}
+              autoFocus
+              style={{ flex: 1, minWidth: 0, height: '40px', background: listening ? 'rgba(239,68,68,0.07)' : '#0f172a', border: `1px solid ${listening ? '#ef4444' : '#334155'}`, borderRadius: '8px', padding: '0 12px', fontSize: '14px', color: '#e2e8f0', outline: 'none', fontFamily: 'inherit', transition: 'all 0.2s' }}
             />
-            <button onClick={startListening} title={listening ? 'Oprește microfonul' : 'Vorbește'} style={{ background: listening ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.05)', border: `1px solid ${listening ? '#ef4444' : '#334155'}`, borderRadius: '8px', width: '36px', flexShrink: 0, cursor: 'pointer', fontSize: '16px', animation: listening ? 'pulse 1s infinite' : 'none' }}>
+            <button onClick={startListening} title={listening ? 'Oprește microfonul' : 'Vorbește cu ARA'} style={{ background: listening ? 'rgba(239,68,68,0.25)' : 'rgba(124,58,237,0.2)', border: `1px solid ${listening ? '#ef4444' : '#7c3aed'}`, borderRadius: '8px', width: '40px', height: '40px', flexShrink: 0, cursor: 'pointer', fontSize: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', animation: listening ? 'pulse 1s infinite' : 'none', padding: 0 }}>
               🎙️
             </button>
-            <button onClick={() => send()} disabled={!input.trim() || loading} style={{ background: input.trim() && !loading ? '#7c3aed' : '#334155', color: '#fff', border: 'none', borderRadius: '8px', width: '36px', flexShrink: 0, cursor: input.trim() && !loading ? 'pointer' : 'not-allowed', fontSize: '16px' }}>
+            <button onClick={() => send()} disabled={!input.trim() || loading} title="Trimite mesaj" style={{ background: input.trim() && !loading ? '#7c3aed' : '#334155', color: '#fff', border: 'none', borderRadius: '8px', width: '40px', height: '40px', flexShrink: 0, cursor: input.trim() && !loading ? 'pointer' : 'not-allowed', fontSize: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
               ↑
             </button>
           </div>

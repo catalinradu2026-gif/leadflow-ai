@@ -17,6 +17,9 @@ export default function DemoLanding() {
       padding: isMobile ? '16px' : '40px 20px',
       fontFamily: "'Segoe UI', Arial, sans-serif",
     }}>
+
+      <button onClick={() => router.push('/aracip')} style={{ position: 'fixed', top: 20, left: 20, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '8px 16px', color: '#94a3b8', cursor: 'pointer', fontSize: '13px', fontFamily: 'inherit' }}>← Înapoi</button>
+
       {/* Header */}
       <div style={{ textAlign: 'center', marginBottom: '60px' }}>
         <div style={{
@@ -55,9 +58,9 @@ export default function DemoLanding() {
       {/* Role Cards */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)',
+        gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)',
         gap: '20px',
-        maxWidth: '700px',
+        maxWidth: '960px',
         width: '100%',
       }}>
         {/* Inspector National */}
@@ -181,6 +184,61 @@ export default function DemoLanding() {
             fontWeight: 600,
           }}>
             Intră ca ISJ Dolj →
+          </div>
+        </div>
+
+        {/* Director */}
+        <div
+          onClick={() => router.push('/demo/director')}
+          style={{
+            background: 'rgba(255,255,255,0.05)',
+            border: '1px solid rgba(255,255,255,0.12)',
+            borderRadius: '16px',
+            padding: '32px 24px',
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+            textAlign: 'center',
+          }}
+          onMouseEnter={e => {
+            (e.currentTarget as HTMLDivElement).style.background = 'rgba(59,130,246,0.1)'
+            ;(e.currentTarget as HTMLDivElement).style.borderColor = '#3b82f6'
+            ;(e.currentTarget as HTMLDivElement).style.transform = 'translateY(-4px)'
+          }}
+          onMouseLeave={e => {
+            (e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,0.05)'
+            ;(e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(255,255,255,0.12)'
+            ;(e.currentTarget as HTMLDivElement).style.transform = 'translateY(0)'
+          }}
+        >
+          <div style={{ fontSize: '48px', marginBottom: '16px' }}>🏫</div>
+          <div style={{
+            display: 'inline-block',
+            background: '#1e3a5f',
+            color: '#93c5fd',
+            fontSize: '11px',
+            fontWeight: 700,
+            padding: '3px 12px',
+            borderRadius: '20px',
+            marginBottom: '12px',
+            letterSpacing: '0.5px',
+          }}>
+            NIVEL ȘCOALĂ
+          </div>
+          <h3 style={{ fontSize: '20px', fontWeight: 700, color: '#fff', marginBottom: '10px' }}>
+            Director
+          </h3>
+          <p style={{ fontSize: '13px', color: '#94a3b8', lineHeight: 1.7, marginBottom: '24px' }}>
+            Documente ISJ, raportări, comunicare cu inspectoratul și statistici școală în timp real.
+          </p>
+          <div style={{
+            background: '#1e40af',
+            color: '#fff',
+            padding: '12px 24px',
+            borderRadius: '10px',
+            fontSize: '14px',
+            fontWeight: 600,
+          }}>
+            Intră ca Director →
           </div>
         </div>
 

@@ -21,7 +21,7 @@ export async function GET() {
   try {
     const data = await getModules()
     return NextResponse.json(data)
-  } catch {
+  } catch (e) { console.error("[edu-modules]", e)
     return NextResponse.json(DEFAULT_MODULES)
   }
 }

@@ -7,7 +7,7 @@ type AraAnunt  = { id: string; titlu: string; continut: string; activ: boolean }
 type AraGeneral= { id: string; titlu: string; continut: string }
 type Knowledge = { updatedAt: string; isj: AraDoc[]; module: AraModul[]; anunturi: AraAnunt[]; general: AraGeneral[] }
 
-const PASS = 'ARACIP2026'
+const PASS = 'ARACIP'
 const inp  = { background: '#0f172a', border: '1px solid #334155', borderRadius: '8px', padding: '8px 12px', fontSize: '13px', color: '#e2e8f0', outline: 'none', fontFamily: 'inherit', width: '100%', boxSizing: 'border-box' as const }
 const btn  = (c = '#7c3aed') => ({ background: c, color: '#fff', border: 'none', borderRadius: '8px', padding: '8px 16px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' })
 const ta   = { ...inp, minHeight: '80px', resize: 'vertical' as const }

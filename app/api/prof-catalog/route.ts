@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
     if (!res.ok) return NextResponse.json({ data: null })
     const data = await res.json()
     return NextResponse.json({ data })
-  } catch {
+  } catch (e) { console.error("[prof-catalog]", e)
     return NextResponse.json({ data: null })
   }
 }
@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
       token: TOKEN,
     })
     return NextResponse.json({ ok: true })
-  } catch {
+  } catch (e) { console.error("[prof-catalog]", e)
     return NextResponse.json({ error: 'failed' }, { status: 500 })
   }
 }

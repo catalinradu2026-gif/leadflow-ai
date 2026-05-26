@@ -7,7 +7,7 @@ type View = 'login' | 'register' | 'dashboard'
 
 const ZILE = ['Luni', 'Marți', 'Miercuri', 'Joi', 'Vineri']
 const TIP_SCOALA = ['Liceu', 'Colegiu Național', 'Colegiu Tehnic', 'Școală Gimnazială', 'Școală Primară']
-const MODULE = ['BAC Matematică M1', 'BAC Matematică M2', 'BAC Română', 'EN Matematică', 'EN Română']
+const MODULE = ['BAC Matematică M1', 'BAC Matematică M2', 'BAC Română', 'BAC Biologie', 'BAC Fizică', 'BAC Chimie', 'BAC Informatică', 'BAC Geografie', 'BAC Istorie', 'EN Matematică', 'EN Română']
 
 export default function DirigintePage() {
   const router = useRouter()
@@ -76,8 +76,8 @@ export default function DirigintePage() {
   type CatalogEntry = { elevNr: string; note: Record<string, string>; absMot: number; absNemot: number; observatii?: string; purtare?: Record<string, string> }
   const [catalog, setCatalog] = useState<CatalogEntry[]>([])
   const [hydrated2, setHydrated2] = useState(false)
-  type ProfEntry = { nota: string; absMot: number; absNemot: number; observatii: string }
-  type ProfCatalogs = Record<string, Record<string, ProfEntry>>
+  type ProfEntry = { nota?: string; absMot?: number; absNemot?: number; observatii?: string; m1?: any; m2?: any; m3?: any; m4?: any; m5?: any; s1?: any; s2?: any }
+  type ProfCatalogs = Record<string, Record<string, Record<string, ProfEntry>>>
   const [profCatalogs, setProfCatalogs] = useState<ProfCatalogs>({})
   const [hydrated3, setHydrated3] = useState(false)
   const [catalogIdx, setCatalogIdx] = useState(0)
@@ -86,6 +86,15 @@ export default function DirigintePage() {
   // Incarcare din localStorage — o singura data la montare
   useEffect(() => {
     try {
+      // Profil diriginte salvat
+      const profRaw = localStorage.getItem('diriginte_profile')
+      if (profRaw) {
+        const p = JSON.parse(profRaw)
+        if (p.titlu) setLoginTitlu(p.titlu)
+        if (p.nume) setLoginNume(p.nume)
+        if (p.scoala) setRegScoala(p.scoala)
+        if (p.judet) setRegJudet(p.judet)
+      }
       const cl = localStorage.getItem('dir_clase')
       if (cl) setClase(JSON.parse(cl))
       const clActiva = localStorage.getItem('dir_clasa') || ''
@@ -181,7 +190,7 @@ export default function DirigintePage() {
   }
 
   const [sectiuneElevi, setSectiuneElevi] = useState(false)
-  const [tabElevi, setTabElevi] = useState<'adauga' | 'conturi' | 'activitate' | 'catalog' | 'alerte' | 'clasament'>('adauga')
+  const [tabElevi, setTabElevi] = useState<'adauga' | 'conturi' | 'print' | 'activitate' | 'catalog' | 'alerte' | 'clasament'>('adauga')
 
   function slugNume(nume: string) {
     return nume.toLowerCase()
@@ -262,6 +271,16 @@ export default function DirigintePage() {
     const CATEGORII_RISC = [['Abandon'],['Performanță'],['Abandon','Emoțional'],['Performanță','Emoțional'],['Abandon']]
 
     const conturi = eleviInput.filter(e => e.nume.trim()).map((e, i) => {
+      const numeTrim = e.nume.trim()
+      // Păstrează credențialele și activitatea existente dacă elevul era deja în clasă
+      const existent = conturiGenerate.find(c => c.nume.toLowerCase() === numeTrim.toLowerCase())
+      if (existent) {
+        // Adaugă modulele noi în activitateModul fără a șterge datele vechi
+        const activitateModul: Record<string, number> = { ...(existent.activitateModul || {}) }
+        modulClasa.forEach(m => { if (!(m in activitateModul)) activitateModul[m] = 0 })
+        return { ...existent, nr: e.nr || existent.nr, activitateModul }
+      }
+      // Elev nou — generează credențiale fresh
       const activitateModul: Record<string, number> = {}
       modulClasa.forEach((m, mi) => {
         activitateModul[m] = DEMO_MIN[(i + mi * 3) % DEMO_MIN.length]
@@ -275,8 +294,8 @@ export default function DirigintePage() {
       const riscNivel: 'ridicat' | 'mediu' | 'ok' = totalMin === 0 || !conectat ? 'ridicat' : totalMin < 8 ? 'mediu' : 'ok'
       const riscCategorie = riscNivel !== 'ok' ? CATEGORII_RISC[i % CATEGORII_RISC.length] : []
       return {
-        nr: e.nr || String(i + 1), nume: e.nume.trim(),
-        user: slugNume(e.nume.trim()), parola: randPass(),
+        nr: e.nr || String(i + 1), nume: numeTrim,
+        user: slugNume(numeTrim), parola: randPass(),
         minutePlatforma: totalMin, ultimaConectare: conectat,
         activitateModul, riscNivel, riscCategorie,
         coins, nivel, streak, badges,
@@ -284,6 +303,22 @@ export default function DirigintePage() {
     })
     setConturiGenerate(conturi)
     setTabElevi('conturi')
+    // Salvează în cloud pentru login acasă
+    const gradNr = parseInt(nrClasa.replace(/\D/g, '')) || 0
+    const clasaKey = `${nrClasa.toUpperCase()}-${(loginNume || '').trim().replace(/\s+/g, '').toLowerCase().slice(0, 10) || 'dir'}`
+    fetch('/api/elevi-acasa', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        clasaKey,
+        nrClasa,
+        gradNr,
+        modulClasa,
+        diriginte: loginNume || regNume || 'Diriginte',
+        conturi,
+        updatedAt: new Date().toISOString(),
+      }),
+    }).catch(() => {})
   }
 
   async function handleImportExcel(e: React.ChangeEvent<HTMLInputElement>) {
@@ -320,9 +355,9 @@ export default function DirigintePage() {
   }
 
   const demoDashboard = {
-    nume: 'Prof. Maria Ionescu',
-    scoala: 'Colegiul Național "Elena Cuza"',
-    judet: 'Dolj',
+    nume: loginNume.trim() ? `${loginTitlu}. ${loginNume.trim()}` : (regNume.trim() ? `${regTitlu}. ${regNume.trim()}` : 'Prof.'),
+    scoala: regScoala || 'Unitate Școlară',
+    judet: regJudet || 'Dolj',
     clasa: '10B',
     zi: 'Joi',
     ora: '08:00',
@@ -343,7 +378,10 @@ export default function DirigintePage() {
       return
     }
     if (loginNume.trim()) {
-      try { localStorage.setItem('ara_user', JSON.stringify({ titlu: loginTitlu, rol: 'Diriginte', nume: loginNume.trim() })) } catch {}
+      try {
+        localStorage.setItem('ara_user', JSON.stringify({ titlu: loginTitlu, rol: 'Diriginte', nume: loginNume.trim() }))
+        localStorage.setItem('diriginte_profile', JSON.stringify({ titlu: loginTitlu, nume: loginNume.trim(), scoala: regScoala, judet: regJudet }))
+      } catch {}
     }
     setView('dashboard')
   }
@@ -357,7 +395,10 @@ export default function DirigintePage() {
     await new Promise(r => setTimeout(r, 1200))
     setRegistering(false)
     if (regNume.trim()) {
-      try { localStorage.setItem('ara_user', JSON.stringify({ titlu: regTitlu, rol: 'Diriginte', nume: regNume.trim() })) } catch {}
+      try {
+        localStorage.setItem('ara_user', JSON.stringify({ titlu: regTitlu, rol: 'Diriginte', nume: regNume.trim() }))
+        localStorage.setItem('diriginte_profile', JSON.stringify({ titlu: regTitlu, nume: regNume.trim(), scoala: regScoala, judet: regJudet }))
+      } catch {}
     }
     setRegDone(true)
   }
@@ -389,7 +430,7 @@ export default function DirigintePage() {
 
       {/* Back */}
       <button
-        onClick={() => router.push('/demo')}
+        onClick={() => router.push('/scoala')}
         style={{
           position: 'fixed', top: 20, left: 20,
           background: 'rgba(255,255,255,0.06)',
@@ -675,34 +716,49 @@ export default function DirigintePage() {
             </div>
 
             {/* Module */}
-            <div style={{ display: 'flex', gap: '10px', marginBottom: '14px', flexWrap: 'wrap' }}>
-              <div style={{ flex: 1, minWidth: '200px' }}>
-                <div style={{ fontSize: '11px', color: '#475569', marginBottom: '5px', fontWeight: 600 }}>Module active</div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                  {MODULE.map(m => {
-                    const activ = modulClasa.includes(m)
-                    return (
-                      <button
-                        key={m}
-                        onClick={() => setModulClasa(prev => activ ? prev.filter(x => x !== m) : [...prev, m])}
-                        style={{
-                          background: activ ? 'rgba(99,102,241,0.25)' : 'rgba(255,255,255,0.04)',
-                          border: `1px solid ${activ ? 'rgba(99,102,241,0.6)' : 'rgba(255,255,255,0.1)'}`,
-                          borderRadius: '8px',
-                          padding: '5px 10px',
-                          fontSize: '12px',
-                          fontWeight: activ ? 700 : 400,
-                          color: activ ? '#a5b4fc' : '#475569',
-                          cursor: 'pointer',
-                          fontFamily: 'inherit',
-                        }}
-                      >
-                        {activ ? '✓ ' : ''}{m}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '14px' }}>
+              <div style={{ fontSize: '11px', color: '#475569', fontWeight: 600 }}>Module active</div>
+              {/* BAC */}
+              {(() => {
+                const bacModule = MODULE.filter(m => m.startsWith('BAC'))
+                const enModule = MODULE.filter(m => m.startsWith('EN'))
+                const renderGroup = (label: string, items: string[], color: string, colorBg: string, colorBorder: string) => (
+                  <div style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${colorBorder}`, borderRadius: '12px', padding: '10px 12px' }}>
+                    <div style={{ fontSize: '10px', color, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>{label}</div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                      {items.map(m => {
+                        const activ = modulClasa.includes(m)
+                        const shortLabel = m.replace(/^BAC |^EN /, '')
+                        return (
+                          <button
+                            key={m}
+                            onClick={() => setModulClasa(prev => activ ? prev.filter(x => x !== m) : [...prev, m])}
+                            style={{
+                              background: activ ? colorBg : 'rgba(255,255,255,0.04)',
+                              border: `1px solid ${activ ? color : 'rgba(255,255,255,0.1)'}`,
+                              borderRadius: '8px',
+                              padding: '5px 10px',
+                              fontSize: '12px',
+                              fontWeight: activ ? 700 : 400,
+                              color: activ ? color : '#475569',
+                              cursor: 'pointer',
+                              fontFamily: 'inherit',
+                            }}
+                          >
+                            {activ ? '✓ ' : ''}{shortLabel}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )
+                return (
+                  <>
+                    {renderGroup('📚 Bacalaureat', bacModule, '#a5b4fc', 'rgba(99,102,241,0.2)', 'rgba(99,102,241,0.25)')}
+                    {renderGroup('🎯 Evaluare Națională', enModule, '#4ade80', 'rgba(34,197,94,0.2)', 'rgba(34,197,94,0.25)')}
+                  </>
+                )
+              })()}
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
@@ -892,7 +948,7 @@ export default function DirigintePage() {
                 <div style={{ display: 'inline-block', background: 'rgba(20,184,166,0.15)', border: '1px solid rgba(20,184,166,0.3)', borderRadius: '20px', padding: '2px 10px', fontSize: '10px', fontWeight: 800, color: '#14b8a6', letterSpacing: '1px', marginBottom: '6px' }}>
                   EDU DIGITAL
                 </div>
-                <div style={{ fontSize: '16px', fontWeight: 700, color: '#f1f5f9', marginBottom: '4px' }}>Educație Digitală</div>
+                <div style={{ fontSize: '16px', fontWeight: 700, color: '#f1f5f9', marginBottom: '4px' }}>Cursuri AI</div>
                 <div style={{ fontSize: '12px', color: '#475569', lineHeight: 1.5 }}>
                   Accesează cursurile AI, pregătirea BAC și Evaluare Națională pentru clasa ta.
                 </div>
@@ -930,6 +986,7 @@ export default function DirigintePage() {
                   {([
                     ['adauga','✏️ Adaugă'],
                     ['conturi','🔑 Conturi'],
+                    ['print','🖨️ Listă'],
                     ['activitate','📊 Activitate'],
                     ['catalog','📋 Catalog'],
                     ['alerte','⚠️ Alerte'],
@@ -1016,6 +1073,75 @@ export default function DirigintePage() {
                               </div>
                             </div>
                           ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {/* Tab: Listă Print */}
+                {tabElevi === 'print' && (
+                  <div style={{ padding: '16px' }}>
+                    {conturiGenerate.length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '24px', color: '#475569', fontSize: '13px' }}>
+                        Generează conturi pentru a tipări lista
+                      </div>
+                    ) : (
+                      <>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+                          <div>
+                            <div style={{ fontSize: '13px', fontWeight: 700, color: '#f1f5f9' }}>Listă elevi — Clasa {nrClasa}</div>
+                            <div style={{ fontSize: '11px', color: '#475569', marginTop: '2px' }}>{conturiGenerate.length} elevi · {demoDashboard.scoala}</div>
+                          </div>
+                          <button
+                            onClick={() => {
+                              const w = window.open('', '_blank')
+                              if (!w) return
+                              w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Listă Elevi — Clasa ${nrClasa}</title><style>
+                                *{box-sizing:border-box;margin:0;padding:0}
+                                body{font-family:Arial,sans-serif;padding:24px;color:#1e293b}
+                                h1{font-size:18px;font-weight:800;margin-bottom:4px}
+                                .sub{font-size:12px;color:#64748b;margin-bottom:20px}
+                                table{width:100%;border-collapse:collapse;font-size:13px}
+                                th{background:#f1f5f9;text-align:left;padding:9px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid #e2e8f0}
+                                td{padding:9px 12px;border-bottom:1px solid #f1f5f9}
+                                tr:hover td{background:#fafafa}
+                                .mono{font-family:monospace;font-size:12px;background:#f8fafc;padding:2px 6px;border-radius:4px}
+                                .footer{margin-top:20px;font-size:10px;color:#94a3b8;text-align:center}
+                                @media print{body{padding:12px}.no-print{display:none}}
+                              </style></head><body>
+                              <h1>Listă Elevi · Clasa ${nrClasa}</h1>
+                              <div class="sub">${demoDashboard.scoala} · ${demoDashboard.judet} · Diriginte: ${demoDashboard.nume} · Generat: ${new Date().toLocaleDateString('ro-RO')}</div>
+                              <table>
+                                <thead><tr><th>#</th><th>Nume Elev</th><th>Utilizator</th><th>Parolă</th></tr></thead>
+                                <tbody>${conturiGenerate.map(c => `<tr><td>${c.nr}</td><td>${c.nume}</td><td><span class="mono">${c.user}</span></td><td><span class="mono">${c.parola}</span></td></tr>`).join('')}</tbody>
+                              </table>
+                              <div class="footer">EDU DIGITAL · AIcraiova · aicraiova.ro/edu/elevi</div>
+                              </body></html>`)
+                              w.document.close()
+                              w.print()
+                            }}
+                            style={{ background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: '8px', padding: '8px 16px', fontSize: '13px', fontWeight: 700, color: '#a5b4fc', cursor: 'pointer', fontFamily: 'inherit' }}
+                          >
+                            🖨️ Printează lista
+                          </button>
+                        </div>
+                        <div style={{ border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', overflow: 'hidden' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: '36px 1fr 140px 100px', gap: 0, background: 'rgba(255,255,255,0.04)', borderBottom: '1px solid rgba(255,255,255,0.08)', padding: '8px 14px' }}>
+                            {['#','Nume','Utilizator','Parolă'].map(h => (
+                              <div key={h} style={{ fontSize: '10px', color: '#475569', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{h}</div>
+                            ))}
+                          </div>
+                          <div style={{ maxHeight: '360px', overflowY: 'auto' }}>
+                            {conturiGenerate.map((c, i) => (
+                              <div key={i} style={{ display: 'grid', gridTemplateColumns: '36px 1fr 140px 100px', gap: 0, padding: '9px 14px', borderBottom: i < conturiGenerate.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none', alignItems: 'center' }}>
+                                <div style={{ fontSize: '12px', color: '#475569', fontWeight: 700 }}>{c.nr}</div>
+                                <div style={{ fontSize: '13px', color: '#f1f5f9', fontWeight: 600, paddingRight: '8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.nume}</div>
+                                <div style={{ fontSize: '11px', color: '#a5b4fc', fontFamily: 'monospace', paddingRight: '8px' }}>{c.user}</div>
+                                <div style={{ fontSize: '11px', color: '#4ade80', fontFamily: 'monospace' }}>{c.parola}</div>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       </>
                     )}
@@ -1357,27 +1483,121 @@ export default function DirigintePage() {
                       <div style={{ textAlign: 'center', padding: '24px', color: '#475569', fontSize: '13px' }}>Generează conturi pentru a vedea clasamentul</div>
                     ) : (() => {
                       const sorted = [...conturiGenerate].sort((a, b) => b.coins - a.coins)
+                      const getCatEntry = (nr: string) => catalog.find(e => e.elevNr === nr) || { elevNr: nr, note: {}, absMot: 0, absNemot: 0 }
+                      const getMedie = (nr: string) => {
+                        const cat = getCatEntry(nr)
+                        const vals = Object.values(cat.note).map(v => parseFloat(v)).filter(v => !isNaN(v) && v > 0)
+                        return vals.length ? (vals.reduce((a, b) => a + b, 0) / vals.length) : null
+                      }
                       return (
                         <>
-                          <div style={{ fontSize: '11px', color: '#475569', marginBottom: '10px' }}>Clasament anonim · elevii nu văd numele colegilor</div>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '320px', overflowY: 'auto' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                            <div style={{ fontSize: '11px', color: '#475569' }}>Clasament · {sorted.length} elevi</div>
+                            <button
+                              onClick={() => {
+                                const w = window.open('', '_blank')
+                                if (!w) return
+                                const medals = ['🥇','🥈','🥉']
+                                w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Clasament — Clasa ${nrClasa}</title><style>
+                                  *{box-sizing:border-box;margin:0;padding:0}
+                                  body{font-family:Arial,sans-serif;padding:28px;color:#1e293b;background:#fff}
+                                  h1{font-size:20px;font-weight:800;margin-bottom:4px}
+                                  .sub{font-size:12px;color:#64748b;margin-bottom:24px}
+                                  .row{display:flex;align-items:center;gap:14px;padding:11px 14px;border-radius:10px;margin-bottom:6px;border:1px solid #e2e8f0}
+                                  .row.top3{background:#fef9ec;border-color:#fde68a}
+                                  .medal{font-size:22px;width:32px;text-align:center;flex-shrink:0}
+                                  .rank{font-size:14px;font-weight:700;color:#94a3b8;width:32px;text-align:center;flex-shrink:0}
+                                  .name{flex:1;font-size:14px;font-weight:700}
+                                  .badges{font-size:12px;color:#64748b;margin-top:2px}
+                                  .school{font-size:11px;color:#475569;margin-top:3px}
+                                  .coins{text-align:right;font-size:15px;font-weight:800;color:#d97706}
+                                  .nivel{font-size:11px;color:#6366f1;font-weight:600;margin-top:2px}
+                                  .streak{font-size:11px;color:#f97316}
+                                  .medie{font-size:13px;font-weight:700}
+                                  .footer{margin-top:20px;font-size:10px;color:#94a3b8;text-align:center;border-top:1px solid #e2e8f0;padding-top:12px}
+                                  @media print{body{padding:16px}}
+                                </style></head><body>
+                                <h1>🏆 Clasament · Clasa ${nrClasa}</h1>
+                                <div class="sub">${demoDashboard.scoala} · Diriginte: ${demoDashboard.nume} · ${new Date().toLocaleDateString('ro-RO')}</div>
+                                ${sorted.map((c, i) => {
+                                  const nivelLabel = ['Nou','Începător','Mediu','Avansat','Expert','Master'][c.nivel] || 'Nou'
+                                  const med = getMedie(c.nr)
+                                  const cat = getCatEntry(c.nr)
+                                  return `<div class="row ${i < 3 ? 'top3' : ''}">
+                                    ${i < 3 ? `<div class="medal">${medals[i]}</div>` : `<div class="rank">#${i+1}</div>`}
+                                    <div style="flex:1">
+                                      <div class="name">${c.nr}. ${c.nume}</div>
+                                      ${c.badges.length ? `<div class="badges">${c.badges.slice(0,3).join(' · ')}</div>` : ''}
+                                      <div class="school">${med !== null ? `Medie: <b style="color:${med>=5?'#16a34a':'#dc2626'}">${med.toFixed(2)}</b>` : 'Fără note'} · Absențe: ${cat.absMot}mot + <span style="color:${cat.absNemot>0?'#dc2626':'#64748b'}">${cat.absNemot}nemot</span></div>
+                                    </div>
+                                    <div style="text-align:right">
+                                      <div class="coins">🪙 ${c.coins}</div>
+                                      <div class="nivel">${nivelLabel}</div>
+                                      ${c.streak > 0 ? `<div class="streak">🔥 ${c.streak} zile</div>` : ''}
+                                    </div>
+                                  </div>`
+                                }).join('')}
+                                <div class="footer">EDU DIGITAL · AIcraiova · aicraiova.ro</div>
+                                </body></html>`)
+                                w.document.close()
+                                w.print()
+                              }}
+                              style={{ background: 'rgba(251,191,36,0.15)', border: '1px solid rgba(251,191,36,0.4)', borderRadius: '8px', padding: '6px 14px', fontSize: '12px', fontWeight: 700, color: '#fbbf24', cursor: 'pointer', fontFamily: 'inherit' }}
+                            >🖨️ Printează clasament</button>
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '420px', overflowY: 'auto' }}>
                             {sorted.map((c, i) => {
                               const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`
                               const nivelLabel = ['Nou','Începător','Mediu','Avansat','Expert','Master'][c.nivel] || 'Nou'
+                              const med = getMedie(c.nr)
+                              const cat = getCatEntry(c.nr)
+                              const medColor = med === null ? '#475569' : med >= 8 ? '#4ade80' : med >= 5 ? '#fbbf24' : '#f87171'
                               return (
-                                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', background: i < 3 ? 'rgba(99,102,241,0.08)' : 'rgba(255,255,255,0.02)', borderRadius: '10px', border: `1px solid ${i < 3 ? 'rgba(99,102,241,0.2)' : 'rgba(255,255,255,0.05)'}` }}>
-                                  <div style={{ fontSize: i < 3 ? '20px' : '13px', fontWeight: 700, color: '#94a3b8', width: 28, textAlign: 'center', flexShrink: 0 }}>{medal}</div>
-                                  <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div style={{ fontSize: '13px', fontWeight: 600, color: '#f1f5f9' }}>{c.nr}. {c.nume}</div>
-                                    <div style={{ display: 'flex', gap: '6px', marginTop: '3px', flexWrap: 'wrap' }}>
-                                      {c.badges.slice(0, 3).map(b => <span key={b} style={{ fontSize: '11px' }}>{b}</span>)}
+                                <div key={i} style={{ padding: '10px 12px', background: i < 3 ? 'rgba(99,102,241,0.08)' : 'rgba(255,255,255,0.02)', borderRadius: '10px', border: `1px solid ${i < 3 ? 'rgba(99,102,241,0.2)' : 'rgba(255,255,255,0.05)'}` }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                    <div style={{ fontSize: i < 3 ? '20px' : '13px', fontWeight: 700, color: '#94a3b8', width: 28, textAlign: 'center', flexShrink: 0 }}>{medal}</div>
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                      <div style={{ fontSize: '13px', fontWeight: 600, color: '#f1f5f9' }}>{c.nr}. {c.nume}</div>
+                                      <div style={{ display: 'flex', gap: '6px', marginTop: '2px', flexWrap: 'wrap', alignItems: 'center' }}>
+                                        {med !== null && (
+                                          <span style={{ fontSize: '11px', fontWeight: 700, color: medColor, background: `${medColor}18`, borderRadius: '5px', padding: '1px 6px' }}>
+                                            Medie {med.toFixed(2)}
+                                          </span>
+                                        )}
+                                        {cat.absNemot > 0 && (
+                                          <span style={{ fontSize: '11px', color: '#f87171', background: 'rgba(239,68,68,0.1)', borderRadius: '5px', padding: '1px 6px' }}>
+                                            🚫 {cat.absNemot} nemot
+                                          </span>
+                                        )}
+                                        {cat.absMot > 0 && (
+                                          <span style={{ fontSize: '11px', color: '#4ade80', background: 'rgba(34,197,94,0.08)', borderRadius: '5px', padding: '1px 6px' }}>
+                                            ✅ {cat.absMot} mot
+                                          </span>
+                                        )}
+                                        {c.badges.slice(0, 2).map(b => <span key={b} style={{ fontSize: '11px' }}>{b}</span>)}
+                                      </div>
+                                    </div>
+                                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                                      <div style={{ fontSize: '13px', fontWeight: 800, color: '#fbbf24' }}>🪙 {c.coins}</div>
+                                      <div style={{ fontSize: '10px', color: '#6366f1', fontWeight: 600 }}>{nivelLabel}</div>
+                                      {c.streak > 0 && <div style={{ fontSize: '10px', color: '#f97316' }}>🔥 {c.streak} zile</div>}
                                     </div>
                                   </div>
-                                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                                    <div style={{ fontSize: '13px', fontWeight: 800, color: '#fbbf24' }}>🪙 {c.coins}</div>
-                                    <div style={{ fontSize: '10px', color: '#6366f1', fontWeight: 600 }}>{nivelLabel}</div>
-                                    {c.streak > 0 && <div style={{ fontSize: '10px', color: '#f97316' }}>🔥 {c.streak} zile</div>}
-                                  </div>
+                                  {/* Bare note pe materii */}
+                                  {modulClasa.length > 0 && Object.keys(cat.note).length > 0 && (
+                                    <div style={{ marginTop: '8px', display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                                      {modulClasa.filter(m => cat.note[m]).map(m => {
+                                        const v = parseFloat(cat.note[m])
+                                        const col = v >= 9 ? '#4ade80' : v >= 7 ? '#a5b4fc' : v >= 5 ? '#fbbf24' : '#f87171'
+                                        return (
+                                          <div key={m} title={`${m}: ${cat.note[m]}`} style={{ display: 'flex', alignItems: 'center', gap: '4px', background: `${col}14`, border: `1px solid ${col}33`, borderRadius: '6px', padding: '2px 7px' }}>
+                                            <span style={{ fontSize: '10px', color: '#475569' }}>{m.replace('BAC ','').replace('EN ','').slice(0,4)}</span>
+                                            <span style={{ fontSize: '11px', fontWeight: 800, color: col }}>{cat.note[m]}</span>
+                                          </div>
+                                        )
+                                      })}
+                                    </div>
+                                  )}
                                 </div>
                               )
                             })}

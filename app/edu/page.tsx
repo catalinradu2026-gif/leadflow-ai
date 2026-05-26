@@ -20,6 +20,8 @@ export default function EduLanding() {
       fontFamily: "'Segoe UI', Arial, sans-serif",
     }}>
 
+      <button onClick={() => router.push('/aracip')} style={{ position: 'fixed', top: 20, left: 20, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '8px 16px', color: '#94a3b8', cursor: 'pointer', fontSize: '13px', fontFamily: 'inherit' }}>← Înapoi</button>
+
       {/* Header */}
       <div style={{ textAlign: 'center', marginBottom: '64px' }}>
         <div style={{

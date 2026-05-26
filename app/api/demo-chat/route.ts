@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
     if (text) return NextResponse.json({ text })
 
     return NextResponse.json({ text: 'Momentan nu pot răspunde. Contactați ISJ la 0251 411 522.' })
-  } catch {
+  } catch (e) { console.error("[demo-chat]", e)
     return NextResponse.json({ text: 'Eroare tehnică. Contactați ISJ la 0251 411 522.' })
   }
 }

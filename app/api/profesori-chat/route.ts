@@ -147,7 +147,7 @@ export async function POST(req: NextRequest) {
     if (text) return NextResponse.json({ text })
 
     return NextResponse.json({ text: 'Momentan nu pot răspunde. Încercați din nou.' })
-  } catch {
+  } catch (e) { console.error("[profesori-chat]", e)
     return NextResponse.json({ text: 'Eroare tehnică. Încercați din nou.' })
   }
 }

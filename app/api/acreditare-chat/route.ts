@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import Groq from 'groq-sdk'
 import { rateLimit, rateLimitDaily } from '@/lib/rateLimit'
 import { getKnowledge } from '@/app/api/ara-knowledge/route'
+import { loadIndex } from '@/app/api/documents/route'
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
 
@@ -72,13 +73,15 @@ COMPORTAMENT ARA — CITEȘTE GÂNDUL:
   if (pagina.includes('Portal Director') || pagina.includes('Director')) return `
 PERSOANA DIN FAȚA TA: Director de școală sau grădiniță. Jonglează cu 10 probleme simultan.
 GÂNDURILE LUI:
-1. "Ce termenele am DE ACUM până la finalul săptămânii?"
+1. "Ce termene am DE ACUM până la finalul săptămânii?"
 2. "Ce trebuie să raportez la ISJ și cum?"
 3. "Procedura ARACIP — ce pregătesc?"
 COMPORTAMENT ARA — CITEȘTE GÂNDUL:
-- Prioritizează URGENT vs IMPORTANT la orice răspuns
-- Dacă menționează un document ISJ → explică imediat CE trebuie să facă cu el
-- Oferă format/template când e posibil: "Vreți și un model de [document]?"
+- LA PRIMUL MESAJ sau dacă întreabă "ce am de făcut": consultă secțiunea "TERMENE ACTIVE" și semnalează cel mai urgent termen cu ACȚIUNEA exactă (nu doar "ai termen", ci "depune Excel-ul X la inspectorul Y până vineri")
+- Citează MEREU documentul exact (titlu + nr înregistrare) când dai un sfat — nu generalități
+- Dacă menționează un document → extrage din conținutul lui (TU îl ai în context) pașii concreți, persoana de contact, formatul cerut
+- Prioritizează URGENT vs IMPORTANT — un termen mâine bate o procedură peste 2 luni
+- Oferă proactiv: "Vreți și modelul Excel pentru raportare?" / "Vreți un draft de adresă?"
 - La final: "Ce altă urgență aveți azi?"`
 
   if (pagina.includes('Diriginte')) return `
@@ -386,7 +389,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ text: 'Prea multe cereri. Încercați din nou în câteva secunde.' }, { status: 429 })
     }
 
-    const { messages, pagina, systemPrompt: customSystemPrompt, userIdentity } = await req.json()
+    const { messages, pagina, systemPrompt: customSystemPrompt, userIdentity, pageContext } = await req.json()
 
     if (customSystemPrompt && !rateLimitDaily(ip, 10)) {
       return NextResponse.json({ text: 'DAILY_LIMIT' }, { status: 429 })
@@ -395,33 +398,72 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
     }
 
-    const knowledge = await getKnowledge()
+    const [knowledge, docsIndex] = await Promise.all([getKnowledge(), loadIndex()])
     let systemPrompt = customSystemPrompt || buildSystemPrompt(pagina)
 
-    // Injectare cunoștințe dinamice
+    // Documente reale încărcate de ISJ/ARACIP/Inspector
+    const docs = docsIndex.documents.slice(0, 15)
+    const docLines: string[] = []
+    if (docs.length) {
+      docLines.push('## DOCUMENTE PUBLICATE PE PLATFORMĂ (cele mai recente, citite de ARA automat)')
+      docs.forEach(d => {
+        const termen = d.termen ? ` | Termen: ${d.termen}` : ''
+        const urg = d.urgent ? ' 🔴 URGENT' : ''
+        docLines.push(`[${d.sursa}${urg}] ${d.titlu}${termen}\n  Destinatari: ${d.destinatari}\n  Conținut: ${d.continut.slice(0, 2000)}`)
+      })
+    }
+
+    // Termene active — calculate zile rămase, prioritizate
+    const now = new Date()
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const termeneActive = docsIndex.documents
+      .filter(d => d.termen)
+      .map(d => {
+        const t = new Date(d.termen!)
+        const zile = Math.ceil((t.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+        return { doc: d, zile }
+      })
+      .filter(x => x.zile >= -7 && x.zile <= 60)
+      .sort((a, b) => a.zile - b.zile)
+      .slice(0, 6)
+
+    if (termeneActive.length) {
+      docLines.push('\n## TERMENE ACTIVE — DE SEMNALAT PROACTIV')
+      termeneActive.forEach(({ doc, zile }) => {
+        let urg: string
+        if (zile < 0) urg = `⚠️ EXPIRAT cu ${-zile} zile`
+        else if (zile === 0) urg = '🔴 ASTĂZI'
+        else if (zile === 1) urg = '🔴 MÂINE'
+        else if (zile <= 3) urg = `🔴 în ${zile} zile`
+        else if (zile <= 7) urg = `🟡 în ${zile} zile`
+        else urg = `🟢 în ${zile} zile`
+        docLines.push(`- ${urg}: ${doc.titlu} (${doc.sursa}, termen ${doc.termen})`)
+      })
+      docLines.push('REGULA: La primul mesaj al directorului, sau dacă întreabă "ce am de făcut", semnalează cel mai urgent termen din lista de mai sus cu ACȚIUNEA concretă. Nu enumera toate — doar 1-2 cele mai urgente, cu pasul următor.')
+    }
+
+    // Cunoștințe admin (anunțuri, module, general)
     const kLines: string[] = []
     if (knowledge.anunturi?.some(a => a.activ)) {
-      kLines.push('## ANUNȚURI ACTIVE PE PLATFORMĂ')
+      kLines.push('## ANUNȚURI ACTIVE')
       knowledge.anunturi.filter(a => a.activ).forEach(a => kLines.push(`- ${a.titlu}: ${a.continut}`))
-    }
-    if (knowledge.isj?.length) {
-      kLines.push('## DOCUMENTE ISJ ACTIVE')
-      knowledge.isj.forEach(d => {
-        const termen = d.termen ? ` (termen: ${d.termen})` : ''
-        const urg = d.urgent ? ' 🔴' : ''
-        kLines.push(`- ${d.titlu}${urg}${termen}: ${d.continut}`)
-      })
     }
     if (knowledge.module?.length) {
       kLines.push('## MODULE DISPONIBILE PE PLATFORMĂ')
       knowledge.module.forEach(m => kLines.push(`- ${m.titlu} → ${m.url}: ${m.descriere}`))
     }
     if (knowledge.general?.length) {
-      kLines.push('## INFORMAȚII GENERALE')
       knowledge.general.forEach(g => kLines.push(`${g.titlu}: ${g.continut}`))
     }
-    if (kLines.length > 0) {
-      systemPrompt += `\n\n━━━ CUNOȘTINȚE DINAMICE (actualizate ${knowledge.updatedAt.slice(0, 10)}) ━━━\n${kLines.join('\n')}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+
+    const allContext = [...docLines, ...kLines]
+    if (allContext.length > 0) {
+      systemPrompt += `\n\n━━━ CUNOȘTINȚE ÎN TIMP REAL (actualizate automat) ━━━\n${allContext.join('\n')}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+    }
+
+    if (pageContext && typeof pageContext === 'object') {
+      const ctxStr = JSON.stringify(pageContext).slice(0, 3000)
+      systemPrompt += `\n\n━━━ CE VEDE UTILIZATORUL ACUM PE PAGINĂ ━━━\n${ctxStr}\n(Folosește aceste date pentru a răspunde concret: dacă văd 3 documente necitite, menționează asta. Dacă au filtrat după urgent, ține cont. Nu pomeni "pageContext" — vorbește natural.)\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
     }
 
     if (userIdentity?.titlu && userIdentity?.rol && userIdentity?.nume) {
@@ -444,7 +486,8 @@ export async function POST(req: NextRequest) {
     const text = response.choices[0]?.message?.content
     if (text) return NextResponse.json({ text })
     return NextResponse.json({ text: 'Momentan nu pot răspunde. Încercați din nou.' })
-  } catch {
+  } catch (e) {
+    console.error('[POST /api/acreditare-chat]', e)
     return NextResponse.json({ text: 'Eroare tehnică. Încercați din nou.' })
   }
 }

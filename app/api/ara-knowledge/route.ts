@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { put, head, del } from '@vercel/blob'
+import { put, list } from '@vercel/blob'
+import { rateLimit } from '@/lib/rateLimit'
+import { checkPassword } from '@/lib/session'
 
 const BLOB_KEY = 'ara-knowledge.json'
-const ADMIN_PASS = process.env.ADMIN_PASSWORD || 'ARACIP2026'
 
 export type AraDoc = { id: string; titlu: string; continut: string; termen?: string; urgent?: boolean }
 export type AraModul = { id: string; titlu: string; url: string; descriere: string }
@@ -55,14 +56,15 @@ export async function getKnowledge(): Promise<AraKnowledge> {
   try {
     const token = process.env.BLOB_READ_WRITE_TOKEN
     if (!token) return DEFAULT
-    const info = await head(`https://blob.vercel-storage.com/${BLOB_KEY}`, { token })
-    if (!info?.url) return DEFAULT
-    const res = await fetch(info.url, { cache: 'no-store' })
+    const { blobs } = await list({ prefix: BLOB_KEY, token })
+    if (!blobs.length) return DEFAULT
+    const res = await fetch(blobs[0].url, { cache: 'no-store', headers: { Authorization: `Bearer ${token}` } })
     if (!res.ok) return DEFAULT
     cachedKnowledge = await res.json()
     cacheTime = Date.now()
     return cachedKnowledge!
-  } catch {
+  } catch (e) {
+    console.error('[ara-knowledge getKnowledge]', e)
     return DEFAULT
   }
 }
@@ -73,13 +75,25 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const { password, knowledge } = await req.json()
-  if (password !== ADMIN_PASS) return NextResponse.json({ error: 'Parolă incorectă.' }, { status: 401 })
-  if (!knowledge) return NextResponse.json({ error: 'Date lipsă.' }, { status: 400 })
   try {
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
+    if (!rateLimit(`ara-knowledge:${ip}`, 20, 60_000)) {
+      return NextResponse.json({ error: 'Prea multe cereri. Reveniți într-un minut.' }, { status: 429 })
+    }
+
+    const { password, knowledge } = await req.json()
+    if (!process.env.ADMIN_PASSWORD) {
+      console.error('[POST /api/ara-knowledge] ADMIN_PASSWORD missing')
+      return NextResponse.json({ error: 'Configurare server incompletă.' }, { status: 500 })
+    }
+    if (!password || !checkPassword('admin', password)) {
+      return NextResponse.json({ error: 'Parolă incorectă.' }, { status: 401 })
+    }
+    if (!knowledge) return NextResponse.json({ error: 'Date lipsă.' }, { status: 400 })
+
     const payload: AraKnowledge = { ...knowledge, updatedAt: new Date().toISOString() }
     await put(BLOB_KEY, JSON.stringify(payload, null, 2), {
-      access: 'public',
+      access: 'private',
       contentType: 'application/json',
       token: process.env.BLOB_READ_WRITE_TOKEN,
       allowOverwrite: true,
@@ -88,6 +102,7 @@ export async function POST(req: NextRequest) {
     cacheTime = Date.now()
     return NextResponse.json({ ok: true, updatedAt: payload.updatedAt })
   } catch (e) {
+    console.error('[POST /api/ara-knowledge]', e)
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
 }

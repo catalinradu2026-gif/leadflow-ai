@@ -10,15 +10,6 @@ export default function PortalScoala() {
 
   const sectiuni = [
     {
-      id: 'director',
-      icon: '🏛️',
-      tag: 'Conducere',
-      title: 'Director',
-      desc: 'Documente ISJ, raportări, comunicare cu inspectoratul și statistici școală în timp real.',
-      color: '#3b82f6',
-      route: '/demo/director',
-    },
-    {
       id: 'profesori',
       icon: '🧑‍💻',
       tag: 'Profesori',

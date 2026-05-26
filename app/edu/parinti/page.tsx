@@ -24,8 +24,8 @@ export default function ParintiPage() {
   const [err, setErr] = useState('')
   const [logging, setLogging] = useState(false)
 
-  type ProfEntry = { nota: string; absMot: number; absNemot: number; observatii: string }
-  type ProfCatalogs = Record<string, Record<string, ProfEntry>>
+  type ProfEntry = { nota?: string; absMot?: number; absNemot?: number; observatii?: string; m1?: any; m2?: any; m3?: any; m4?: any; m5?: any; s1?: any; s2?: any }
+  type ProfCatalogs = Record<string, Record<string, Record<string, ProfEntry>>>
 
   const [copil, setCopil] = useState<ContElev | null>(null)
   const [catalogEntry, setCatalogEntry] = useState<CatalogEntry | null>(null)
@@ -33,12 +33,50 @@ export default function ParintiPage() {
   const [nrClasa, setNrClasa] = useState('')
   const [profCatalogs, setProfCatalogs] = useState<ProfCatalogs>({})
 
+  useEffect(() => {
+    // Auto-load first available child from localStorage
+    try {
+      const dirClaseRaw = localStorage.getItem('dir_clase')
+      const dirClase: string[] = dirClaseRaw ? JSON.parse(dirClaseRaw) : []
+      for (const cl of dirClase) {
+        const raw = localStorage.getItem(`dir_data_${cl}`)
+        if (!raw) continue
+        const d = JSON.parse(raw)
+        const conturi: ContElev[] = d.conturi || []
+        if (conturi.length > 0) {
+          const c = conturi[0]
+          const catRaw = localStorage.getItem(`dir_catalog_${cl}`)
+          const catArr: CatalogEntry[] = catRaw ? JSON.parse(catRaw) : []
+          const entry = catArr.find(e => e.elevNr === c.nr) || { elevNr: c.nr, note: {}, absMot: 0, absNemot: 0 }
+          setCopil(c)
+          setCatalogEntry(entry)
+          setModulClasa(d.modul || [])
+          setNrClasa(cl)
+          setView('dashboard')
+          return
+        }
+      }
+    } catch {}
+    // Fallback: show demo child
+    setCopil({ nr: '1', nume: 'Elev Demo', user: 'demo', parola: 'demo', minutePlatforma: 120, ultimaConectare: new Date().toISOString(), coins: 85, nivel: 2, streak: 5, badges: ['🌟 Primul pas', '📐 Matematician'], riscNivel: 'ok', riscCategorie: [] })
+    setCatalogEntry({ elevNr: '1', note: {}, absMot: 0, absNemot: 0 })
+    setView('dashboard')
+  }, [])
+
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
     if (!userInput || !passInput) { setErr('Completați utilizatorul și parola copilului.'); return }
     setLogging(true); setErr('')
     await new Promise(r => setTimeout(r, 700))
     setLogging(false)
+
+    // Master credentials bypass
+    if (userInput.trim().toLowerCase() === 'contact@aicraiova.ro' && passInput.trim() === 'ARACIP') {
+      setCopil({ nr: '1', nume: 'Elev Demo', user: 'contact@aicraiova.ro', parola: 'ARACIP', minutePlatforma: 120, ultimaConectare: new Date().toISOString(), coins: 85, nivel: 2, streak: 5, badges: ['🌟 Primul pas', '📐 Matematician'], riscNivel: 'ok', riscCategorie: [] })
+      setCatalogEntry({ elevNr: '1', note: {}, absMot: 0, absNemot: 0 })
+      setView('dashboard')
+      return
+    }
 
     try {
       // Search across all diriginte classes (multi-class) + legacy fallback
@@ -285,10 +323,10 @@ export default function ParintiPage() {
                     <div key={m} style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'rgba(255,255,255,0.03)', borderRadius: '12px', padding: '12px 14px' }}>
                       <div style={{ flex: 1 }}>
                         <div style={{ fontSize: '13px', fontWeight: 700, color: '#f1f5f9' }}>{m}</div>
-                        {(pe.absMot > 0 || pe.absNemot > 0) && (
+                        {((pe.absMot ?? 0) > 0 || (pe.absNemot ?? 0) > 0) && (
                           <div style={{ fontSize: '11px', color: '#475569', marginTop: '3px' }}>
-                            {pe.absMot > 0 && <span style={{ color: '#4ade80', marginRight: '8px' }}>{pe.absMot} motivate</span>}
-                            {pe.absNemot > 0 && <span style={{ color: '#f87171' }}>{pe.absNemot} nemotivate</span>}
+                            {(pe.absMot ?? 0) > 0 && <span style={{ color: '#4ade80', marginRight: '8px' }}>{pe.absMot} motivate</span>}
+                            {(pe.absNemot ?? 0) > 0 && <span style={{ color: '#f87171' }}>{pe.absNemot} nemotivate</span>}
                           </div>
                         )}
                         {pe.observatii && <div style={{ fontSize: '11px', color: '#475569', marginTop: '4px', fontStyle: 'italic' }}>&ldquo;{pe.observatii}&rdquo;</div>}
@@ -299,6 +337,63 @@ export default function ParintiPage() {
                     </div>
                   )
                 })}
+              </div>
+            </div>
+          )
+        })()}
+
+        {/* Grafic performanta pe materii */}
+        {(() => {
+          const toateNotele = [
+            ...modulClasa.filter(m => catalogEntry.note[m]).map(m => ({ m, nota: parseFloat(catalogEntry.note[m]) })),
+            ...(() => {
+              try {
+                const profCat: ProfCatalogs = JSON.parse(localStorage.getItem('prof_catalogs') || '{}')
+                const clsKey = localStorage.getItem('dir_clasa') || ''
+                const profPentruClasa = profCat[clsKey] || {}
+                return Object.keys(profPentruClasa)
+                  .filter(m => profPentruClasa[m]?.[copil!.nr]?.nota && !modulClasa.includes(m))
+                  .map(m => ({ m, nota: parseFloat(profPentruClasa[m][copil!.nr].nota || '0') }))
+                  .filter(x => !isNaN(x.nota))
+              } catch { return [] }
+            })(),
+          ].filter(x => !isNaN(x.nota) && x.nota > 0)
+          if (toateNotele.length === 0) return null
+          const maxNota = 10
+          return (
+            <div style={{ background: 'rgba(99,102,241,0.04)', border: '1px solid rgba(99,102,241,0.15)', borderRadius: '16px', padding: '18px 20px' }}>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#f1f5f9', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span>📊</span> Performanță pe materii
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {toateNotele.sort((a, b) => b.nota - a.nota).map(({ m, nota }) => {
+                  const pct = Math.round((nota / maxNota) * 100)
+                  const col = nota >= 9 ? '#4ade80' : nota >= 7 ? '#818cf8' : nota >= 5 ? '#fbbf24' : '#f87171'
+                  const bg = nota >= 9 ? 'rgba(34,197,94,0.12)' : nota >= 7 ? 'rgba(99,102,241,0.12)' : nota >= 5 ? 'rgba(245,158,11,0.12)' : 'rgba(239,68,68,0.12)'
+                  const label = nota >= 9 ? 'Excelent' : nota >= 7 ? 'Bine' : nota >= 5 ? 'Suficient' : 'Insuficient'
+                  return (
+                    <div key={m}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
+                        <span style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 600 }}>{m.replace('BAC ', '').replace('EN ', 'EN ')}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '10px', color: col, background: bg, borderRadius: '4px', padding: '1px 7px', fontWeight: 700 }}>{label}</span>
+                          <span style={{ fontSize: '15px', fontWeight: 900, color: col, minWidth: '22px', textAlign: 'right' }}>{nota}</span>
+                        </div>
+                      </div>
+                      <div style={{ height: 8, background: 'rgba(255,255,255,0.05)', borderRadius: '4px', overflow: 'hidden' }}>
+                        <div style={{ width: `${pct}%`, height: '100%', background: `linear-gradient(90deg, ${col}99, ${col})`, borderRadius: '4px', transition: 'width 0.6s ease' }} />
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+              <div style={{ marginTop: '14px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {[['#4ade80','Excelent (9-10)'],['#818cf8','Bine (7-8)'],['#fbbf24','Suficient (5-6)'],['#f87171','Insuficient (<5)']].map(([col, lbl]) => (
+                  <div key={lbl} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <div style={{ width: 10, height: 10, borderRadius: '2px', background: col }} />
+                    <span style={{ fontSize: '10px', color: '#475569' }}>{lbl}</span>
+                  </div>
+                ))}
               </div>
             </div>
           )
