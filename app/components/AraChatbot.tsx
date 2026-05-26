@@ -125,6 +125,22 @@ const QUICK_QUESTIONS: Record<string, string[]> = {
   ],
 }
 
+function getTimeSalut(): string {
+  const h = new Date().getHours()
+  if (h < 11) return 'Bună dimineața'
+  if (h < 18) return 'Bună ziua'
+  return 'Bună seara'
+}
+
+function buildPersonalSalut(user: { titlu: string; rol: string; nume: string } | null): string {
+  if (!user || !user.nume) return ''
+  const titlu = user.titlu === 'Dl' ? 'Domnule' : user.titlu === 'Dna' ? 'Doamnă' : user.titlu
+  // Curăță rolul: "Director Liceu" → "Director", "Inspector ISJ" rămâne, etc.
+  const rol = (user.rol || '').replace(/\b(Liceu|Colegiu|Școală|Grădiniță|Gimnaziu|Primar[ăa])\b/gi, '').replace(/\s+/g, ' ').trim()
+  const nume = user.nume.trim()
+  return `${getTimeSalut()}, ${titlu} ${rol} ${nume}! `.replace(/\s+/g, ' ')
+}
+
 function getGreeting(pathname: string): string {
   if (pathname === '/acreditare/autorizare')
     return 'Bună ziua! Sunt ARA, asistentul digital al ARACIP. Vă pot ajuta cu lista de documente necesare, termenele de procesare și avizele obligatorii pentru autorizare. Cu ce vă pot ajuta?'
@@ -217,9 +233,22 @@ export default function AraChatbot() {
   useEffect(() => {
     try {
       const saved = localStorage.getItem('ara_user')
-      if (saved) setUserCtx(JSON.parse(saved))
+      if (saved) {
+        const u = JSON.parse(saved)
+        setUserCtx(u)
+        // Personalizează salutul dacă mesajul curent e încă greeting-ul implicit (nu am vorbit cu user încă)
+        setMessages(prev => {
+          if (prev.length !== 1 || prev[0].role !== 'assistant') return prev
+          const base = getGreeting(pathname)
+          const salut = buildPersonalSalut(u)
+          if (!salut) return prev
+          // Înlocuiește începutul standard cu salutul personalizat
+          const fara = base.replace(/^(Bun[ăa] (?:ziua|dimineața|seara)|Salut)[!,]?\s*/i, '')
+          return [{ role: 'assistant', content: salut + fara }]
+        })
+      }
     } catch {}
-  }, [])
+  }, [pathname])
 
   function startListening() {
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
