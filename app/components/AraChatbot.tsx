@@ -236,13 +236,15 @@ export default function AraChatbot() {
       if (saved) {
         const u = JSON.parse(saved)
         setUserCtx(u)
-        // Personalizează salutul dacă mesajul curent e încă greeting-ul implicit (nu am vorbit cu user încă)
+        // Personalizează salutul DOAR pe paginile autentificate (portal director/ISJ/inspector/diriginte)
+        // Homepage-ul /aracip și paginile publice rămân cu salut generic — sunt pentru vizitatori
+        const isPaginaPersonala = /^\/(demo\/(director|isj|inspector)|edu\/diriginte)/.test(pathname)
+        if (!isPaginaPersonala) return
         setMessages(prev => {
           if (prev.length !== 1 || prev[0].role !== 'assistant') return prev
           const base = getGreeting(pathname)
           const salut = buildPersonalSalut(u)
           if (!salut) return prev
-          // Înlocuiește începutul standard cu salutul personalizat
           const fara = base.replace(/^(Bun[ăa] (?:ziua|dimineața|seara)|Salut)[!,]?\s*/i, '')
           return [{ role: 'assistant', content: salut + fara }]
         })
