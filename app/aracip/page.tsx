@@ -294,19 +294,7 @@ export default function AracipHome() {
             {!isMobile && (
               <span style={{ fontSize: '12px', color: '#334155' }}>România · 2026</span>
             )}
-            <button
-              onClick={openMgmt}
-              style={{
-                display: 'flex', alignItems: 'center', gap: '6px',
-                background: 'rgba(124,58,237,0.15)',
-                border: '1px solid rgba(124,58,237,0.4)',
-                borderRadius: '10px', padding: '8px 16px',
-                fontSize: '13px', color: '#a78bfa', fontWeight: 700,
-                cursor: 'pointer',
-              }}
-            >
-              📤 {isMobile ? 'Upload' : 'Încarcă Document'}
-            </button>
+            {/* Buton mutat în Portalul Director (/demo/director) — directorul trimite documente către ISJ sau ARACIP cu autentificarea lui */}
             <div style={{
               display: 'flex', alignItems: 'center', gap: '6px',
               background: 'rgba(34,197,94,0.08)',

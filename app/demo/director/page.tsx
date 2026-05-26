@@ -129,6 +129,23 @@ export default function DirectorPage() {
   const [reclamaTrimiteARACIP, setReclamaTrimiteARACIP] = useState(true)
   const [reclamaSent, setReclamaSent] = useState(false)
 
+  // Trimite document către ISJ / ARACIP
+  const [showTrimiteDoc, setShowTrimiteDoc] = useState(false)
+  const [tdTitlu, setTdTitlu] = useState('')
+  const [tdContinut, setTdContinut] = useState('')
+  const [tdTip, setTdTip] = useState('Adresă')
+  const [tdDestinatar, setTdDestinatar] = useState<'isj' | 'aracip'>('isj')
+  const [tdUrgent, setTdUrgent] = useState(false)
+  const [tdNr, setTdNr] = useState('')
+  const [tdTermen, setTdTermen] = useState('')
+  const [tdFile, setTdFile] = useState<File | null>(null)
+  const [tdFileUrl, setTdFileUrl] = useState('')
+  const [tdFileName, setTdFileName] = useState('')
+  const [tdUploadingFile, setTdUploadingFile] = useState(false)
+  const [tdSending, setTdSending] = useState(false)
+  const [tdSent, setTdSent] = useState(false)
+  const [tdError, setTdError] = useState('')
+
   const unread = notificari.filter(n => !n.citit).length
 
   useEffect(() => {
@@ -186,7 +203,9 @@ export default function DirectorPage() {
           let readIds: string[] = []
           try { readIds = JSON.parse(localStorage.getItem('director_read_ids') || '[]') } catch {}
           const filtered = json.documents.filter((d: any) =>
-            !d.tipUnitate || d.tipUnitate === 'Toate' || d.tipUnitate === loginTipScoala
+            // exclude documente trimise de directori (those go UP la ISJ/ARACIP, nu DOWN la directori)
+            !(typeof d.sursa_tip === 'string' && d.sursa_tip.startsWith('director-')) &&
+            (!d.tipUnitate || d.tipUnitate === 'Toate' || d.tipUnitate === loginTipScoala)
           )
           const myId = loginEmail
           setNotificari(filtered.map((d: any, i: number) => {
@@ -241,6 +260,78 @@ export default function DirectorPage() {
       } catch {}
     }
     setLoggedIn(true)
+  }
+
+  function authHdrDirector(): Record<string, string> {
+    let t = ''
+    try { t = localStorage.getItem('ara_session') || '' } catch {}
+    return t ? { 'X-User-Session': t } : {}
+  }
+
+  function resetTrimiteDoc() {
+    setTdTitlu(''); setTdContinut(''); setTdTip('Adresă'); setTdDestinatar('isj')
+    setTdUrgent(false); setTdNr(''); setTdTermen('')
+    setTdFile(null); setTdFileUrl(''); setTdFileName(''); setTdError(''); setTdSent(false)
+  }
+
+  async function tdUploadFile(file: File) {
+    setTdUploadingFile(true)
+    setTdFile(file)
+    setTdFileName(file.name)
+    setTdError('')
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      // upload-pdf acceptă sesiune director, NU mai are nevoie de parolă
+      const res = await fetch('/api/upload-pdf', { method: 'POST', body: fd, headers: authHdrDirector() })
+      const data = await res.json()
+      if (data.url) setTdFileUrl(data.url)
+      if (data.extractedText && !tdContinut.trim()) setTdContinut(data.extractedText)
+      if (!data.url && data.error) setTdError(data.error)
+    } catch (e) {
+      console.error('[tdUploadFile]', e)
+      setTdError('Eroare la încărcare.')
+    }
+    setTdUploadingFile(false)
+  }
+
+  async function tdSubmit() {
+    if (!tdTitlu.trim()) { setTdError('Titlul este obligatoriu.'); return }
+    if (!tdFileUrl && !tdContinut.trim()) { setTdError('Atașați un fișier sau scrieți conținutul.'); return }
+    setTdSending(true)
+    setTdError('')
+    try {
+      const sursa_tip = tdDestinatar === 'isj' ? 'director-isj' : 'director-aracip'
+      const sursa = `${loginTitlu}. ${loginNume.trim() || 'Director'}${loginScoala ? ' — ' + loginScoala : ''}`
+      const destinatari = tdDestinatar === 'isj' ? 'ISJ Dolj' : 'ARACIP (Agenția Națională)'
+      const res = await fetch('/api/documents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHdrDirector() },
+        body: JSON.stringify({
+          document: {
+            titlu: tdTitlu.trim(),
+            tip: tdTip,
+            sursa,
+            sursa_tip,
+            judet: tdDestinatar === 'isj' ? 'Dolj' : 'national',
+            termen: tdTermen || undefined,
+            urgent: tdUrgent,
+            continut: tdContinut.trim() || tdTitlu,
+            destinatari,
+            nr: tdNr || undefined,
+            pdfUrl: tdFileUrl || undefined,
+            tipUnitate: loginTipScoala,
+          }
+        })
+      })
+      const data = await res.json()
+      if (data.ok) { setTdSent(true) }
+      else { setTdError(data.error || 'Eroare la trimitere.') }
+    } catch (e: any) {
+      console.error('[tdSubmit]', e)
+      setTdError('Eroare rețea: ' + (e?.message || 'necunoscută'))
+    }
+    setTdSending(false)
   }
 
   if (!loggedIn) return (
@@ -389,6 +480,25 @@ export default function DirectorPage() {
               🔔 {unread} nou{unread > 1 ? 'ă' : ''}
             </span>
           )}
+          <button
+            onClick={() => { resetTrimiteDoc(); setShowTrimiteDoc(true) }}
+            style={{
+              background: '#7c3aed',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '8px',
+              padding: isMobile ? '6px 10px' : '7px 16px',
+              fontSize: isMobile ? '11px' : '12px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px',
+              boxShadow: '0 2px 8px rgba(124,58,237,0.4)',
+            }}
+          >
+            📤 {isMobile ? 'Trimite' : 'Trimite document'}
+          </button>
           <button
             onClick={() => { setShowReclama(true); setReclamaSent(false); setReclamaDescriere('') }}
             style={{
@@ -836,6 +946,103 @@ export default function DirectorPage() {
                   >
                     🚨 Trimite sesizarea
                   </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* TRIMITE DOCUMENT MODAL */}
+      {showTrimiteDoc && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 1000,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px',
+        }}>
+          <div style={{
+            background: '#1e293b', border: '2px solid #7c3aed', borderRadius: '16px',
+            padding: '24px', width: '100%', maxWidth: '540px', maxHeight: '90vh', overflowY: 'auto',
+            boxShadow: '0 20px 60px rgba(124,58,237,0.25)',
+          }}>
+            {tdSent ? (
+              <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                <div style={{ fontSize: '52px', marginBottom: '12px' }}>✅</div>
+                <div style={{ fontSize: '18px', fontWeight: 800, color: '#f1f5f9', marginBottom: '8px' }}>Document trimis</div>
+                <div style={{ fontSize: '13px', color: '#94a3b8', marginBottom: '20px', lineHeight: 1.6 }}>
+                  Documentul a fost transmis către <strong style={{ color: '#c4b5fd' }}>{tdDestinatar === 'isj' ? 'ISJ Dolj' : 'ARACIP'}</strong> și înregistrat în platformă.
+                </div>
+                <button onClick={() => { setShowTrimiteDoc(false); resetTrimiteDoc() }} style={{ background: '#059669', color: '#fff', border: 'none', borderRadius: '8px', padding: '10px 28px', fontSize: '14px', fontWeight: 700, cursor: 'pointer' }}>
+                  Închide
+                </button>
+              </div>
+            ) : (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                  <div>
+                    <div style={{ fontSize: '17px', fontWeight: 800, color: '#f1f5f9' }}>📤 Trimite document</div>
+                    <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>Către ISJ Dolj sau ARACIP — semnătură automată cu identitatea dumneavoastră</div>
+                  </div>
+                  <button onClick={() => { setShowTrimiteDoc(false); resetTrimiteDoc() }} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '20px' }}>✕</button>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div>
+                    <label style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 700, letterSpacing: '0.3px' }}>DESTINATAR</label>
+                    <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
+                      <button type="button" onClick={() => setTdDestinatar('isj')} style={{ flex: 1, background: tdDestinatar === 'isj' ? '#1d4ed8' : '#0f172a', border: tdDestinatar === 'isj' ? '1px solid #3b82f6' : '1px solid #334155', borderRadius: '8px', padding: '10px', color: tdDestinatar === 'isj' ? '#fff' : '#94a3b8', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>🏛️ ISJ Dolj</button>
+                      <button type="button" onClick={() => setTdDestinatar('aracip')} style={{ flex: 1, background: tdDestinatar === 'aracip' ? '#7c3aed' : '#0f172a', border: tdDestinatar === 'aracip' ? '1px solid #a78bfa' : '1px solid #334155', borderRadius: '8px', padding: '10px', color: tdDestinatar === 'aracip' ? '#fff' : '#94a3b8', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>🎓 ARACIP</button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 700, letterSpacing: '0.3px' }}>TITLU *</label>
+                    <input value={tdTitlu} onChange={e => setTdTitlu(e.target.value)} placeholder="Ex: Solicitare aprobare orar 2025-2026" style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', borderRadius: '8px', padding: '10px 12px', fontSize: '13px', color: '#e2e8f0', outline: 'none', boxSizing: 'border-box', marginTop: '6px', fontFamily: 'inherit' }} />
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <div style={{ flex: 1 }}>
+                      <label style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 700 }}>TIP</label>
+                      <select value={tdTip} onChange={e => setTdTip(e.target.value)} style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', borderRadius: '8px', padding: '10px 12px', fontSize: '13px', color: '#e2e8f0', outline: 'none', marginTop: '6px', fontFamily: 'inherit' }}>
+                        <option>Adresă</option><option>Circular</option><option>Procedură</option><option>Ordin</option><option>Metodologie</option><option>Altele</option>
+                      </select>
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <label style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 700 }}>NR. ÎNREGISTRARE (opțional)</label>
+                      <input value={tdNr} onChange={e => setTdNr(e.target.value)} placeholder="Ex: 123/2026" style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', borderRadius: '8px', padding: '10px 12px', fontSize: '13px', color: '#e2e8f0', outline: 'none', boxSizing: 'border-box', marginTop: '6px', fontFamily: 'inherit' }} />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 700 }}>ATAȘAMENT (PDF / DOCX / imagine)</label>
+                    <div style={{ marginTop: '6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <label style={{ background: '#0f172a', border: '1px dashed #475569', borderRadius: '8px', padding: '10px 14px', cursor: 'pointer', fontSize: '12px', color: '#94a3b8' }}>
+                        📎 {tdFileName ? 'Schimbă fișier' : 'Selectează fișier'}
+                        <input type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.jpg,.jpeg,.png" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) tdUploadFile(f); e.target.value = '' }} />
+                      </label>
+                      {tdFileName && <div style={{ fontSize: '12px', color: '#34d399', flex: 1 }}>📄 {tdFileName} {tdUploadingFile && <span style={{ color: '#94a3b8' }}>· se urcă...</span>}</div>}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 700 }}>CONȚINUT / MESAJ</label>
+                    <textarea value={tdContinut} onChange={e => setTdContinut(e.target.value)} placeholder="Conținutul documentului sau mesajul către destinatar. Dacă atașați un PDF/DOCX, textul se extrage automat." rows={4} style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', borderRadius: '8px', padding: '10px 12px', fontSize: '13px', color: '#e2e8f0', outline: 'none', resize: 'vertical', boxSizing: 'border-box', marginTop: '6px', fontFamily: 'inherit' }} />
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#94a3b8', cursor: 'pointer' }}>
+                      <input type="checkbox" checked={tdUrgent} onChange={e => setTdUrgent(e.target.checked)} /> Urgent
+                    </label>
+                    <div style={{ flex: 1 }}>
+                      <input type="date" value={tdTermen} onChange={e => setTdTermen(e.target.value)} style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', borderRadius: '8px', padding: '8px 10px', fontSize: '12px', color: '#e2e8f0', outline: 'none', fontFamily: 'inherit' }} />
+                    </div>
+                  </div>
+
+                  {tdError && <div style={{ fontSize: '12px', color: '#ef4444', padding: '8px 12px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '6px' }}>{tdError}</div>}
+
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+                    <button onClick={() => { setShowTrimiteDoc(false); resetTrimiteDoc() }} style={{ flex: 1, background: '#0f172a', border: '1px solid #334155', borderRadius: '8px', padding: '11px', color: '#94a3b8', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>Anulează</button>
+                    <button onClick={tdSubmit} disabled={tdSending || tdUploadingFile} style={{ flex: 2, background: tdSending || tdUploadingFile ? '#334155' : '#7c3aed', color: '#fff', border: 'none', borderRadius: '8px', padding: '11px', fontSize: '13px', fontWeight: 700, cursor: tdSending ? 'wait' : 'pointer' }}>{tdSending ? 'Se trimite...' : `📤 Trimite la ${tdDestinatar === 'isj' ? 'ISJ Dolj' : 'ARACIP'}`}</button>
+                  </div>
                 </div>
               </>
             )}

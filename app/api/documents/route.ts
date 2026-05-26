@@ -7,7 +7,7 @@ import { checkAnyAdminPassword, verifySessionFromRequest } from '@/lib/session'
 const BLOB_KEY = 'documents-index.json'
 
 const TIP_VALUES = ['Circular', 'Procedură', 'Adresă', 'Metodologie', 'Ordin', 'Altele'] as const
-const SURSA_TIP_VALUES = ['isj', 'inspector', 'aracip'] as const
+const SURSA_TIP_VALUES = ['isj', 'inspector', 'aracip', 'director-isj', 'director-aracip'] as const
 export type DocTip = typeof TIP_VALUES[number]
 export type SursaTip = typeof SURSA_TIP_VALUES[number]
 
@@ -205,7 +205,15 @@ export async function POST(req: NextRequest) {
       console.error('[POST /api/documents] missing password env vars')
       return NextResponse.json({ error: 'Configurare server incompletă.' }, { status: 500 })
     }
-    if (!checkAnyAdminPassword(password)) {
+
+    // Submisii director (sursa_tip = director-isj / director-aracip) → auth pe sesiune HMAC
+    const isDirectorSubmission = typeof doc?.sursa_tip === 'string' && doc.sursa_tip.startsWith('director-')
+    if (isDirectorSubmission) {
+      const session = verifySessionFromRequest(req)
+      if (!session || (session.role !== 'director' && session.role !== 'diriginte')) {
+        return NextResponse.json({ error: 'Sesiune director invalidă.' }, { status: 401 })
+      }
+    } else if (!checkAnyAdminPassword(password)) {
       return NextResponse.json({ error: 'Neautorizat.' }, { status: 401 })
     }
 
