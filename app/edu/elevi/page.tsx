@@ -266,7 +266,11 @@ export default function EleviPage() {
 
   const { gradNr, nrClasa, modulClasa, elev } = session
   const accesWeekend = gradNr === 8 || gradNr === 12
-  const moduleFiltrate = modulClasa.filter(m => MODULE_ROUTES[m])
+  // Cursuri vizibile pentru elev: toate modulele BAC + EN disponibile (atribuite clasei + cele comune)
+  const TOATE_BAC = ['BAC Matematică M1','BAC Matematică M2','BAC Română','BAC Biologie','BAC Fizică','BAC Chimie','BAC Informatică','BAC Geografie','BAC Istorie']
+  const TOATE_EN  = ['EN Matematică','EN Română']
+  const setCursuri = new Set<string>([...modulClasa, ...(gradNr === 12 ? TOATE_BAC : []), ...(gradNr === 8 ? TOATE_EN : []), ...(!accesWeekend ? [...TOATE_BAC, ...TOATE_EN] : [])])
+  const moduleFiltrate = [...setCursuri].filter(m => MODULE_ROUTES[m])
 
   // DASHBOARD
   return (
@@ -307,108 +311,62 @@ export default function EleviPage() {
           </div>
         </div>
 
-        {/* Acces module — numai cls 8 si 12 */}
-        {!accesWeekend ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '16px' }}>
-            {/* Statistici activitate */}
-            <div style={{ background: 'rgba(99,102,241,0.05)', border: '1px solid rgba(99,102,241,0.15)', borderRadius: '16px', padding: '20px 22px' }}>
-              <div style={{ fontSize: '11px', color: '#475569', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '14px' }}>📊 Activitatea ta pe platformă</div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <div style={{ background: 'rgba(0,0,0,0.25)', borderRadius: '10px', padding: '12px', textAlign: 'center' }}>
-                  <div style={{ fontSize: '22px', fontWeight: 900, color: '#a5b4fc' }}>{elev.minutePlatforma || 0}</div>
-                  <div style={{ fontSize: '10px', color: '#475569', marginTop: '2px' }}>minute pe platformă</div>
-                </div>
-                <div style={{ background: 'rgba(0,0,0,0.25)', borderRadius: '10px', padding: '12px', textAlign: 'center' }}>
-                  <div style={{ fontSize: '22px', fontWeight: 900, color: '#818cf8' }}>{elev.nivel || 1}</div>
-                  <div style={{ fontSize: '10px', color: '#475569', marginTop: '2px' }}>nivel</div>
-                </div>
-              </div>
-              {elev.ultimaConectare && (
-                <div style={{ fontSize: '11px', color: '#334155', marginTop: '12px', textAlign: 'center' }}>
-                  Ultima conectare: {new Date(elev.ultimaConectare).toLocaleDateString('ro-RO')}
-                </div>
-              )}
-            </div>
-            {/* Mesaj motivational */}
-            <div style={{ background: 'rgba(251,191,36,0.04)', border: '1px solid rgba(251,191,36,0.12)', borderRadius: '14px', padding: '18px 20px', textAlign: 'center' }}>
-              <div style={{ fontSize: '24px', marginBottom: '8px' }}>💡</div>
-              <div style={{ fontSize: '13px', fontWeight: 700, color: '#fde68a', marginBottom: '6px' }}>Continuă să înveți!</div>
-              <div style={{ fontSize: '12px', color: '#475569', lineHeight: 1.7 }}>
-                Modulele de pregătire intensivă se vor activa<br />
-                când ajungi în clasa a VIII-a sau a XII-a.
-              </div>
-            </div>
-          </div>
-        ) : weekendActive ? (
-          /* SESIUNE ACTIVA */
-          <div style={{ marginBottom: '16px' }}>
+        {/* Cursurile mele — vizibile mereu după login */}
+        <div style={{ marginBottom: '16px' }}>
+          {weekendActive && (
             <div style={{ background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: '16px', padding: '12px 18px', marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ fontSize: '13px', color: '#4ade80', fontWeight: 700 }}>🟢 Sesiune activă</div>
               <div style={{ fontSize: '13px', fontWeight: 800, color: '#4ade80' }}>{minuteLeft} min rămase</div>
             </div>
-            <div style={{ fontSize: '11px', color: '#475569', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '10px' }}>
-              {gradNr === 12 ? '📚 Module BAC' : '🎯 Module EN'} — alege unde înveți azi
+          )}
+          {accesWeekend && !weekendActive && isWeekend() && (
+            <div style={{ background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.25)', borderRadius: '14px', padding: '14px 16px', marginBottom: '12px' }}>
+              <div style={{ fontSize: '12px', color: '#a5b4fc', fontWeight: 700, marginBottom: '8px' }}>🎯 Cod de weekend ({WEEKEND_HOURS}h): <span style={{ fontFamily: 'monospace', letterSpacing: '2px', color: '#c4b5fd' }}>{weekendCode}</span></div>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input placeholder="Introdu codul..." value={codInput} onChange={e => setCodInput(e.target.value.toUpperCase())} style={{ ...inputStyle, flex: 1, fontFamily: 'monospace', letterSpacing: '2px', padding: '8px 12px', fontSize: '13px' }} />
+                <button onClick={activateWeekend} style={{ ...btnIndigo, padding: '0 16px', fontSize: '13px', whiteSpace: 'nowrap' }}>Activează</button>
+              </div>
+              {codErr && <div style={{ fontSize: '11px', color: '#ef4444', marginTop: '6px' }}>{codErr}</div>}
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {moduleFiltrate.map(m => {
-                const cfg = MODULE_ROUTES[m]
-                return (
-                  <button key={m} onClick={() => navigateModule(cfg.route, m)}
-                    style={{ width: '100%', background: `${cfg.color}10`, border: `1.5px solid ${cfg.color}44`, borderRadius: '14px', padding: '14px 18px', cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '14px', fontFamily: 'inherit', transition: 'all 0.15s' }}
-                    onMouseEnter={e => { e.currentTarget.style.background = `${cfg.color}20`; e.currentTarget.style.borderColor = cfg.color }}
-                    onMouseLeave={e => { e.currentTarget.style.background = `${cfg.color}10`; e.currentTarget.style.borderColor = `${cfg.color}44` }}
-                  >
-                    <span style={{ fontSize: '22px', flexShrink: 0 }}>{cfg.icon}</span>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: '14px', fontWeight: 700, color: '#f1f5f9' }}>{cfg.label}</div>
-                      <div style={{ fontSize: '10px', color: '#475569', marginTop: '2px' }}>Profesor AI · click pentru a deschide</div>
-                    </div>
-                    <div style={{ color: cfg.color, fontSize: '18px' }}>→</div>
-                  </button>
-                )
-              })}
+          )}
+          <div style={{ fontSize: '11px', color: '#475569', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '10px' }}>
+            📚 Pregătire BAC și Evaluare Națională — alege materia
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {moduleFiltrate.map(m => {
+              const cfg = MODULE_ROUTES[m]
+              return (
+                <button key={m} onClick={() => navigateModule(cfg.route, m)}
+                  style={{ width: '100%', background: `${cfg.color}10`, border: `1.5px solid ${cfg.color}44`, borderRadius: '14px', padding: '14px 18px', cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '14px', fontFamily: 'inherit', transition: 'all 0.15s' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = `${cfg.color}20`; e.currentTarget.style.borderColor = cfg.color }}
+                  onMouseLeave={e => { e.currentTarget.style.background = `${cfg.color}10`; e.currentTarget.style.borderColor = `${cfg.color}44` }}
+                >
+                  <span style={{ fontSize: '22px', flexShrink: 0 }}>{cfg.icon}</span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '14px', fontWeight: 700, color: '#f1f5f9' }}>{cfg.label}</div>
+                    <div style={{ fontSize: '10px', color: '#475569', marginTop: '2px' }}>Profesor AI · click pentru a deschide</div>
+                  </div>
+                  <div style={{ color: cfg.color, fontSize: '18px' }}>→</div>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Statistici activitate */}
+        <div style={{ background: 'rgba(99,102,241,0.04)', border: '1px solid rgba(99,102,241,0.12)', borderRadius: '14px', padding: '14px 18px', marginBottom: '16px' }}>
+          <div style={{ fontSize: '11px', color: '#475569', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '10px' }}>📊 Activitatea ta</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+            <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: '8px', padding: '10px', textAlign: 'center' }}>
+              <div style={{ fontSize: '18px', fontWeight: 900, color: '#a5b4fc' }}>{elev.minutePlatforma || 0}</div>
+              <div style={{ fontSize: '10px', color: '#475569' }}>minute</div>
+            </div>
+            <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: '8px', padding: '10px', textAlign: 'center' }}>
+              <div style={{ fontSize: '18px', fontWeight: 900, color: '#818cf8' }}>{elev.nivel || 1}</div>
+              <div style={{ fontSize: '10px', color: '#475569' }}>nivel</div>
             </div>
           </div>
-        ) : isWeekend() ? (
-          /* WEEKEND - cod de activare */
-          <div style={{ background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.25)', borderRadius: '20px', padding: '24px', marginBottom: '16px' }}>
-            <div style={{ fontSize: '13px', fontWeight: 700, color: '#a5b4fc', marginBottom: '6px' }}>🎯 Sesiune weekend disponibilă</div>
-            <div style={{ fontSize: '12px', color: '#475569', marginBottom: '18px', lineHeight: 1.6 }}>
-              Ai {WEEKEND_HOURS} ore de studiu pentru acest weekend. Codul tău de acces de azi:
-            </div>
-            <div style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(99,102,241,0.4)', borderRadius: '12px', padding: '14px', textAlign: 'center', marginBottom: '16px' }}>
-              <div style={{ fontSize: '10px', color: '#475569', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '1px' }}>Codul tău de weekend</div>
-              <div style={{ fontSize: '28px', fontWeight: 900, color: '#a5b4fc', letterSpacing: '4px', fontFamily: 'monospace' }}>{weekendCode}</div>
-              <div style={{ fontSize: '10px', color: '#334155', marginTop: '6px' }}>valabil 48h · {WEEKEND_HOURS}h utilizare</div>
-            </div>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <input
-                placeholder="Introdu codul..."
-                value={codInput}
-                onChange={e => setCodInput(e.target.value.toUpperCase())}
-                style={{ ...inputStyle, flex: 1, fontFamily: 'monospace', letterSpacing: '2px', padding: '10px 14px' }}
-              />
-              <button onClick={activateWeekend} style={{ ...btnIndigo, padding: '0 20px', whiteSpace: 'nowrap' }}>Activează →</button>
-            </div>
-            {codErr && <div style={{ fontSize: '11px', color: '#ef4444', marginTop: '6px' }}>{codErr}</div>}
-          </div>
-        ) : (
-          /* SAPTAMANA - module blocate */
-          <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '16px', padding: '24px', textAlign: 'center', marginBottom: '16px' }}>
-            <div style={{ fontSize: '32px', marginBottom: '10px' }}>🔒</div>
-            <div style={{ fontSize: '14px', fontWeight: 700, color: '#f1f5f9', marginBottom: '6px' }}>Module disponibile în weekend</div>
-            <div style={{ fontSize: '12px', color: '#475569', lineHeight: 1.6 }}>
-              Sâmbătă și duminică vei primi un cod personal de acces pentru {WEEKEND_HOURS} ore de studiu.
-            </div>
-            <div style={{ marginTop: '12px', display: 'flex', gap: '6px', justifyContent: 'center', flexWrap: 'wrap' }}>
-              {moduleFiltrate.map(m => (
-                <div key={m} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', padding: '4px 10px', fontSize: '11px', color: '#334155' }}>
-                  {MODULE_ROUTES[m].icon} {MODULE_ROUTES[m].label}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        </div>
 
       </div>
       <style>{`input::placeholder{color:#334155;}`}</style>
