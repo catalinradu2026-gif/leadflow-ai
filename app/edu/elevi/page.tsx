@@ -70,6 +70,7 @@ export default function EleviPage() {
   const [session, setSession] = useState<SessionData | null>(null)
   const [weekendActive, setWeekendActive] = useState(false)
   const [minuteLeft, setMinuteLeft] = useState(WEEKEND_HOURS * 60)
+  const [sectiune, setSectiune] = useState<'bac' | 'en'>('bac')
   const [codInput, setCodInput] = useState('')
   const [codErr, setCodErr] = useState('')
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -266,11 +267,9 @@ export default function EleviPage() {
 
   const { gradNr, nrClasa, modulClasa, elev } = session
   const accesWeekend = gradNr === 8 || gradNr === 12
-  // Cursuri vizibile pentru elev: toate modulele BAC + EN disponibile (atribuite clasei + cele comune)
-  const TOATE_BAC = ['BAC Matematică M1','BAC Matematică M2','BAC Română','BAC Biologie','BAC Fizică','BAC Chimie','BAC Informatică','BAC Geografie','BAC Istorie']
-  const TOATE_EN  = ['EN Matematică','EN Română']
-  const setCursuri = new Set<string>([...modulClasa, ...(gradNr === 12 ? TOATE_BAC : []), ...(gradNr === 8 ? TOATE_EN : []), ...(!accesWeekend ? [...TOATE_BAC, ...TOATE_EN] : [])])
-  const moduleFiltrate = [...setCursuri].filter(m => MODULE_ROUTES[m])
+  // Toate cursurile disponibile, indiferent de clasă
+  const BAC_MODULES = ['BAC Matematică M1','BAC Matematică M2','BAC Română','BAC Biologie','BAC Fizică','BAC Chimie','BAC Informatică','BAC Geografie','BAC Istorie'].filter(m => MODULE_ROUTES[m])
+  const EN_MODULES  = ['EN Matematică','EN Română'].filter(m => MODULE_ROUTES[m])
 
   // DASHBOARD
   return (
@@ -329,11 +328,21 @@ export default function EleviPage() {
               {codErr && <div style={{ fontSize: '11px', color: '#ef4444', marginTop: '6px' }}>{codErr}</div>}
             </div>
           )}
-          <div style={{ fontSize: '11px', color: '#475569', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '10px' }}>
-            📚 Pregătire BAC și Evaluare Națională — alege materia
+          {/* Două butoane mari de secțiune — BAC și Evaluare Națională */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '12px' }}>
+            <button onClick={() => setSectiune('bac')} style={{ background: sectiune === 'bac' ? 'linear-gradient(135deg, #4f46e5, #6366f1)' : 'rgba(99,102,241,0.08)', border: sectiune === 'bac' ? '1.5px solid #818cf8' : '1.5px solid rgba(99,102,241,0.25)', borderRadius: '14px', padding: '14px 12px', cursor: 'pointer', textAlign: 'center', fontFamily: 'inherit' }}>
+              <div style={{ fontSize: '22px' }}>📚</div>
+              <div style={{ fontSize: '13px', fontWeight: 800, color: sectiune === 'bac' ? '#fff' : '#a5b4fc', marginTop: '4px' }}>Bacalaureat</div>
+              <div style={{ fontSize: '10px', color: sectiune === 'bac' ? 'rgba(255,255,255,0.75)' : '#64748b', marginTop: '2px' }}>{BAC_MODULES.length} materii</div>
+            </button>
+            <button onClick={() => setSectiune('en')} style={{ background: sectiune === 'en' ? 'linear-gradient(135deg, #0d9488, #14b8a6)' : 'rgba(20,184,166,0.08)', border: sectiune === 'en' ? '1.5px solid #2dd4bf' : '1.5px solid rgba(20,184,166,0.25)', borderRadius: '14px', padding: '14px 12px', cursor: 'pointer', textAlign: 'center', fontFamily: 'inherit' }}>
+              <div style={{ fontSize: '22px' }}>🎯</div>
+              <div style={{ fontSize: '13px', fontWeight: 800, color: sectiune === 'en' ? '#fff' : '#5eead4', marginTop: '4px' }}>Evaluare Națională</div>
+              <div style={{ fontSize: '10px', color: sectiune === 'en' ? 'rgba(255,255,255,0.75)' : '#64748b', marginTop: '2px' }}>{EN_MODULES.length} materii</div>
+            </button>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {moduleFiltrate.map(m => {
+            {(sectiune === 'bac' ? BAC_MODULES : EN_MODULES).map(m => {
               const cfg = MODULE_ROUTES[m]
               return (
                 <button key={m} onClick={() => navigateModule(cfg.route, m)}
