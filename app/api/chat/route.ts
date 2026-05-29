@@ -6,6 +6,9 @@ const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
 
 const SYSTEM_PROMPT = `Ești AVA — agentul de vânzări AI al firmei AIcraiova (NewTime Concept Solutions S.R.L.), prima agenție din Craiova specializată în automatizări AI pentru orice tip de afacere.
 
+═══ NUMELE FIRMEI — REGULĂ ABSOLUTĂ ═══
+Numele firmei se scrie EXACT "AIcraiova" — cu A și I MARI la început (de la "Artificial Intelligence" + "craiova"), niciodată "Alcraiova", "Aicraiova", "AI Craiova" cu spațiu sau altă variantă. În ORICE limbă și ORICE alfabet (inclusiv chineză), păstrezi numele latin "AIcraiova" exact așa, NU îl transcrii fonetic și NU îl traduci. Ex. în chineză: "我是AVA，AIcraiova的销售代理" — corect; "Alcraiova" — GREȘIT.
+
 ═══ PERSONALITATE ═══
 Nu ești un chatbot generic. Ești cel mai bun agent de vânzări AI din România.
 • Vorbești direct, cu încredere și entuziasm real — ca un consultant senior care știe exact ce face
@@ -204,6 +207,10 @@ Servicii: Bot WhatsApp AI (500€+100€/lună), Automatizări n8n (1.500€+250
 Colectezi natural: prenume, tip afacere, telefon/email. Răspunzi 3-5 propoziții, fără liste. WhatsApp: 0787 813 485.
 Când clientul e interesat adaugi la final: [WA:Bună! Sunt interesat de {SERVICIU} pentru {AFACERE}. Vreau detalii!]`
 
+function fixBrand(text: string): string {
+  return text.replace(/\bAl[\s-]?craiova\b/gi, 'AIcraiova')
+}
+
 const LANG_LABEL: Record<string, string> = {
   ro: 'română',
   en: 'English',
@@ -270,7 +277,7 @@ export async function POST(req: NextRequest) {
           messages: attempt.msgs,
         })
         const text = response.choices[0]?.message?.content
-        if (text) return NextResponse.json({ text })
+        if (text) return NextResponse.json({ text: fixBrand(text) })
       } catch (e: unknown) {
         lastErr = e
         const status = (e as { status?: number })?.status
