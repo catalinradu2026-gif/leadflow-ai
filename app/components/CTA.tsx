@@ -40,6 +40,9 @@ export default function CTA() {
             {tr.info.map((item) => (
               <div key={item} className="text-white/50 text-sm">{item}</div>
             ))}
+            <a href="mailto:contact@aicraiova.ro" className="block text-white/50 text-sm hover:text-gold transition-colors">
+              ✉️ contact@aicraiova.ro
+            </a>
           </div>
           <a
             href={`https://wa.me/40787813485?text=${encodeURIComponent(tr.waText)}`}

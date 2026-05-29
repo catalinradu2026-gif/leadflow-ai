@@ -6,7 +6,7 @@ import { t } from '../translations'
 const WA_BASE = 'https://wa.me/40787813485?text='
 
 export default function Navbar() {
-  const { lang, toggleLang } = useLang()
+  const { lang, cycleLang } = useLang()
   const tr = t[lang].navbar
 
   const [scrolled, setScrolled] = useState(false)
@@ -53,11 +53,14 @@ export default function Navbar() {
 
           {/* Lang toggle — vizibil pe toate dispozitivele */}
           <button
-            onClick={toggleLang}
+            onClick={cycleLang}
+            title="Schimbă limba / Change language"
             className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-white/20 text-white/80 text-xs font-semibold hover:border-white/50 hover:text-white transition-all duration-200 shrink-0 rounded"
           >
-            <span className="text-base leading-none">{lang === 'ro' ? '🇬🇧' : '🇷🇴'}</span>
-            <span className="tracking-widest uppercase">{lang === 'ro' ? 'EN' : 'RO'}</span>
+            <span className="text-base leading-none">
+              {lang === 'ro' ? '🇷🇴' : lang === 'en' ? '🇬🇧' : lang === 'de' ? '🇩🇪' : lang === 'it' ? '🇮🇹' : lang === 'fr' ? '🇫🇷' : '🇨🇳'}
+            </span>
+            <span className="tracking-widest uppercase">{lang.toUpperCase()}</span>
           </button>
 
           {/* CTA desktop */}
@@ -98,10 +101,10 @@ export default function Navbar() {
             ))}
             {/* Lang toggle mobile */}
             <button
-              onClick={() => { toggleLang(); setOpen(false) }}
+              onClick={() => { cycleLang(); setOpen(false) }}
               className="py-3 text-white/60 hover:text-white text-sm border-b border-white/5 transition-colors text-left"
             >
-              {lang === 'ro' ? '🇬🇧 English' : '🇷🇴 Română'}
+              {lang === 'ro' ? '🇬🇧 English' : lang === 'en' ? '🇩🇪 Deutsch' : lang === 'de' ? '🇮🇹 Italiano' : lang === 'it' ? '🇫🇷 Français' : lang === 'fr' ? '🇨🇳 中文' : '🇷🇴 Română'}
             </button>
             <a
               href={WA_LINK}
