@@ -5,6 +5,7 @@ export const t = {
     navbar: {
       links: [
         { href: '#', label: 'Acasă' },
+        { href: '#despre', label: 'Despre noi' },
         { href: '#servicii', label: 'Servicii' },
         { href: '#proces', label: 'Proces' },
         { href: '#preturi', label: 'Prețuri' },
@@ -243,6 +244,7 @@ export const t = {
     navbar: {
       links: [
         { href: '#', label: 'Home' },
+        { href: '#despre', label: 'About us' },
         { href: '#servicii', label: 'Services' },
         { href: '#proces', label: 'Process' },
         { href: '#preturi', label: 'Pricing' },
@@ -481,6 +483,7 @@ export const t = {
     navbar: {
       links: [
         { href: '#', label: 'Startseite' },
+        { href: '#despre', label: 'Über uns' },
         { href: '#servicii', label: 'Services' },
         { href: '#proces', label: 'Prozess' },
         { href: '#preturi', label: 'Preise' },
@@ -719,6 +722,7 @@ export const t = {
     navbar: {
       links: [
         { href: '#', label: 'Home' },
+        { href: '#despre', label: 'Chi siamo' },
         { href: '#servicii', label: 'Servizi' },
         { href: '#proces', label: 'Processo' },
         { href: '#preturi', label: 'Prezzi' },
@@ -957,6 +961,7 @@ export const t = {
     navbar: {
       links: [
         { href: '#', label: 'Accueil' },
+        { href: '#despre', label: 'À propos' },
         { href: '#servicii', label: 'Services' },
         { href: '#proces', label: 'Processus' },
         { href: '#preturi', label: 'Tarifs' },
@@ -1195,6 +1200,7 @@ export const t = {
     navbar: {
       links: [
         { href: '#', label: '首页' },
+        { href: '#despre', label: '关于我们' },
         { href: '#servicii', label: '服务' },
         { href: '#proces', label: '流程' },
         { href: '#preturi', label: '价格' },
