@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import AraArchive from '../../components/AraArchive'
 
 type AraDoc    = { id: string; titlu: string; continut: string; termen?: string; urgent?: boolean }
 type AraModul  = { id: string; titlu: string; url: string; descriere: string }
@@ -19,7 +20,7 @@ export default function AraAdmin() {
   const [auth, setAuth]     = useState(false)
   const [authErr, setAuthErr] = useState('')
   const [data, setData]     = useState<Knowledge | null>(null)
-  const [tab, setTab]       = useState<'isj' | 'module' | 'anunturi' | 'general'>('isj')
+  const [tab, setTab]       = useState<'isj' | 'module' | 'anunturi' | 'general' | 'arhiva'>('isj')
   const [saving, setSaving] = useState(false)
   const [savedMsg, setSavedMsg] = useState('')
   const [loading, setLoading] = useState(false)
@@ -129,10 +130,11 @@ export default function AraAdmin() {
       <div style={{ maxWidth: '900px', margin: '0 auto' }}>
         {/* Tabs */}
         <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
-          <button style={tabStyle('isj')} onClick={() => setTab('isj')}>📄 Documente ISJ ({data.isj.length})</button>
-          <button style={tabStyle('module')} onClick={() => setTab('module')}>📚 Module ({data.module.length})</button>
-          <button style={tabStyle('anunturi')} onClick={() => setTab('anunturi')}>📢 Anunțuri ({data.anunturi.filter(a => a.activ).length} active)</button>
-          <button style={tabStyle('general')} onClick={() => setTab('general')}>ℹ️ General ({data.general.length})</button>
+          <button style={tabStyle('isj')} onClick={() => setTab('isj')}>Documente ISJ ({data.isj.length})</button>
+          <button style={tabStyle('module')} onClick={() => setTab('module')}>Module ({data.module.length})</button>
+          <button style={tabStyle('anunturi')} onClick={() => setTab('anunturi')}>Anunturi ({data.anunturi.filter(a => a.activ).length} active)</button>
+          <button style={tabStyle('general')} onClick={() => setTab('general')}>General ({data.general.length})</button>
+          <button style={tabStyle('arhiva')} onClick={() => setTab('arhiva')}>Arhiva Documente</button>
         </div>
 
         {/* ISJ */}
@@ -209,6 +211,11 @@ export default function AraAdmin() {
             ))}
             <button onClick={addGeneral} style={{ ...btn('#334155'), alignSelf: 'flex-start' }}>+ Adaugă secțiune</button>
           </div>
+        )}
+
+        {/* Arhiva */}
+        {tab === 'arhiva' && (
+          <AraArchive password="ARACIP2026" readOnly={false} />
         )}
 
         <div style={{ height: 60 }} />

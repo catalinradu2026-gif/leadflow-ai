@@ -3,6 +3,7 @@ import Groq from 'groq-sdk'
 import { rateLimit, rateLimitDaily } from '@/lib/rateLimit'
 import { getKnowledge } from '@/app/api/ara-knowledge/route'
 import { loadIndex } from '@/app/api/documents/route'
+import { loadArchiveDocs } from '@/app/api/ara-archive/route'
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
 
@@ -470,7 +471,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
     }
 
-    const [knowledge, docsIndex] = await Promise.all([getKnowledge(), loadIndex()])
+    const [knowledge, docsIndex, archiveDocs] = await Promise.all([
+      getKnowledge(),
+      loadIndex(),
+      loadArchiveDocs(5),
+    ])
     let systemPrompt = customSystemPrompt || buildSystemPrompt(pagina)
 
     // Documente reale încărcate de ISJ/ARACIP/Inspector
@@ -531,6 +536,34 @@ export async function POST(req: NextRequest) {
     const allContext = [...docLines, ...kLines]
     if (allContext.length > 0) {
       systemPrompt += `\n\n━━━ CUNOȘTINȚE ÎN TIMP REAL (actualizate automat) ━━━\n${allContext.join('\n')}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+    }
+
+    // ── ARHIVĂ DOCUMENTE OFICIALE ARACIP (RAG) ────────────────────────────────
+    if (archiveDocs.length > 0) {
+      const formatDate = (iso: string) => {
+        try {
+          return new Date(iso).toLocaleDateString('ro-RO', { day: 'numeric', month: 'long', year: 'numeric' })
+        } catch {
+          return iso.slice(0, 10)
+        }
+      }
+
+      const archiveLines: string[] = ['ARHIVĂ DOCUMENTE OFICIALE ARACIP:']
+      let totalChars = 0
+      const LIMIT = 6000
+
+      for (const { doc, text } of archiveDocs) {
+        const header = `=== ${doc.titlu} (${formatDate(doc.uploadedAt)}) ===`
+        const body = text.slice(0, 1500)
+        const entry = `${header}\n${body}\n===`
+        if (totalChars + entry.length > LIMIT) break
+        archiveLines.push(entry)
+        totalChars += entry.length
+      }
+
+      if (archiveLines.length > 1) {
+        systemPrompt += `\n\n━━━ ARHIVĂ DOCUMENTE OFICIALE (citite integral de ARA) ━━━\n${archiveLines.join('\n')}\nREGULĂ: Când utilizatorul întreabă despre un subiect prezent în aceste documente, răspunzi EXCLUSIV pe baza conținutului lor, cu referință exactă la titlul documentului.\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+      }
     }
 
     if (pageContext && typeof pageContext === 'object') {

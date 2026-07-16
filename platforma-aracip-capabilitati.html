@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Platforma ARACIP — Capabilități Operaționale</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #f1f5f9;
+    color: #1a1a2e;
+    padding: 20px;
+    font-size: 13.5px;
+    line-height: 1.7;
+  }
+
+  .container {
+    max-width: 870px;
+    margin: 0 auto;
+    background: #ffffff;
+    padding: 48px 52px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    border-radius: 12px;
+  }
+
+  /* PRINT BUTTON */
+  .print-bar {
+    position: sticky;
+    top: 20px;
+    z-index: 1000;
+    max-width: 870px;
+    margin: 0 auto 20px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+  .btn-print {
+    background: linear-gradient(135deg, #1e3a8a, #1d4ed8);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 12px 24px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 14px rgba(30,58,138,0.4);
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .btn-print:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(30,58,138,0.5);
+  }
+  .btn-print:active { transform: translateY(0); }
+  .btn-secondary {
+    background: #fff;
+    color: #1e3a8a;
+    border: 1.5px solid #1e3a8a;
+    border-radius: 10px;
+    padding: 12px 24px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* ANTET */
+  .antet {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 24px;
+    align-items: flex-start;
+    border-bottom: 2.5px solid #0f172a;
+    padding-bottom: 22px;
+    margin-bottom: 32px;
+  }
+  .antet-firma .denumire {
+    font-size: 17px;
+    font-weight: 700;
+    color: #0f172a;
+    letter-spacing: -0.2px;
+    margin-bottom: 5px;
+  }
+  .antet-firma .detalii {
+    font-size: 11.5px;
+    color: #4a5568;
+    line-height: 1.95;
+  }
+  .antet-doc {
+    text-align: right;
+    font-size: 12px;
+    color: #4a5568;
+    line-height: 2.05;
+  }
+  .antet-doc .doc-tip {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #0f172a;
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  /* TITLU */
+  .titlu-doc {
+    border: 1px solid #cbd5e1;
+    border-top: 4px solid #1e3a8a;
+    background: #f8fafc;
+    padding: 28px 32px;
+    margin: 32px 0 36px;
+    text-align: center;
+  }
+  .titlu-doc .categorie {
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: #64748b;
+    margin-bottom: 12px;
+  }
+  .titlu-doc h1 {
+    font-size: 22px;
+    font-weight: 700;
+    color: #0f172a;
+    line-height: 1.35;
+    margin-bottom: 10px;
+  }
+  .titlu-doc .subtitlu {
+    font-size: 12.5px;
+    color: #475569;
+    border-top: 1px solid #e2e8f0;
+    padding-top: 10px;
+    margin-top: 10px;
+  }
+
+  /* SECȚIUNI */
+  h2 {
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #fff;
+    background: linear-gradient(135deg, #1e3a8a, #1d4ed8);
+    padding: 11px 18px;
+    border-radius: 6px;
+    margin: 32px 0 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  h2 .icon { font-size: 18px; }
+
+  h3 {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 18px 0 8px;
+  }
+
+  /* LISTE */
+  ul.lst {
+    list-style: none;
+    margin: 8px 0 14px;
+    padding: 0;
+  }
+  ul.lst li {
+    font-size: 13px;
+    color: #334155;
+    padding: 7px 0 7px 26px;
+    position: relative;
+    border-bottom: 1px solid #f1f5f9;
+    line-height: 1.65;
+  }
+  ul.lst li::before {
+    content: '✓';
+    position: absolute;
+    left: 0;
+    color: #16a34a;
+    font-weight: 700;
+    font-size: 14px;
+  }
+  ul.lst li strong { color: #0f172a; }
+
+  /* CASETE NIVEL */
+  .nivel-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin: 14px 0;
+  }
+  .nivel-card {
+    border: 1px solid #cbd5e1;
+    border-left: 4px solid #1e3a8a;
+    padding: 16px 20px;
+    background: #f8fafc;
+    border-radius: 4px;
+  }
+  .nivel-card.green { border-left-color: #16a34a; }
+  .nivel-card.purple { border-left-color: #7c3aed; }
+  .nivel-card.orange { border-left-color: #ea580c; }
+  .nivel-card.teal { border-left-color: #0d9488; }
+  .nivel-card .nivel-titlu {
+    font-size: 11.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #1e3a8a;
+    margin-bottom: 8px;
+  }
+  .nivel-card.green .nivel-titlu { color: #16a34a; }
+  .nivel-card.purple .nivel-titlu { color: #7c3aed; }
+  .nivel-card.orange .nivel-titlu { color: #ea580c; }
+  .nivel-card.teal .nivel-titlu { color: #0d9488; }
+  .nivel-card ul.lst li { font-size: 12px; padding: 5px 0 5px 22px; border-bottom: none; line-height: 1.55; }
+
+  /* CASETE SECURITATE */
+  .sec-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    margin: 14px 0;
+  }
+  .sec-item {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-top: 3px solid #16a34a;
+    padding: 12px 14px;
+    border-radius: 4px;
+  }
+  .sec-item .sec-titlu {
+    font-size: 11px;
+    font-weight: 700;
+    color: #166534;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-bottom: 4px;
+  }
+  .sec-item p {
+    font-size: 11.5px;
+    color: #475569;
+    line-height: 1.55;
+    margin: 0;
+  }
+
+  /* NOTA FINALA */
+  .nota-finala {
+    margin-top: 36px;
+    background: linear-gradient(135deg, #1e3a8a, #1d4ed8);
+    color: #fff;
+    padding: 22px 28px;
+    border-radius: 10px;
+    text-align: center;
+  }
+  .nota-finala .url {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 6px 0;
+    letter-spacing: 0.5px;
+  }
+  .nota-finala .desc {
+    font-size: 12.5px;
+    opacity: 0.9;
+  }
+
+  /* FOOTER */
+  .footer {
+    margin-top: 36px;
+    padding-top: 18px;
+    border-top: 1.5px solid #cbd5e1;
+    font-size: 11.5px;
+    color: #64748b;
+    text-align: center;
+    line-height: 1.7;
+  }
+
+  /* PRINT */
+  @media print {
+    body { background: #fff; padding: 0; font-size: 11.5px; }
+    .container { box-shadow: none; padding: 20px 26px; border-radius: 0; max-width: 100%; }
+    .print-bar { display: none !important; }
+    h2 { background: #1e3a8a !important; color: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .nota-finala { background: #1e3a8a !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .nivel-card, .sec-item, .titlu-doc { page-break-inside: avoid; }
+    .nivel-grid { page-break-inside: avoid; }
+  }
+
+  @page {
+    margin: 1.5cm;
+    size: A4;
+  }
+</style>
+</head>
+<body>
+
+<!-- BUTON DE PRINT -->
+<div class="print-bar">
+  <button class="btn-secondary" onclick="window.location.href='/aracip'">← Înapoi la platformă</button>
+  <button class="btn-print" onclick="window.print()">🖨️ Printează / Salvează PDF</button>
+</div>
+
+<div class="container">
+
+  <!-- ANTET -->
+  <div class="antet">
+    <div class="antet-firma">
+      <div class="denumire">Newtime Concept Solutions S.R.L.</div>
+      <div class="detalii">
+        CUI: 38803627 &nbsp;|&nbsp; Nr. înreg.: J16/242/05.02.2018<br>
+        Sediu social: Str. Albișoarei nr. 7, Craiova, Județul Dolj<br>
+        Web: aicraiova.ro &nbsp;|&nbsp; E-mail: contact@aicraiova.ro
+      </div>
+    </div>
+    <div class="antet-doc">
+      <span class="doc-tip">Fișă Sinoptică</span>
+      Capabilități operaționale<br>
+      Mai 2026<br>
+      <strong>Producție: aicraiova.ro/aracip</strong>
+    </div>
+  </div>
+
+  <!-- TITLU -->
+  <div class="titlu-doc">
+    <div class="categorie">Lista funcționalităților disponibile în producție</div>
+    <h1>Platforma ARACIP<br>Capabilități Operaționale</h1>
+    <div class="subtitlu">
+      Anexă la Oferta Comercială nr. 002/25.05.2026 &nbsp;·&nbsp; Toate funcționalitățile listate sunt live, accesibile la <strong>aicraiova.ro/aracip</strong>
+    </div>
+  </div>
+
+
+  <!-- NIVEL CENTRAL -->
+  <h2><span class="icon">🏛️</span> Nivel central — ARACIP</h2>
+
+  <div class="nivel-grid">
+    <div class="nivel-card">
+      <div class="nivel-titlu">Portal Inspector Național</div>
+      <ul class="lst">
+        <li>Status acreditare unități la nivel național</li>
+        <li>Calendar evaluări programate</li>
+        <li>Statistici comparative pe județe</li>
+        <li>Vizibilitate în timp real asupra județelor pilot</li>
+      </ul>
+    </div>
+    <div class="nivel-card">
+      <div class="nivel-titlu">Asistent AI ARA</div>
+      <ul class="lst">
+        <li>Instruit pe legislația și procedurile ARACIP</li>
+        <li>Voce TTS naturală în română</li>
+        <li>Cunoștințe dinamice — fără restart la actualizări</li>
+        <li>Identitate personalizată per utilizator logat</li>
+        <li>Disponibil 24/7</li>
+      </ul>
+    </div>
+    <div class="nivel-card">
+      <div class="nivel-titlu">Sistem documente live</div>
+      <ul class="lst">
+        <li>Circulare, proceduri, adrese, metodologii, ordine</li>
+        <li>Număr de înregistrare automat (ARACIP/ISJ/INSPECTOR)</li>
+        <li>Marcaj temporal pe fiecare document</li>
+        <li>Confirmare recepție electronică</li>
+        <li>Extragere text automată din PDF, DOCX, imagini</li>
+      </ul>
+    </div>
+    <div class="nivel-card">
+      <div class="nivel-titlu">Arhivă centralizată</div>
+      <ul class="lst">
+        <li>Stocare cloud (Vercel Blob — hosting UE)</li>
+        <li>Indexare prin <code>/api/documents</code></li>
+        <li>Filtrare pe sursă, județ, tip, urgență, termen</li>
+        <li>Acces ierarhic (ARACIP vede tot, ISJ vede județul, director vede propria unitate)</li>
+      </ul>
+    </div>
+  </div>
+
+
+  <!-- NIVEL ISJ -->
+  <h2><span class="icon">🏢</span> Nivel județean — Inspectorat Școlar Județean</h2>
+
+  <div class="nivel-grid">
+    <div class="nivel-card green">
+      <div class="nivel-titlu">Portal ISJ</div>
+      <ul class="lst">
+        <li>Recepționează circulare ARACIP cu confirmare</li>
+        <li>Transmite documente către directori din județ</li>
+        <li>Listă școli și directori pe județ</li>
+        <li>Statistici județene integrate</li>
+        <li>Calendar termene local</li>
+      </ul>
+    </div>
+    <div class="nivel-card green">
+      <div class="nivel-titlu">Inbox submisii directori</div>
+      <ul class="lst">
+        <li>Documente trimise de directori cu fișiere atașate</li>
+        <li>Sesizări și reclamații cu nr. înregistrare</li>
+        <li>Rapoarte și raportări periodice</li>
+        <li>Trasabilitate completă pe lanțul director → ISJ</li>
+      </ul>
+    </div>
+  </div>
+
+
+  <!-- NIVEL DIRECTOR -->
+  <h2><span class="icon">🏫</span> Nivel unitate — Director școală / grădiniță</h2>
+
+  <div class="nivel-grid">
+    <div class="nivel-card purple">
+      <div class="nivel-titlu">Portal Director</div>
+      <ul class="lst">
+        <li>Notificări ISJ și ARACIP cu marcare citit</li>
+        <li>Asistent AI personalizat cu numele și rolul</li>
+        <li>Salut role-aware ("Bună ziua, Domnule Director [Nume]")</li>
+        <li>Diferențiere portal școală vs grădiniță (URL <code>?type=scoala/gradinita</code>)</li>
+      </ul>
+    </div>
+    <div class="nivel-card purple">
+      <div class="nivel-titlu">Trimite document oficial</div>
+      <ul class="lst">
+        <li>Selecție destinatar: ISJ Dolj sau ARACIP</li>
+        <li>Upload PDF/DOCX/imagine cu text extras automat</li>
+        <li>Câmpuri: titlu, tip, nr., termen, urgent, conținut</li>
+        <li>Submisie autentificată cu sesiunea directorului</li>
+      </ul>
+    </div>
+    <div class="nivel-card purple">
+      <div class="nivel-titlu">Calendar Termene</div>
+      <ul class="lst">
+        <li>Termene legale autorizare, acreditare, raportări</li>
+        <li>Alerte preventive 30 și 7 zile înainte</li>
+        <li>Vizualizare cronologică cu prioritizare</li>
+      </ul>
+    </div>
+    <div class="nivel-card purple">
+      <div class="nivel-titlu">Checklist Conformitate</div>
+      <ul class="lst">
+        <li>Verificare automată documentație vs cerințe ARACIP</li>
+        <li>Documente valide, expirate, lipsuri</li>
+        <li>Indicatori neîndepliniți semnalați</li>
+      </ul>
+    </div>
+    <div class="nivel-card purple">
+      <div class="nivel-titlu">Generator RAEI</div>
+      <ul class="lst">
+        <li>Formular structurat conform model ARACIP</li>
+        <li>Secțiuni standardizate (rezultate, personal, dotări, indicatori)</li>
+        <li>Generare document final în format compatibil</li>
+      </ul>
+    </div>
+    <div class="nivel-card purple">
+      <div class="nivel-titlu">Reclamă o abatere</div>
+      <ul class="lst">
+        <li>Sesizare formală către ISJ sau ARACIP</li>
+        <li>Categorii: abatere disciplinară, financiară, calitate</li>
+        <li>Nr. înregistrare automat</li>
+      </ul>
+    </div>
+  </div>
+
+
+  <!-- MODULE EDUCATIONALE -->
+  <h2><span class="icon">🎓</span> Module Educaționale (incluse fără cost în pilot)</h2>
+
+  <div class="nivel-grid">
+    <div class="nivel-card orange">
+      <div class="nivel-titlu">EDU Digital — Elevi</div>
+      <ul class="lst">
+        <li>Bacalaureat: 9 materii (Mate M1/M2, Română, Bio, Fizică, Chimie, Info, Geografie, Istorie)</li>
+        <li>Evaluare Națională: 2 materii (Matematică, Română)</li>
+        <li>Profesor AI în română (Groq llama-3.3-70b)</li>
+        <li>Sesiuni weekend cu cod, limită de ore</li>
+        <li>Gamification: AI Coins, niveluri, badges, streak</li>
+        <li>Cursuri AI pentru elevi — 8 module</li>
+      </ul>
+    </div>
+    <div class="nivel-card orange">
+      <div class="nivel-titlu">Formare continuă Profesori</div>
+      <ul class="lst">
+        <li>8 module despre integrarea AI la clasă</li>
+        <li>Prompt-uri gata de folosit în ChatGPT/Gemini</li>
+        <li>Predare diferențiată, evaluare, feedback rapid</li>
+        <li>Etica AI și legislație europeană (AI Act)</li>
+      </ul>
+    </div>
+    <div class="nivel-card teal">
+      <div class="nivel-titlu">Portal Diriginte EDU Digital</div>
+      <ul class="lst">
+        <li>Sesiuni cod 8:00 → PENDING → ACTIVE 60 min</li>
+        <li>20 întrebări AI per activare clasă</li>
+        <li>Orar dirigenție configurabil</li>
+        <li>Tab Elevi & Activitate cu raport printabil</li>
+      </ul>
+    </div>
+    <div class="nivel-card teal">
+      <div class="nivel-titlu">Catalog Profesor</div>
+      <ul class="lst">
+        <li>Note multi-semestru, medii automate, purtare</li>
+        <li>Cloud sync (Vercel Blob)</li>
+        <li>Multi-class teacher (clasele 4-12)</li>
+        <li>Per-subject class lists</li>
+        <li>Auto-import liste elevi de la diriginte</li>
+      </ul>
+    </div>
+    <div class="nivel-card teal">
+      <div class="nivel-titlu">Portal Părinți</div>
+      <ul class="lst">
+        <li>Vizibilitate note, absențe, activitate copil</li>
+        <li>Rapoarte periodice automate</li>
+        <li>Funcționează complementar sistemelor existente</li>
+      </ul>
+    </div>
+    <div class="nivel-card teal">
+      <div class="nivel-titlu">Portal Școală / Grădiniță</div>
+      <ul class="lst">
+        <li>Hub navigare pentru toate rolurile</li>
+        <li>Diferențiat pentru școală vs unitate preșcolară</li>
+        <li>Cuprinde Director, Profesori, Diriginți, Elevi, Părinți</li>
+      </ul>
+    </div>
+  </div>
+
+
+  <!-- SECURITATE -->
+  <h2><span class="icon">🔒</span> Securitate & Conformitate GDPR</h2>
+
+  <div class="sec-grid">
+    <div class="sec-item">
+      <div class="sec-titlu">Criptare în tranzit</div>
+      <p>TLS 1.3 pe toate comunicațiile. Niciodată text clar.</p>
+    </div>
+    <div class="sec-item">
+      <div class="sec-titlu">Autentificare HMAC</div>
+      <p>Sesiuni semnate criptografic (token HMAC SHA-256). Expirare 12 ore.</p>
+    </div>
+    <div class="sec-item">
+      <div class="sec-titlu">Hosting UE</div>
+      <p>Vercel Frankfurt (Germania). Datele nu părăsesc UE.</p>
+    </div>
+    <div class="sec-item">
+      <div class="sec-titlu">RBAC strict</div>
+      <p>Acces bazat pe rol. Fiecare utilizator vede doar ce-i corespunde.</p>
+    </div>
+    <div class="sec-item">
+      <div class="sec-titlu">Rate limiting</div>
+      <p>Limitare cereri pe IP pe toate endpoint-urile critice. Anti-abuse.</p>
+    </div>
+    <div class="sec-item">
+      <div class="sec-titlu">CSP strict</div>
+      <p>Content Security Policy împotriva XSS și injecții.</p>
+    </div>
+    <div class="sec-item">
+      <div class="sec-titlu">Frame-ancestors none</div>
+      <p>Protecție anti-clickjacking. Nu poate fi încadrată în iframe.</p>
+    </div>
+    <div class="sec-item">
+      <div class="sec-titlu">HSTS preload</div>
+      <p>Strict-Transport-Security 2 ani, includeSubDomains.</p>
+    </div>
+    <div class="sec-item">
+      <div class="sec-titlu">Audit log</div>
+      <p>Marcaj temporal pe fiecare acțiune. Trasabilitate completă.</p>
+    </div>
+  </div>
+
+
+  <!-- NOTA FINALA -->
+  <div class="nota-finala">
+    <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; opacity: 0.85;">Acces direct platformă</div>
+    <div class="url">aicraiova.ro/aracip</div>
+    <div class="desc">
+      Toate funcționalitățile descrise în această fișă sunt operaționale în producție.<br>
+      Demo live disponibil pentru evaluare conducerii ARACIP.
+    </div>
+  </div>
+
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <strong>Newtime Concept Solutions S.R.L.</strong> &nbsp;·&nbsp; CUI 38803627 &nbsp;·&nbsp; J16/242/05.02.2018<br>
+    Str. Albișoarei nr. 7, Craiova, Județul Dolj &nbsp;·&nbsp; aicraiova.ro &nbsp;·&nbsp; contact@aicraiova.ro<br>
+    <span style="font-size:10.5px; color:#94a3b8;">Document generat automat din platformă · Mai 2026</span>
+  </div>
+
+</div>
+
+</body>
+</html>

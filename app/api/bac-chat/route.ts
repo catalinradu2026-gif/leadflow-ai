@@ -321,9 +321,11 @@ export async function POST(req: NextRequest) {
     const systemPrompt = clientPrompt || SYSTEM_PROMPTS[key] || SYSTEM_PROMPTS[materie] || SYSTEM_PROMPTS['matematica-M1']
 
     const response = await groq.chat.completions.create({
-      model: 'llama-3.3-70b-versatile',
-      max_tokens: 700,
+      model: 'openai/gpt-oss-120b',
+      max_completion_tokens: 2500,
       temperature: 0.4,
+      reasoning_effort: 'medium',
+      reasoning_format: 'hidden',
       messages: [
         { role: 'system', content: systemPrompt },
         ...messages.slice(-12).map((m: { role: string; content: string }) => ({

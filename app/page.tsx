@@ -1,5 +1,7 @@
 import Navbar from './components/Navbar'
 import Hero from './components/Hero'
+import HomeSmart from './components/HomeSmart'
+import AIasociatie from './components/AIasociatie'
 import Despre from './components/Despre'
 import Probleme from './components/Probleme'
 import Servicii from './components/Servicii'
@@ -19,6 +21,8 @@ export default function Home() {
     <>
       <Navbar />
       <Hero />
+      <HomeSmart />
+      <AIasociatie />
       <Despre />
       <Probleme />
       <Servicii />

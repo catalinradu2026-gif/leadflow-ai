@@ -2,6 +2,7 @@
 import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import CalendarTermene from '../../components/CalendarTermene'
+import AraArchive from '../../components/AraArchive'
 
 const JUDETE = [
   { name: 'Alba', scoli: 198, active: 198, doc: 12, alert: 0 },
@@ -176,7 +177,7 @@ export default function InspectorNational() {
   const [search, setSearch] = useState('')
   const [showUpload, setShowUpload] = useState(false)
   const [docs, setDocs] = useState<Doc[]>(DOCS_INITIALE)
-  const [tab, setTab] = useState<'judete' | 'documente'>('judete')
+  const [tab, setTab] = useState<'judete' | 'documente' | 'arhiva'>('judete')
   const [judetModal, setJudetModal] = useState<string | null>(null)
   const [judetTipFilter, setJudetTipFilter] = useState<string>('Toate')
   const [showAlerte, setShowAlerte] = useState(false)
@@ -528,14 +529,15 @@ export default function InspectorNational() {
         {/* Tabs */}
         <div style={{ display: 'flex', gap: '4px', background: '#1e293b', padding: '4px', borderRadius: '10px', width: 'fit-content', marginBottom: '16px' }}>
           {[
-            { key: 'judete', label: '🗺️ Situație Județe' },
-            { key: 'documente', label: `📄 Documente Publicate${newDocsCount > 0 ? ` (${newDocsCount} nou)` : ''}` },
+            { key: 'judete', label: 'Situatie Judete' },
+            { key: 'documente', label: `Documente Publicate${newDocsCount > 0 ? ` (${newDocsCount} nou)` : ''}` },
+            { key: 'arhiva', label: 'Arhiva ARACIP' },
           ].map(t => (
             <button
               key={t.key}
-              onClick={() => setTab(t.key as 'judete' | 'documente')}
+              onClick={() => setTab(t.key as 'judete' | 'documente' | 'arhiva')}
               style={{
-                background: tab === t.key ? '#1d4ed8' : 'none',
+                background: tab === t.key ? (t.key === 'arhiva' ? '#065f46' : '#1d4ed8') : 'none',
                 color: tab === t.key ? '#fff' : '#64748b',
                 border: 'none', borderRadius: '8px', padding: '8px 18px',
                 fontSize: '13px', fontWeight: tab === t.key ? 600 : 400, cursor: 'pointer',
@@ -731,6 +733,20 @@ export default function InspectorNational() {
             })}
           </div>
         )}
+        {/* ARHIVA TAB */}
+        {tab === 'arhiva' && (
+          <div
+            style={{
+              background: '#1e293b',
+              border: '1px solid #334155',
+              borderRadius: '12px',
+              padding: '20px 24px',
+            }}
+          >
+            <AraArchive password="ARACIP2026" readOnly={false} />
+          </div>
+        )}
+
       </div>
 
       {/* ===== UPLOAD MODAL ===== */}
