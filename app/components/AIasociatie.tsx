@@ -65,23 +65,22 @@ export default function AIasociatie() {
           {/* Icon — bloc modern, cu glow auriu */}
           <div className="shrink-0 relative">
             <div className="absolute inset-0 rounded-3xl bg-gold/20 blur-2xl group-hover:bg-gold/30 transition-all duration-500" />
-            <div className="relative w-28 h-28 md:w-32 md:h-32 rounded-3xl bg-gradient-to-br from-zinc-800 to-black border border-gold/30 shadow-2xl flex items-center justify-center group-hover:scale-105 transition-transform duration-500">
-              <svg viewBox="0 0 48 48" className="w-16 h-16 md:w-20 md:h-20" fill="none">
-                <rect x="10" y="6" width="17" height="36" rx="1.5" className="stroke-gold" strokeWidth="1.6" />
-                <rect x="27" y="18" width="12" height="24" rx="1.5" className="stroke-gold" strokeWidth="1.6" />
-                <g className="fill-gold">
-                  <rect x="13.5" y="10" width="3.5" height="3.5" rx="0.5" />
-                  <rect x="20" y="10" width="3.5" height="3.5" rx="0.5" />
-                  <rect x="13.5" y="17" width="3.5" height="3.5" rx="0.5" />
-                  <rect x="20" y="17" width="3.5" height="3.5" rx="0.5" />
-                  <rect x="13.5" y="24" width="3.5" height="3.5" rx="0.5" />
-                  <rect x="20" y="24" width="3.5" height="3.5" rx="0.5" />
-                  <rect x="30.5" y="22" width="3" height="3" rx="0.5" />
-                  <rect x="35" y="22" width="3" height="3" rx="0.5" />
-                  <rect x="30.5" y="28" width="3" height="3" rx="0.5" />
-                  <rect x="35" y="28" width="3" height="3" rx="0.5" />
-                  <rect x="17" y="34" width="5" height="8" rx="0.5" />
+            <div className="relative w-28 h-28 md:w-32 md:h-32 rounded-3xl bg-white shadow-2xl flex items-center justify-center group-hover:scale-105 transition-transform duration-500">
+              {/* Logo REAL AIasociatie.ro — două clădiri emerald */}
+              <svg viewBox="0 0 64 64" className="w-20 h-20 md:w-24 md:h-24" fill="none" aria-label="AIasociatie.ro" role="img">
+                <rect x="32" y="14" width="18" height="42" rx="3" fill="#34d399" />
+                <g fill="#ffffff" opacity="0.9">
+                  <rect x="36" y="20" width="4" height="4" rx="1" /><rect x="43" y="20" width="4" height="4" rx="1" />
+                  <rect x="36" y="28" width="4" height="4" rx="1" /><rect x="43" y="28" width="4" height="4" rx="1" />
+                  <rect x="36" y="36" width="4" height="4" rx="1" /><rect x="43" y="36" width="4" height="4" rx="1" />
                 </g>
+                <rect x="14" y="22" width="20" height="34" rx="3" fill="#059669" />
+                <g fill="#ffffff">
+                  <rect x="18" y="27" width="4.5" height="4.5" rx="1" /><rect x="25.5" y="27" width="4.5" height="4.5" rx="1" />
+                  <rect x="18" y="35" width="4.5" height="4.5" rx="1" /><rect x="25.5" y="35" width="4.5" height="4.5" rx="1" />
+                  <rect x="18" y="43" width="4.5" height="4.5" rx="1" /><rect x="25.5" y="43" width="4.5" height="4.5" rx="1" />
+                </g>
+                <rect x="10" y="55" width="44" height="4" rx="2" fill="#047857" />
               </svg>
             </div>
           </div>
