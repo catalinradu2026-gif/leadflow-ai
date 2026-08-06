@@ -120,7 +120,7 @@ export async function GET(req: NextRequest) {
 
     const ok = await sendEmail({
       to: 'contact@aicraiova.ro',
-      from: 'NEWTIME <noreply@aicraiova.ro>',
+      from: 'AI Craiova <noreply@aicraiova.ro>',
       subject: `Raport generat — ${data.firma}`,
       html: `<p>Raportul de evaluare NIS2/ISO 27001 pentru <strong>${data.firma}</strong> a fost generat automat și e atașat aici.</p>`,
       attachments: [{ filename: `Evaluare NIS2 - ${data.firma}.docx`, content: buffer.toString('base64') }],
