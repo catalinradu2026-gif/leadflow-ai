@@ -68,12 +68,13 @@ export async function POST(req: NextRequest) {
     }
 
     // Notificare instant catre Catalin — inlocuieste temporar generarea de PDF.
-    sendEmail({
+sendEmail({
       to: 'contact@aicraiova.ro',
+      from: 'NEWTIME <noreply@aicraiova.ro>',
       subject: `Evaluare NIS2 nouă — ${firma}`,
       html: `<div style="font-family:Segoe UI,Arial,sans-serif;max-width:640px;margin:0 auto;color:#1e293b">
         <div style="background:#0f172a;color:#fff;padding:18px 22px;border-radius:10px 10px 0 0">
-          <div style="font-size:12px;color:#C9A84C;letter-spacing:1px;text-transform:uppercase">AI Craiova · NEWTIME</div>
+          <div style="font-size:12px;color:#C9A84C;letter-spacing:1px;text-transform:uppercase">AI Craiova · NEWTIME CONCEPT SOLUTIONS SRL</div>
           <div style="font-size:18px;font-weight:800">Evaluare NIS2/ISO 27001 nouă</div>
         </div>
         <div style="border:1px solid #e2e8f0;border-top:none;border-radius:0 0 10px 10px;padding:20px">
