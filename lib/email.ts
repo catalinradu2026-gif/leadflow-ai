@@ -11,9 +11,10 @@ export function emailConfigured(): boolean {
 
 const FROM = process.env.EMAIL_FROM || 'ARACIP <onboarding@resend.dev>'
 
-type SendArgs = { to: string; subject: string; html: string; from?: string }
+type Attachment = { filename: string; content: string }  // content = base64
+type SendArgs = { to: string; subject: string; html: string; from?: string; attachments?: Attachment[] }
 
-export async function sendEmail({ to, subject, html, from }: SendArgs): Promise<boolean> {
+export async function sendEmail({ to, subject, html, from, attachments }: SendArgs): Promise<boolean> {
   const key = process.env.RESEND_API_KEY
   if (!key) return false
   if (!to || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)) return false
@@ -21,7 +22,7 @@ export async function sendEmail({ to, subject, html, from }: SendArgs): Promise<
     const r = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from: from || FROM, to: [to], subject, html }),
+      body: JSON.stringify({ from: from || FROM, to: [to], subject, html, ...(attachments?.length ? { attachments } : {}) }),
     })
     if (!r.ok) { console.error('[email] resend', r.status, await r.text().catch(() => '')); return false }
     return true
