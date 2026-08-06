@@ -1,7 +1,7 @@
 import crypto from 'crypto'
 import { NextRequest } from 'next/server'
 
-export type SessionRole = 'admin' | 'isj' | 'inspector' | 'director' | 'diriginte'
+export type SessionRole = 'admin' | 'isj' | 'inspector' | 'director' | 'diriginte' | 'formabil' | 'evaluator'
 export type SessionPayload = { userId: string; role: SessionRole; ts: number }
 
 const TOKEN_TTL_MS = 12 * 60 * 60 * 1000 // 12 ore
@@ -71,6 +71,16 @@ export function checkPassword(role: SessionRole, password: string): boolean {
   if (role === 'inspector') {
     const p = process.env.INSPECTOR_PASSWORD
     if (!p) { console.error('[checkPassword] INSPECTOR_PASSWORD missing'); return false }
+    return password === p
+  }
+  if (role === 'formabil') {
+    const p = process.env.FORMABIL_PASSWORD
+    if (!p) { console.error('[checkPassword] FORMABIL_PASSWORD missing'); return false }
+    return password === p
+  }
+  if (role === 'evaluator') {
+    const p = process.env.EVALUATOR_PASSWORD
+    if (!p) { console.error('[checkPassword] EVALUATOR_PASSWORD missing'); return false }
     return password === p
   }
   return false

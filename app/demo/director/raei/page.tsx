@@ -1,6 +1,7 @@
 'use client'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { JUDETE } from '@/lib/judete'
 
 const CEAC_CRITERII = ['Curriculum', 'Resurse umane', 'Resurse materiale', 'Rezultate', 'Management']
 
@@ -21,6 +22,7 @@ export default function RaeiGeneratorPage() {
 
   // 1. Date generale
   const [denumire, setDenumire] = useState('')
+  const [judet, setJudet] = useState('')
   const [localitate, setLocalitate] = useState('')
   const [nivel, setNivel] = useState('Primar')
   const [nrElevi, setNrElevi] = useState('')
@@ -86,6 +88,7 @@ export default function RaeiGeneratorPage() {
       <h3>1. Date generale</h3>
       <div class="meta">
         <div><strong>Denumire unitate:</strong> ${escapeHtml(denumire)}</div>
+        <div><strong>Județ:</strong> ${escapeHtml(judet)}</div>
         <div><strong>Localitate:</strong> ${escapeHtml(localitate)}</div>
         <div><strong>Nivel:</strong> ${escapeHtml(nivel)}</div>
         <div><strong>Număr elevi:</strong> ${escapeHtml(nrElevi)}</div>
@@ -130,6 +133,21 @@ export default function RaeiGeneratorPage() {
       <div class="footer">Generat automat prin platforma ARACIP Digital — ${new Date().toLocaleDateString('ro-RO')}</div>
     </body></html>`
 
+    // Conectare la tabloul central ARACIP — salvează RAEI-ul generat (fire-and-forget).
+    try {
+      fetch('/api/raei', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nume_unitate: denumire,
+          judet, localitate, nivel, an_scolar: an,
+          nr_elevi: nrElevi,
+          details: { promovabilitate, absenteism, abandon, nrTitular, nrSuplinitor, pctCalificat, nrSali, nrLab, conectivitate, activitati, ceac, obiective: obiective.filter(o => o.trim()), dificultati },
+        }),
+        keepalive: true,
+      }).catch(() => { /* fallback silent — documentul se generează oricum */ })
+    } catch { /* noop */ }
+
     const w = window.open('', '_blank')
     if (!w) return
     w.document.open()
@@ -157,6 +175,13 @@ export default function RaeiGeneratorPage() {
           <h3 style={h3Style}>1. Date generale</h3>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             <div><label style={labelStyle}>Denumire unitate</label><input style={inputStyle} value={denumire} onChange={e => setDenumire(e.target.value)} /></div>
+            <div>
+              <label style={labelStyle}>Județ</label>
+              <select style={inputStyle} value={judet} onChange={e => setJudet(e.target.value)}>
+                <option value="">— alege județul —</option>
+                {JUDETE.map(j => <option key={j} value={j}>{j}</option>)}
+              </select>
+            </div>
             <div><label style={labelStyle}>Localitate</label><input style={inputStyle} value={localitate} onChange={e => setLocalitate(e.target.value)} /></div>
             <div>
               <label style={labelStyle}>Nivel</label>

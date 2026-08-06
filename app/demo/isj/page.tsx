@@ -17,6 +17,14 @@ const TIP_COLORS: Record<TipUnitate, { bg: string; color: string }> = {
   'Școală':    { bg: '#064e3b', color: '#6ee7b7' },
   'Grădiniță': { bg: '#713f12', color: '#fde68a' },
 }
+// Toate județele — inspectorul își alege județul la autentificare (monitorizarea LIVE se filtrează pe el).
+const JUDETE = [
+  'Alba', 'Arad', 'Argeș', 'Bacău', 'Bihor', 'Bistrița-Năsăud', 'Botoșani', 'Brașov', 'Brăila',
+  'Buzău', 'Caraș-Severin', 'Călărași', 'Cluj', 'Constanța', 'Covasna', 'Dâmbovița', 'Dolj',
+  'Galați', 'Giurgiu', 'Gorj', 'Harghita', 'Hunedoara', 'Ialomița', 'Iași', 'Ilfov', 'Maramureș',
+  'Mehedinți', 'Mureș', 'Neamț', 'Olt', 'Prahova', 'Satu Mare', 'Sălaj', 'Sibiu', 'Suceava',
+  'Teleorman', 'Timiș', 'Tulcea', 'Vaslui', 'Vâlcea', 'Vrancea', 'București',
+]
 const SCOLI_DOLJ = [
   { name: 'Liceul Teoretic "Amărăștii de Jos"', loc: 'Amărăștii de Jos', director: 'Ion Marin', citit: true, activ: true, tip: 'Liceu' as TipUnitate },
   { name: 'Colegiul Național "Elena Cuza"', loc: 'Craiova', director: 'Maria Ionescu', citit: true, activ: true, tip: 'Colegiu' as TipUnitate },
@@ -61,6 +69,7 @@ export default function ISJDolj() {
   const [uploadTipUnitate, setUploadTipUnitate] = useState<string>('Toate')
   const [loginTitlu, setLoginTitlu] = useState('Dl')
   const [loginNume, setLoginNume] = useState('')
+  const [judet, setJudet] = useState('Dolj')
   const [uploadTermen, setUploadTermen] = useState('')
   const [uploadNr, setUploadNr] = useState('')
   const [uploadUrgent, setUploadUrgent] = useState(false)
@@ -107,14 +116,27 @@ export default function ISJDolj() {
     } catch (e) { console.error('[isj session]', e) }
     setLogging(false)
     if (loginNume.trim()) {
-      try { localStorage.setItem('ara_user', JSON.stringify({ titlu: loginTitlu, rol: 'Inspector ISJ', nume: loginNume.trim(), userId: loginEmail })) } catch {}
+      try { localStorage.setItem('ara_user', JSON.stringify({ titlu: loginTitlu, rol: `Inspector ISJ ${judet}`, nume: loginNume.trim(), userId: loginEmail, judet })) } catch {}
     }
     setLoggedIn(true)
   }
 
+  // Rol de monitorizare ISJ: depunerile de autoevaluare și RAEI-urile din județul inspectorului.
+  // (RAEI se transmite oficial și inspectoratului școlar județean — sursă ARACIP.)
+  const [judetDepuneri, setJudetDepuneri] = useState<Array<{ nume_unitate: string; tip_unitate: string; localitate: string; status: string; calificativ_general: string | null; created_at: string }>>([])
+  const [judetRaei, setJudetRaei] = useState<Array<{ nume_unitate: string; nivel: string | null; an_scolar: string | null; created_at: string }>>([])
+  const [judetAutorizari, setJudetAutorizari] = useState<Array<{ nr_inregistrare: string; denumire: string; nivel: string | null; status: string; created_at: string }>>([])
   useEffect(() => {
     if (!loggedIn) return
-    fetch('/api/documents?judet=Dolj')
+    const jq = encodeURIComponent(judet)
+    fetch(`/api/unitati?judet=${jq}`).then(r => r.json()).then(d => { if (Array.isArray(d?.unitati)) setJudetDepuneri(d.unitati) }).catch(() => {})
+    fetch(`/api/raei?judet=${jq}`).then(r => r.json()).then(d => { if (Array.isArray(d?.recent)) setJudetRaei(d.recent) }).catch(() => {})
+    fetch(`/api/autorizare?judet=${jq}`).then(r => r.json()).then(d => { if (Array.isArray(d?.recent)) setJudetAutorizari(d.recent) }).catch(() => {})
+  }, [loggedIn, judet])
+
+  useEffect(() => {
+    if (!loggedIn) return
+    fetch(`/api/documents?judet=${encodeURIComponent(judet)}`)
       .then(r => r.json())
       .then(json => {
         if (json.documents?.length) {
@@ -140,14 +162,14 @@ export default function ISJDolj() {
         }
       })
       .catch(() => {})
-  }, [loggedIn])
+  }, [loggedIn, judet])
 
   if (!loggedIn) return (
     <div style={{ minHeight: '100vh', background: '#060b14', fontFamily: "'Segoe UI', Arial, sans-serif", color: '#f1f5f9', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
       <button onClick={() => router.push('/aracip')} style={{ position: 'fixed', top: 20, left: 20, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '8px 16px', color: '#94a3b8', cursor: 'pointer', fontSize: '13px', fontFamily: 'inherit' }}>← ARACIP</button>
       <div style={{ textAlign: 'center', marginBottom: '32px' }}>
         <div style={{ width: 56, height: 56, borderRadius: '16px', background: 'linear-gradient(135deg, #164e63, #0ea5e9)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px', margin: '0 auto 16px', boxShadow: '0 8px 24px rgba(14,165,233,0.35)' }}>🏛️</div>
-        <div style={{ fontSize: '20px', fontWeight: 800 }}>ISJ Dolj</div>
+        <div style={{ fontSize: '20px', fontWeight: 800 }}>ISJ {judet}</div>
         <div style={{ fontSize: '12px', color: '#334155', marginTop: '4px' }}>Inspectoratul Școlar Județean</div>
         <div style={{ display: 'inline-block', marginTop: '8px', background: 'rgba(14,165,233,0.12)', border: '1px solid rgba(14,165,233,0.3)', borderRadius: '20px', padding: '3px 12px', fontSize: '10px', fontWeight: 700, color: '#38bdf8', letterSpacing: '1px' }}>DEMO LIVE — AIcraiova.ro</div>
       </div>
@@ -161,6 +183,12 @@ export default function ISJDolj() {
               <option value="Dna">Dna.</option>
             </select>
             <input placeholder="Prenume Nume" value={loginNume} onChange={e => setLoginNume(e.target.value)} style={{ flex: 1, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '12px 16px', fontSize: '14px', color: '#f1f5f9', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' as const }} />
+          </div>
+          <div>
+            <label style={{ fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '6px', fontWeight: 600 }}>Județ</label>
+            <select value={judet} onChange={e => setJudet(e.target.value)} style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(14,165,233,0.3)', borderRadius: '10px', padding: '12px 14px', fontSize: '14px', color: '#38bdf8', outline: 'none', fontFamily: 'inherit', cursor: 'pointer', boxSizing: 'border-box' as const }}>
+              {JUDETE.map(j => <option key={j} value={j}>{j}</option>)}
+            </select>
           </div>
           <input type="email" placeholder="Email instituțional" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '12px 16px', fontSize: '14px', color: '#f1f5f9', outline: 'none', fontFamily: 'inherit', width: '100%', boxSizing: 'border-box' as const }} />
           <input type="password" placeholder="Parolă" value={loginPass} onChange={e => setLoginPass(e.target.value)} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '12px 16px', fontSize: '14px', color: '#f1f5f9', outline: 'none', fontFamily: 'inherit', width: '100%', boxSizing: 'border-box' as const }} />
@@ -189,7 +217,7 @@ export default function ISJDolj() {
       fetch('/api/documents', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', 'X-User-Session': sessionToken },
-        body: JSON.stringify({ id: apiId, action: 'read', viewer: { name: viewerName, rol: 'Inspector ISJ Dolj' } }),
+        body: JSON.stringify({ id: apiId, action: 'read', viewer: { name: viewerName, rol: `Inspector ISJ ${judet}` } }),
       }).catch(() => {})
     }
   }
@@ -198,7 +226,7 @@ export default function ISJDolj() {
     if (!uploadTitle.trim()) return
     setUploading(true)
     try {
-      const destinatari = uploadDestinatar || `Toți directorii din județul Dolj${uploadTipUnitate !== 'Toate' ? ` — ${uploadTipUnitate}e` : ''}`
+      const destinatari = uploadDestinatar || `Toți directorii din județul ${judet}${uploadTipUnitate !== 'Toate' ? ` — ${uploadTipUnitate}e` : ''}`
       const res = await fetch('/api/documents', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -207,9 +235,9 @@ export default function ISJDolj() {
           document: {
             titlu: uploadTitle,
             tip: uploadTipDoc,
-            sursa: 'ISJ Dolj',
+            sursa: `ISJ ${judet}`,
             sursa_tip: 'isj',
-            judet: 'Dolj',
+            judet: judet,
             termen: uploadTermen || undefined,
             urgent: uploadUrgent,
             continut: uploadContent || uploadTitle,
@@ -231,7 +259,7 @@ export default function ISJDolj() {
           citite: 0,
           total,
           tip: uploadTipDoc,
-          sursa: 'ISJ Dolj',
+          sursa: `ISJ ${judet}`,
           nou: true,
           citit: true,
           urgent: uploadUrgent,
@@ -264,7 +292,7 @@ export default function ISJDolj() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <button onClick={() => router.push('/aracip')} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '13px' }}>← ARACIP</button>
           <div style={{ width: 1, height: 20, background: '#334155' }} />
-          <span style={{ fontSize: '13px', color: '#fff', fontWeight: 600 }}>🏛️ ISJ Dolj</span>
+          <span style={{ fontSize: '13px', color: '#fff', fontWeight: 600 }}>🏛️ ISJ {judet}</span>
           <span style={{ background: '#164e63', color: '#67e8f9', fontSize: '11px', fontWeight: 700, padding: '2px 10px', borderRadius: '20px' }}>INSPECTOR ȘEF</span>
           <span style={{ background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.3)', color: '#22c55e', fontSize: '10px', fontWeight: 700, padding: '2px 10px', borderRadius: '20px', letterSpacing: '0.5px' }}>● DEMO LIVE</span>
         </div>
@@ -275,7 +303,7 @@ export default function ISJDolj() {
               <span style={{ fontSize: '12px', color: '#fcd34d', fontWeight: 700 }}>🔔 {docs.filter(d => !d.citit && d.sursa === 'Inspector Național').length} document{docs.filter(d => !d.citit && d.sursa === 'Inspector Național').length > 1 ? 'e' : ''} nou{docs.filter(d => !d.citit && d.sursa === 'Inspector Național').length > 1 ? 'ă' : ''} de la Inspector Național</span>
             </div>
           )}
-          <span style={{ fontSize: '12px', color: '#64748b' }}>Inspector: <strong style={{ color: '#e2e8f0' }}>{loginNume ? `${loginTitlu}. ${loginNume}` : 'ISJ Dolj'}</strong></span>
+          <span style={{ fontSize: '12px', color: '#64748b' }}>Inspector: <strong style={{ color: '#e2e8f0' }}>{loginNume ? `${loginTitlu}. ${loginNume}` : `ISJ ${judet}`}</strong></span>
           <button
             onClick={() => setShowUpload(true)}
             style={{ background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '8px', padding: '8px 16px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
@@ -358,6 +386,42 @@ export default function ISJDolj() {
                 </div>
               </div>
             ))}
+            {/* Asigurarea calității în județ — monitorizare ISJ (LIVE): autoevaluări depuse + RAEI */}
+            {(judetDepuneri.length > 0 || judetRaei.length > 0 || judetAutorizari.length > 0) && (
+              <div style={{ background: 'linear-gradient(135deg, rgba(14,165,233,0.1), rgba(5,150,105,0.06))', border: '1px solid rgba(14,165,233,0.3)', borderRadius: '12px', padding: '16px 20px', marginBottom: '4px' }}>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: '#38bdf8', marginBottom: '10px' }}>📊 Asigurarea calității în județ — LIVE (rol de monitorizare)</div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '16px' }}>
+                  <div>
+                    <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Autoevaluări depuse ({judetDepuneri.length})</div>
+                    {judetDepuneri.slice(0, 6).map((u, i) => (
+                      <div key={i} style={{ fontSize: '12px', color: '#cbd5e1', padding: '3px 0', borderBottom: '1px solid #1e293b' }}>
+                        {u.nume_unitate} <span style={{ color: '#64748b' }}>· {u.calificativ_general || u.status}</span>
+                      </div>
+                    ))}
+                    {judetDepuneri.length === 0 && <div style={{ fontSize: '12px', color: '#475569' }}>Nicio depunere încă</div>}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>RAEI generate ({judetRaei.length})</div>
+                    {judetRaei.slice(0, 6).map((r, i) => (
+                      <div key={i} style={{ fontSize: '12px', color: '#cbd5e1', padding: '3px 0', borderBottom: '1px solid #1e293b' }}>
+                        {r.nume_unitate} <span style={{ color: '#64748b' }}>· {r.nivel || '—'} · {r.an_scolar || '—'}</span>
+                      </div>
+                    ))}
+                    {judetRaei.length === 0 && <div style={{ fontSize: '12px', color: '#475569' }}>Niciun RAEI încă</div>}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Cereri autorizare ({judetAutorizari.length})</div>
+                    {judetAutorizari.slice(0, 6).map((a, i) => (
+                      <div key={i} style={{ fontSize: '12px', color: '#cbd5e1', padding: '3px 0', borderBottom: '1px solid #1e293b' }}>
+                        {a.denumire} <span style={{ color: '#64748b' }}>· {a.nivel || '—'} · {a.status}</span>
+                      </div>
+                    ))}
+                    {judetAutorizari.length === 0 && <div style={{ fontSize: '12px', color: '#475569' }}>Nicio cerere încă</div>}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {docs.map(doc => (
               <div
                 key={doc.id}
@@ -384,7 +448,7 @@ export default function ISJDolj() {
                     {!doc.citit && doc.sursa === 'Inspector Național' && <span style={{ background: '#7f1d1d', color: '#fca5a5', fontSize: '10px', fontWeight: 700, padding: '1px 8px', borderRadius: '20px' }}>URGENT</span>}
                     <span style={{ background: '#1e40af', color: '#93c5fd', fontSize: '10px', fontWeight: 600, padding: '1px 8px', borderRadius: '20px' }}>{doc.tip}</span>
                     <span style={{ background: doc.sursa === 'Inspector Național' ? '#1d4ed8' : '#064e3b', color: doc.sursa === 'Inspector Național' ? '#93c5fd' : '#6ee7b7', fontSize: '10px', fontWeight: 700, padding: '1px 8px', borderRadius: '20px' }}>
-                      {doc.sursa === 'Inspector Național' ? '🇾🇴 Inspector Național' : '🏛️ ISJ Dolj'}
+                      {doc.sursa === 'Inspector Național' ? '🇾🇴 Inspector Național' : `🏛️ ISJ ${judet}`}
                     </span>
                   </div>
                   <div style={{ fontSize: '14px', fontWeight: !doc.citit ? 700 : 500, color: !doc.citit ? '#f1f5f9' : '#94a3b8', marginBottom: '4px' }}>
@@ -466,8 +530,10 @@ export default function ISJDolj() {
             if (!ex || la > ex.la) readerMap.set(r.scoala, { la, tipScoala: r.tipScoala, directorName: r.name })
           }
 
+          // Lista statică demo e specifică Dolj — pentru alte județe afișăm doar confirmările reale (LIVE).
+          const scoliStatice = judet === 'Dolj' ? SCOLI_DOLJ : []
           // Enrich static list with real status
-          const scoliCuStatus = SCOLI_DOLJ.map(s => {
+          const scoliCuStatus = scoliStatice.map(s => {
             let match = readerMap.get(s.name)
             if (!match) {
               // Try partial name match
@@ -577,7 +643,7 @@ export default function ISJDolj() {
             <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '12px', overflow: 'hidden', display: 'flex', flexDirection: 'column', maxHeight: isMobile ? '200px' : 'none' }}>
               <div style={{ padding: '12px 14px', borderBottom: '1px solid #334155', fontSize: '12px', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Selectează Școala</div>
               <div style={{ overflowY: 'auto', flex: 1 }}>
-                {SCOLI_DOLJ.map((s, i) => (
+                {(judet === 'Dolj' ? SCOLI_DOLJ : []).map((s, i) => (
                   <div
                     key={i}
                     onClick={() => setSelectedSchool(s.name)}
@@ -611,7 +677,7 @@ export default function ISJDolj() {
                       fontSize: '13px',
                       color: '#f1f5f9',
                     }}>
-                      {m.role !== 'system' && <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.6)', marginBottom: '4px' }}>{m.role === 'isj' ? 'ISJ Dolj' : 'Director'}</div>}
+                      {m.role !== 'system' && <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.6)', marginBottom: '4px' }}>{m.role === 'isj' ? `ISJ ${judet}` : 'Director'}</div>}
                       {m.text}
                     </div>
                   </div>

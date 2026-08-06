@@ -12,16 +12,80 @@ const CATEGORII = [
   { id: 'proceduri', label: 'Proceduri', icon: '📝' },
 ]
 
-const ACTE = [
+type Act = { id: number; titlu: string; tip: string; an: number; categorie: string; desc: string; articole: string[]; color: string; link?: string; envigoare?: boolean }
+
+const ACTE: Act[] = [
   {
     id: 1,
-    titlu: 'Legea Educației Naționale nr. 198/2023',
+    titlu: 'Legea învățământului preuniversitar nr. 198/2023',
     tip: 'Lege',
     an: 2023,
     categorie: 'acreditare',
-    desc: 'Cadrul legal general al sistemului de învățământ preuniversitar. Capitolul VI reglementează asigurarea calității în educație și rolul ARACIP.',
-    articole: ['Art. 72-89: Asigurarea calității', 'Art. 90-95: Evaluare externă', 'Art. 200-210: Sancțiuni și retragere acreditare'],
+    envigoare: true,
+    desc: 'Cadrul legal general al sistemului de învățământ preuniversitar. Reglementează asigurarea calității în educație și rolul ARACIP (autorizare, acreditare, evaluare externă periodică).',
+    articole: ['Art. 233: Domeniile asigurării calității', 'Art. 234: CEAC și RAEI (Raportul Anual de Evaluare Internă)', 'Asigurarea calității și evaluarea externă'],
+    link: 'https://lege5.ro/Gratuit/geztqmjtgq2tm/legea-invatamantului-preuniversitar-nr-198-2023',
     color: '#a855f7',
+  },
+  {
+    id: 13,
+    titlu: 'HG nr. 993/2020 — Metodologia de evaluare instituțională',
+    tip: 'Hotărâre Guvern',
+    an: 2020,
+    categorie: 'proceduri',
+    envigoare: true,
+    desc: 'Metodologia de evaluare instituțională în vederea autorizării, acreditării și evaluării periodice a organizațiilor furnizoare de educație. Procedurile se derulează la cerere, pe bază de contract cu ARACIP, și se finalizează prin ordin al ministrului educației (la propunerea ARACIP) sau prin atestat ARACIP.',
+    articole: ['Vizite de evaluare de 2–5 zile (autorizare/acreditare/evaluare)', 'Acreditarea se face în două etape succesive', 'Evaluarea periodică cel puțin o dată la 5 ani'],
+    link: 'https://aracip.eu',
+    color: '#6366f1',
+  },
+  {
+    id: 14,
+    titlu: 'HG nr. 994/2020 — Standarde de autorizare, acreditare și evaluare periodică',
+    tip: 'Hotărâre Guvern',
+    an: 2020,
+    categorie: 'standarde',
+    envigoare: true,
+    desc: 'Standardele naționale de autorizare de funcționare provizorie, de acreditare și de evaluare externă periodică în învățământul preuniversitar (de stat, particular și confesional).',
+    articole: ['Anexă: standarde de autorizare de funcționare provizorie', 'Standarde de acreditare instituțională', 'Standarde de evaluare externă periodică'],
+    link: 'https://www.cdep.ro/pls/legis/legis_pck.htp_act?ida=171341',
+    color: '#3b82f6',
+  },
+  {
+    id: 15,
+    titlu: 'HG nr. 631/2022 — Modificarea standardelor (HG 994/2020)',
+    tip: 'Hotărâre Guvern',
+    an: 2022,
+    categorie: 'standarde',
+    envigoare: true,
+    desc: 'Modifică anexa la HG 994/2020 și aprobă noile standarde ARACIP. Din anul școlar 2022–2023, evaluarea internă și externă se face pe baza celor 24 de indicatori, cu accent pe proces și rezultate, stare de bine, acces la educație și echitate.',
+    articole: ['24 de indicatori (I1–I24)', 'Domenii: capacitate instituțională, eficacitate educațională, managementul calității', 'Aplicare din anul școlar 2022–2023'],
+    link: 'https://aracip.eu/categorii-documente/standarde-evaluare-periodica',
+    color: '#f59e0b',
+  },
+  {
+    id: 16,
+    titlu: 'O.M.E. nr. 6072/2023 — Măsuri tranzitorii Legea 198/2023',
+    tip: 'Ordin ministerial',
+    an: 2023,
+    categorie: 'proceduri',
+    envigoare: true,
+    desc: 'Aprobă calendarul și măsurile tranzitorii de punere în aplicare a Legii învățământului preuniversitar nr. 198/2023, inclusiv pentru activitatea ARACIP până la intrarea completă în vigoare a noilor metodologii.',
+    articole: ['Calendarul de aplicare a Legii 198/2023', 'Măsuri tranzitorii pentru evaluarea calității', 'Valabilitatea reglementărilor aflate în vigoare la 1 septembrie 2023'],
+    link: 'https://legislatie.just.ro/Public/DetaliiDocument/274193',
+    color: '#14b8a6',
+  },
+  {
+    id: 17,
+    titlu: 'Instrucțiunile ARACIP (1–3/2022)',
+    tip: 'Decizie ARACIP',
+    an: 2022,
+    categorie: 'proceduri',
+    envigoare: true,
+    desc: 'Instrucțiuni de aplicare unitară a standardelor și a metodologiei de evaluare — completarea RAEI, aplicarea indicatorilor și pregătirea dosarelor de autorizare / acreditare / evaluare periodică.',
+    articole: ['Aplicarea unitară a celor 24 de indicatori', 'Completarea RAEI (Raportul Anual de Evaluare Internă)', 'Documentele dosarului de evaluare externă'],
+    link: 'https://aracip.eu',
+    color: '#22c55e',
   },
   {
     id: 2,
@@ -35,21 +99,21 @@ const ACTE = [
   },
   {
     id: 3,
-    titlu: 'HG nr. 21/2007 — Standarde de autorizare',
+    titlu: 'HG nr. 21/2007 — Standarde de autorizare (istoric)',
     tip: 'Hotărâre Guvern',
     an: 2007,
     categorie: 'autorizare',
-    desc: 'Standardele și indicatorii de performanță utilizați în evaluarea externă pentru autorizarea de funcționare provizorie.',
+    desc: 'Standardele de autorizare de funcționare provizorie. ISTORIC — înlocuit de HG nr. 994/2020 (modificată prin HG 631/2022). Se folosesc standardele în vigoare (994/2020).',
     articole: ['Anexa 1: Standarde capacitate instituțională', 'Anexa 2: Indicatori minimali', 'Anexa 3: Fișa de autoevaluare'],
     color: '#3b82f6',
   },
   {
     id: 4,
-    titlu: 'HG nr. 22/2007 — Standarde de acreditare',
+    titlu: 'HG nr. 22/2007 — Standarde de acreditare (istoric)',
     tip: 'Hotărâre Guvern',
     an: 2007,
     categorie: 'acreditare',
-    desc: 'Standardele și indicatorii de performanță pentru acreditarea instituțională și evaluarea periodică a unităților de învățământ.',
+    desc: 'Standardele de acreditare și de evaluare periodică. ISTORIC — înlocuit de HG nr. 994/2020 (modificată prin HG 631/2022), care introduce cei 24 de indicatori actuali.',
     articole: ['A1: Capacitate instituțională (15 standarde)', 'A2: Eficacitate educațională (12 standarde)', 'A3: Managementul calității (8 standarde)'],
     color: '#a855f7',
   },
@@ -227,6 +291,7 @@ export default function Legislatie() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '4px' }}>
                     <span style={{ background: `${TIP_COLORS[act.tip]}18`, color: TIP_COLORS[act.tip], fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '10px' }}>{act.tip}</span>
                     <span style={{ fontSize: '11px', color: '#475569' }}>{act.an}</span>
+                    {act.envigoare && <span style={{ background: 'rgba(34,197,94,0.15)', color: '#4ade80', fontSize: '9px', fontWeight: 700, padding: '2px 7px', borderRadius: '10px', letterSpacing: '0.3px' }}>● ÎN VIGOARE</span>}
                   </div>
                   <div style={{ fontSize: '13px', fontWeight: 700, color: '#f1f5f9', lineHeight: 1.4 }}>{act.titlu}</div>
                   {expandat !== act.id && (
@@ -248,6 +313,11 @@ export default function Legislatie() {
                       </div>
                     ))}
                   </div>
+                  {act.link && (
+                    <a href={act.link} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', marginTop: '14px', background: `${act.color}18`, border: `1px solid ${act.color}44`, color: act.color, borderRadius: '8px', padding: '7px 14px', fontSize: '12px', fontWeight: 700, textDecoration: 'none' }}>
+                      🔗 Vezi textul oficial
+                    </a>
+                  )}
                 </div>
               )}
             </div>

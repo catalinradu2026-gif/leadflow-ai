@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useIsMobile } from '../../hooks/useIsMobile'
 
@@ -15,6 +15,19 @@ type Scoala = {
   ultimaEvaluare: string
   urmatoareaEvaluare: string
   inspector: string
+  live?: boolean
+  calificativ?: string | null
+  rezumat?: string | null
+}
+
+// Mapează statusul din depunerea live (unitati_calitate) la StatusType-ul dashboardului.
+function mapStatusLive(s: string): StatusType {
+  switch (s) {
+    case 'acreditat': return 'acreditata'
+    case 'in_evaluare': return 'in-evaluare'
+    case 'periodica': return 'in-evaluare'
+    default: return 'autorizata' // autoevaluare_depusa
+  }
 }
 
 const SCOLI: Scoala[] = [
@@ -45,23 +58,57 @@ export default function DashboardAracip() {
   const isMobile = useIsMobile()
   const [filtruStatus, setFiltruStatus] = useState<string>('toate')
   const [filtruTip, setFiltruTip] = useState<string>('toate')
+  const [filtruJudet, setFiltruJudet] = useState<string>('toate')
   const [cautare, setCautare] = useState('')
   const [scoalaSelectata, setScoalaSelectata] = useState<Scoala | null>(null)
+  const [live, setLive] = useState<Scoala[]>([])
+  const [loadingLive, setLoadingLive] = useState(false)
 
-  const scoli = SCOLI.filter(s => {
+  async function loadLive() {
+    setLoadingLive(true)
+    try {
+      const r = await fetch('/api/unitati')
+      const j = await r.json()
+      const mapped: Scoala[] = (j.unitati || []).map((u: any, i: number) => ({
+        id: 100000 + i,
+        nume: u.nume_unitate,
+        judet: u.judet,
+        tip: u.tip_unitate || 'Școală',
+        status: mapStatusLive(u.status),
+        expiraIn: null,
+        ultimaEvaluare: u.created_at ? new Date(u.created_at).toLocaleDateString('ro-RO', { month: '2-digit', year: 'numeric' }).replace('.', '-') : '—',
+        urmatoareaEvaluare: '—',
+        inspector: 'Depunere unitate',
+        live: true,
+        calificativ: u.calificativ_general || null,
+        rezumat: u.rezumat || null,
+      }))
+      setLive(mapped)
+    } catch (e) { console.error('[dashboard unitati live]', e) }
+    setLoadingLive(false)
+  }
+  useEffect(() => { loadLive() }, [])
+
+  // Unitățile reale depuse apar primele; cele demo rămân ca EXEMPLU ilustrativ.
+  const toate = [...live, ...SCOLI]
+  const judeteDisponibile = Array.from(new Set(toate.map(s => s.judet))).sort((a, b) => a.localeCompare(b, 'ro'))
+
+  const scoli = toate.filter(s => {
     const matchStatus = filtruStatus === 'toate' || s.status === filtruStatus
     const matchTip = filtruTip === 'toate' || s.tip === filtruTip
+    const matchJudet = filtruJudet === 'toate' || s.judet === filtruJudet
     const matchCautare = s.nume.toLowerCase().includes(cautare.toLowerCase()) || s.judet.toLowerCase().includes(cautare.toLowerCase())
-    return matchStatus && matchTip && matchCautare
+    return matchStatus && matchTip && matchJudet && matchCautare
   })
 
   const stats = {
-    total: SCOLI.length,
-    acreditate: SCOLI.filter(s => s.status === 'acreditata').length,
-    inEvaluare: SCOLI.filter(s => s.status === 'in-evaluare').length,
-    autorizate: SCOLI.filter(s => s.status === 'autorizata').length,
-    expirate: SCOLI.filter(s => s.status === 'expirata').length,
-    alerteUrgente: SCOLI.filter(s => s.expiraIn !== null && s.expiraIn < 10).length,
+    total: toate.length,
+    live: live.length,
+    acreditate: toate.filter(s => s.status === 'acreditata').length,
+    inEvaluare: toate.filter(s => s.status === 'in-evaluare').length,
+    autorizate: toate.filter(s => s.status === 'autorizata').length,
+    expirate: toate.filter(s => s.status === 'expirata').length,
+    alerteUrgente: toate.filter(s => s.expiraIn !== null && s.expiraIn < 10).length,
   }
 
   return (
@@ -75,7 +122,7 @@ export default function DashboardAracip() {
           <span style={{ fontSize: '20px' }}>🏛️</span>
           <div>
             <div style={{ fontSize: '14px', fontWeight: 700, color: '#f1f5f9' }}>Dashboard ARACIP</div>
-            <div style={{ fontSize: '11px', color: '#64748b' }}>Monitorizare unități școlare — Județul Dolj</div>
+            <div style={{ fontSize: '11px', color: '#64748b' }}>Monitorizare unități școlare · <span style={{ color: '#22c55e', fontWeight: 700 }}>{stats.live} depuse LIVE</span></div>
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -168,6 +215,17 @@ export default function DashboardAracip() {
                 <option value="Grădiniță">Grădinițe</option>
                 <option value="Specială">Speciale</option>
               </select>
+              <select
+                value={filtruJudet}
+                onChange={e => setFiltruJudet(e.target.value)}
+                style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '8px', padding: '8px 14px', fontSize: '13px', color: '#e2e8f0', outline: 'none', cursor: 'pointer' }}
+              >
+                <option value="toate">Toate județele</option>
+                {judeteDisponibile.map(j => <option key={j} value={j}>{j}</option>)}
+              </select>
+              <button onClick={loadLive} disabled={loadingLive} style={{ background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.35)', borderRadius: '8px', padding: '8px 14px', fontSize: '12px', color: '#c4b5fd', cursor: 'pointer', fontWeight: 600 }}>
+                {loadingLive ? '...' : '🔄 Reîncarcă LIVE'}
+              </button>
               <div style={{ marginLeft: 'auto', fontSize: '12px', color: '#475569' }}>
                 {scoli.length} unități afișate
               </div>
@@ -202,8 +260,13 @@ export default function DashboardAracip() {
                         onMouseEnter={e => { if (!isSelected) (e.currentTarget as HTMLTableRowElement).style.background = 'rgba(255,255,255,0.03)' }}
                         onMouseLeave={e => { if (!isSelected) (e.currentTarget as HTMLTableRowElement).style.background = i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.01)' }}
                       >
-                        <td style={{ padding: '11px 14px', fontSize: '13px', fontWeight: 600, color: '#f1f5f9', maxWidth: '220px' }}>
-                          <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.nume}</div>
+                        <td style={{ padding: '11px 14px', fontSize: '13px', fontWeight: 600, color: '#f1f5f9', maxWidth: '240px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden' }}>
+                            {s.live
+                              ? <span style={{ background: 'rgba(34,197,94,0.15)', color: '#22c55e', fontSize: '9px', fontWeight: 800, padding: '1px 6px', borderRadius: '10px', flexShrink: 0 }}>LIVE</span>
+                              : <span style={{ background: 'rgba(148,163,184,0.12)', color: '#64748b', fontSize: '9px', fontWeight: 700, padding: '1px 6px', borderRadius: '10px', flexShrink: 0 }}>exemplu</span>}
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.nume}</span>
+                          </div>
                         </td>
                         <td style={{ padding: '11px 14px', fontSize: '12px', color: '#94a3b8' }}>{s.judet}</td>
                         <td style={{ padding: '11px 14px', fontSize: '12px', color: '#94a3b8' }}>{s.tip}</td>

@@ -1,8 +1,11 @@
 'use client'
 import { useRouter } from 'next/navigation'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Fragment } from 'react'
 import CalendarTermene from '../../components/CalendarTermene'
 import AraArchive from '../../components/AraArchive'
+import FormareAdminPanel from '../../components/FormareAdminPanel'
+import { genereazaAutorizatie } from '../../../lib/autorizatie'
+import { genereazaDecizie } from '../../../lib/decizieEvaluare'
 
 const JUDETE = [
   { name: 'Alba', scoli: 198, active: 198, doc: 12, alert: 0 },
@@ -177,10 +180,155 @@ export default function InspectorNational() {
   const [search, setSearch] = useState('')
   const [showUpload, setShowUpload] = useState(false)
   const [docs, setDocs] = useState<Doc[]>(DOCS_INITIALE)
-  const [tab, setTab] = useState<'judete' | 'documente' | 'arhiva'>('judete')
+  const [tab, setTab] = useState<'judete' | 'documente' | 'arhiva' | 'formare'>('judete')
   const [judetModal, setJudetModal] = useState<string | null>(null)
   const [judetTipFilter, setJudetTipFilter] = useState<string>('Toate')
   const [showAlerte, setShowAlerte] = useState(false)
+
+  // Rezumat LIVE formare pentru tabloul central (doar cifre agregate; detaliile complete
+  // — cu date personale — rămân în tab-ul Formare, parolat).
+  const [formareStats, setFormareStats] = useState<{ totalFormabili: number; totalEvaluatori: number; medieProgres: number; finalizati: number; certificate: number; total: number } | null>(null)
+  useEffect(() => {
+    fetch('/api/formare-stats')
+      .then(r => r.json())
+      .then(d => { if (d?.summary) setFormareStats(d.summary) })
+      .catch(() => { /* fallback grațios — tabloul rămâne fără rezumatul formare */ })
+  }, [])
+
+  // RAEI generate de directori (din Generatorul RAEI) — apar live în tabloul central.
+  const [raeiStats, setRaeiStats] = useState<{ total: number; pe_judet: Record<string, number>; recent: Array<{ nume_unitate: string; judet: string | null; nivel: string | null; an_scolar: string | null; created_at: string }> } | null>(null)
+  useEffect(() => {
+    fetch('/api/raei')
+      .then(r => r.json())
+      .then(d => { if (d?.ok) setRaeiStats({ total: d.total || 0, pe_judet: d.pe_judet || {}, recent: d.recent || [] }) })
+      .catch(() => { /* fallback grațios */ })
+  }, [])
+
+  // Cereri de autorizare — cu decizie ARACIP (accept/respinge) + generare autorizație.
+  type DocDosar = { tip: string; nume: string; url: string }
+  type CerereAut = { id: string; nr_inregistrare: string; denumire: string; cui: string | null; judet: string | null; nivel: string | null; status: string; created_at: string; documente?: DocDosar[] }
+  const [autorizariStats, setAutorizariStats] = useState<{ total: number; recent: CerereAut[] } | null>(null)
+  const [araciPass, setAraciPass] = useState<string | null>(null)
+  const [openDosar, setOpenDosar] = useState<string | null>(null)
+  // Modale + toast (înlocuiesc prompt()/alert())
+  const [showUnlock, setShowUnlock] = useState(false)
+  const [unlockPass, setUnlockPass] = useState('')
+  const [unlockErr, setUnlockErr] = useState('')
+  const [unlocking, setUnlocking] = useState(false)
+  const [rejectTarget, setRejectTarget] = useState<{ kind: 'aut' | 'eval'; id: string; denumire: string } | null>(null)
+  const [rejectMotiv, setRejectMotiv] = useState('')
+  const [rejecting, setRejecting] = useState(false)
+  const [toast, setToast] = useState<{ msg: string; tip: 'ok' | 'err' } | null>(null)
+  function showToast(msg: string, tip: 'ok' | 'err' = 'ok') { setToast({ msg, tip }); setTimeout(() => setToast(null), 3500) }
+  const loadAutorizari = () => fetch('/api/autorizare').then(r => r.json()).then(d => { if (d?.ok) setAutorizariStats({ total: d.total || 0, recent: d.recent || [] }) }).catch(() => { /* fallback */ })
+  useEffect(() => { loadAutorizari() }, [])
+
+  function deblocheazaAraci() { setUnlockErr(''); setUnlockPass(''); setShowUnlock(true) }
+  async function confirmUnlock() {
+    if (!unlockPass) { setUnlockErr('Introduceți parola.'); return }
+    setUnlocking(true); setUnlockErr('')
+    try {
+      const r = await fetch('/api/auth/check', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ role: 'admin', password: unlockPass }) })
+      const d = await r.json()
+      if (d?.ok) { setAraciPass(unlockPass); setShowUnlock(false); showToast('Decizii deblocate.') }
+      else setUnlockErr('Parolă incorectă.')
+    } catch { setUnlockErr('Eroare de conexiune.') } finally { setUnlocking(false) }
+  }
+
+  async function descarcaDocDosar(url: string, nume: string) {
+    if (!araciPass) { showToast('Deblochează întâi deciziile ARACIP.', 'err'); return }
+    try {
+      const r = await fetch(`/api/autorizare/doc?url=${encodeURIComponent(url)}`, { headers: { 'x-password': araciPass } })
+      if (!r.ok) { showToast('Nu s-a putut descărca documentul.', 'err'); return }
+      const blob = await r.blob()
+      const href = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = href; a.download = nume || 'document'; document.body.appendChild(a); a.click()
+      a.remove(); setTimeout(() => URL.revokeObjectURL(href), 4000)
+    } catch { showToast('Eroare la descărcare.', 'err') }
+  }
+
+  // Autorizare: aprobarea se trimite direct; respingerea deschide modalul de motiv.
+  async function trimiteDecizieAut(id: string, status: 'autorizat' | 'respinsa', motiv?: string) {
+    if (!araciPass) return false
+    try {
+      const r = await fetch('/api/autorizare', { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'x-password': araciPass }, body: JSON.stringify({ id, status, motiv }) })
+      const d = await r.json()
+      if (d?.ok) { loadAutorizari(); return true }
+      showToast(d?.error || 'Eroare la decizie.', 'err'); return false
+    } catch { showToast('Eroare de conexiune.', 'err'); return false }
+  }
+  function decideAut(id: string, status: 'autorizat' | 'respinsa') {
+    if (!araciPass) return
+    if (status === 'respinsa') { const r = autorizariStats?.recent.find(x => x.id === id); setRejectTarget({ kind: 'aut', id, denumire: r?.denumire || '' }); setRejectMotiv(''); return }
+    trimiteDecizieAut(id, 'autorizat').then(ok => { if (ok) showToast('Cerere autorizată. Solicitantul a fost notificat pe email.') })
+  }
+
+  // Cereri de acreditare + evaluare periodică (de la directori) — decizie ARACIP.
+  type CerereEval = { id: string; nr_inregistrare: string; tip: string; denumire: string; cui: string | null; judet: string | null; nivel: string | null; calificativ: string | null; status: string; created_at: string }
+  const [evaluariStats, setEvaluariStats] = useState<{ total: number; recent: CerereEval[] } | null>(null)
+  const loadEvaluari = () => fetch('/api/evaluari').then(r => r.json()).then(d => { if (d?.ok) setEvaluariStats({ total: d.total || 0, recent: d.recent || [] }) }).catch(() => { /* fallback */ })
+  useEffect(() => { loadEvaluari() }, [])
+
+  async function trimiteDecizieEval(id: string, status: 'aprobat' | 'respinsa', motiv?: string) {
+    if (!araciPass) return false
+    try {
+      const r = await fetch('/api/evaluari', { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'x-password': araciPass }, body: JSON.stringify({ id, status, motiv }) })
+      const d = await r.json()
+      if (d?.ok) { loadEvaluari(); return true }
+      showToast(d?.error || 'Eroare la decizie.', 'err'); return false
+    } catch { showToast('Eroare de conexiune.', 'err'); return false }
+  }
+  function decideEval(id: string, status: 'aprobat' | 'respinsa') {
+    if (!araciPass) return
+    if (status === 'respinsa') { const r = evaluariStats?.recent.find(x => x.id === id); setRejectTarget({ kind: 'eval', id, denumire: r?.denumire || '' }); setRejectMotiv(''); return }
+    trimiteDecizieEval(id, 'aprobat').then(ok => { if (ok) showToast('Solicitare aprobată. Directorul a fost notificat pe email.') })
+  }
+
+  async function confirmReject() {
+    if (!rejectTarget) return
+    setRejecting(true)
+    const motiv = rejectMotiv.trim() || undefined
+    const ok = rejectTarget.kind === 'aut'
+      ? await trimiteDecizieAut(rejectTarget.id, 'respinsa', motiv)
+      : await trimiteDecizieEval(rejectTarget.id, 'respinsa', motiv)
+    setRejecting(false)
+    if (ok) { setRejectTarget(null); showToast('Cerere respinsă. Solicitantul a fost notificat pe email.') }
+  }
+
+  // Lanțul calității LIVE — depuneri reale de la unități (din /api/unitati)
+  type UnitateLive = {
+    id: string; nume_unitate: string; judet: string; tip_unitate: string;
+    localitate: string | null; status: string; calificativ_general: string | null;
+    calificative_domenii: Record<string, string>; rezumat: string | null; created_at: string;
+  }
+  const [unitatiLive, setUnitatiLive] = useState<UnitateLive[]>([])
+  const [aggJudetLive, setAggJudetLive] = useState<Record<string, number>>({})
+  const [aggStatusLive, setAggStatusLive] = useState<Record<string, number>>({})
+  const [aggCalificativLive, setAggCalificativLive] = useState<Record<string, number>>({})
+  const [loadingLive, setLoadingLive] = useState(false)
+
+  async function loadUnitatiLive() {
+    setLoadingLive(true)
+    try {
+      const r = await fetch('/api/unitati')
+      const j = await r.json()
+      setUnitatiLive(j.unitati || [])
+      setAggJudetLive(j.aggregates?.pe_judet || {})
+      setAggStatusLive(j.aggregates?.pe_status || {})
+      setAggCalificativLive(j.aggregates?.pe_calificativ || {})
+    } catch (e) { console.error('[inspector unitati live]', e) }
+    setLoadingLive(false)
+  }
+
+  const STATUS_LIVE_LABEL: Record<string, string> = {
+    autoevaluare_depusa: 'Autoevaluare depusă', in_evaluare: 'În evaluare',
+    acreditat: 'Acreditat', periodica: 'Evaluare periodică',
+  }
+  const STATUS_LIVE_COLOR: Record<string, string> = {
+    autoevaluare_depusa: '#f59e0b', in_evaluare: '#3b82f6', acreditat: '#22c55e', periodica: '#14b8a6',
+  }
+
   const [now, setNow] = useState(new Date())
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000)
@@ -189,6 +337,7 @@ export default function InspectorNational() {
 
   useEffect(() => {
     if (!loggedIn) return
+    loadUnitatiLive()
     fetch('/api/documents?judet=national')
       .then(r => r.json())
       .then(json => {
@@ -488,6 +637,223 @@ export default function InspectorNational() {
           </div>
         </div>
 
+        {/* Alertă ARACIP — cereri noi care așteaptă decizie */}
+        {(() => {
+          const pAut = autorizariStats?.recent.filter(r => r.status === 'depusa' || r.status === 'in_analiza').length || 0
+          const pEval = evaluariStats?.recent.filter(r => r.status === 'depusa' || r.status === 'in_analiza').length || 0
+          const tot = pAut + pEval
+          if (tot === 0) return null
+          return (
+            <div style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.4)', borderRadius: 12, padding: '12px 18px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+              <div style={{ fontSize: 22 }}>🔔</div>
+              <div style={{ flex: 1, fontSize: 13, color: '#fcd34d', fontWeight: 600 }}>{tot} {tot === 1 ? 'cerere așteaptă' : 'cereri așteaptă'} decizia ARACIP{pAut ? ` · ${pAut} autorizare` : ''}{pEval ? ` · ${pEval} acreditare/evaluare` : ''}.</div>
+              {!araciPass && <button onClick={deblocheazaAraci} style={{ background: 'rgba(245,158,11,0.25)', border: '1px solid rgba(245,158,11,0.5)', color: '#fcd34d', borderRadius: 8, padding: '6px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>🔓 Deblochează decizii</button>}
+            </div>
+          )
+        })()}
+
+        {/* Formare Profesională — rezumat LIVE pe tabloul central (detalii complete în tab-ul Formare, parolat) */}
+        {formareStats && (
+          <div style={{ background: 'linear-gradient(135deg, rgba(124,58,237,0.12), rgba(20,184,166,0.08))', border: '1px solid rgba(124,58,237,0.3)', borderRadius: '12px', padding: '16px 20px', marginBottom: '16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', marginBottom: '12px' }}>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#c4b5fd' }}>🎓 Formare Profesională — LIVE (A.2 / A.3)</div>
+              <button onClick={() => setTab('formare')} style={{ background: 'rgba(124,58,237,0.25)', border: '1px solid rgba(124,58,237,0.4)', color: '#c4b5fd', borderRadius: '8px', padding: '6px 14px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>Detalii (parolat) →</button>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '12px' }}>
+              {[
+                { label: 'Total participanți', val: String(formareStats.total), color: '#a78bfa' },
+                { label: 'Formabili (A.2)', val: String(formareStats.totalFormabili), color: '#c4b5fd' },
+                { label: 'Evaluatori (A.3)', val: String(formareStats.totalEvaluatori), color: '#5eead4' },
+                { label: 'Progres mediu', val: `${formareStats.medieProgres}%`, color: '#60a5fa' },
+                { label: 'Finalizați', val: String(formareStats.finalizati), color: '#4ade80' },
+                { label: 'Certificate', val: String(formareStats.certificate), color: '#fbbf24' },
+              ].map(s => (
+                <div key={s.label}>
+                  <div style={{ fontSize: '22px', fontWeight: 800, color: s.color }}>{s.val}</div>
+                  <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>{s.label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* RAEI generate de directori — LIVE (din Generatorul RAEI) */}
+        {raeiStats && raeiStats.total > 0 && (
+          <div style={{ background: 'linear-gradient(135deg, rgba(5,150,105,0.12), rgba(59,130,246,0.06))', border: '1px solid rgba(5,150,105,0.3)', borderRadius: '12px', padding: '16px 20px', marginBottom: '16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', marginBottom: '12px' }}>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#6ee7b7' }}>📄 RAEI generate de unități — LIVE</div>
+              <div style={{ fontSize: '20px', fontWeight: 800, color: '#4ade80' }}>{raeiStats.total}</div>
+            </div>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', minWidth: 520 }}>
+                <thead>
+                  <tr style={{ textAlign: 'left', color: '#64748b' }}>
+                    {['Unitate', 'Județ', 'Nivel', 'An școlar', 'Data'].map(h => <th key={h} style={{ padding: '4px 8px', fontWeight: 600 }}>{h}</th>)}
+                  </tr>
+                </thead>
+                <tbody>
+                  {raeiStats.recent.map((r, i) => (
+                    <tr key={i} style={{ borderTop: '1px solid #334155', color: '#cbd5e1' }}>
+                      <td style={{ padding: '5px 8px' }}>{r.nume_unitate}</td>
+                      <td style={{ padding: '5px 8px' }}>{r.judet || '—'}</td>
+                      <td style={{ padding: '5px 8px' }}>{r.nivel || '—'}</td>
+                      <td style={{ padding: '5px 8px' }}>{r.an_scolar || '—'}</td>
+                      <td style={{ padding: '5px 8px', whiteSpace: 'nowrap' }}>{new Date(r.created_at).toLocaleDateString('ro-RO')}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* Cereri de autorizare — LIVE + decizie ARACIP (accept/respinge) + autorizație */}
+        {autorizariStats && autorizariStats.total > 0 && (() => {
+          const statusStil: Record<string, { bg: string; c: string; label: string }> = {
+            depusa: { bg: 'rgba(148,163,184,0.15)', c: '#cbd5e1', label: 'Depusă' },
+            in_analiza: { bg: 'rgba(245,158,11,0.15)', c: '#fbbf24', label: 'În analiză' },
+            autorizat: { bg: 'rgba(34,197,94,0.15)', c: '#4ade80', label: 'Autorizat' },
+            respinsa: { bg: 'rgba(239,68,68,0.15)', c: '#f87171', label: 'Respinsă' },
+          }
+          return (
+          <div style={{ background: 'linear-gradient(135deg, rgba(59,130,246,0.12), rgba(168,85,247,0.06))', border: '1px solid rgba(59,130,246,0.3)', borderRadius: '12px', padding: '16px 20px', marginBottom: '16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', marginBottom: '12px' }}>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#93c5fd' }}>🏫 Cereri de autorizare (unități noi) — LIVE</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                {!araciPass
+                  ? <button onClick={deblocheazaAraci} style={{ background: 'rgba(59,130,246,0.2)', border: '1px solid rgba(59,130,246,0.4)', color: '#93c5fd', borderRadius: 8, padding: '6px 12px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>🔓 Deblochează decizii</button>
+                  : <span style={{ fontSize: 11, color: '#4ade80', fontWeight: 700 }}>✓ Decizii deblocate</span>}
+                <div style={{ fontSize: '20px', fontWeight: 800, color: '#60a5fa' }}>{autorizariStats.total}</div>
+              </div>
+            </div>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', minWidth: 680 }}>
+                <thead>
+                  <tr style={{ textAlign: 'left', color: '#64748b' }}>
+                    {['Nr. înreg.', 'Unitate', 'Județ', 'Nivel', 'Status', 'Data', 'Acțiuni'].map(h => <th key={h} style={{ padding: '4px 8px', fontWeight: 600 }}>{h}</th>)}
+                  </tr>
+                </thead>
+                <tbody>
+                  {autorizariStats.recent.map(r => {
+                    const st = statusStil[r.status] || statusStil.depusa
+                    const inAsteptare = r.status === 'depusa' || r.status === 'in_analiza'
+                    const nrDocs = r.documente?.length || 0
+                    const deschis = openDosar === r.id
+                    return (
+                    <Fragment key={r.id}>
+                    <tr style={{ borderTop: '1px solid #334155', color: '#cbd5e1' }}>
+                      <td style={{ padding: '6px 8px', color: '#60a5fa', fontWeight: 600, whiteSpace: 'nowrap' }}>{r.nr_inregistrare}</td>
+                      <td style={{ padding: '6px 8px' }}>{r.denumire}</td>
+                      <td style={{ padding: '6px 8px' }}>{r.judet || '—'}</td>
+                      <td style={{ padding: '6px 8px' }}>{r.nivel || '—'}</td>
+                      <td style={{ padding: '6px 8px' }}><span style={{ background: st.bg, color: st.c, fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 12, whiteSpace: 'nowrap' }}>{st.label}</span></td>
+                      <td style={{ padding: '6px 8px', whiteSpace: 'nowrap' }}>{new Date(r.created_at).toLocaleDateString('ro-RO')}</td>
+                      <td style={{ padding: '6px 8px' }}>
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                          <button onClick={() => setOpenDosar(deschis ? null : r.id)} style={{ background: deschis ? '#1e40af' : 'rgba(59,130,246,0.15)', color: deschis ? '#fff' : '#93c5fd', border: '1px solid rgba(59,130,246,0.4)', borderRadius: 6, padding: '4px 10px', fontSize: 10.5, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>📎 Dosar ({nrDocs}) {deschis ? '▲' : '▼'}</button>
+                          {r.status === 'autorizat' && (
+                            <button onClick={() => genereazaAutorizatie({ denumire: r.denumire, cui: r.cui || undefined, judet: r.judet || undefined, nivel: r.nivel || undefined, nrInregistrare: r.nr_inregistrare })} style={{ background: '#166534', color: '#bbf7d0', border: 'none', borderRadius: 6, padding: '4px 10px', fontSize: 10.5, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>📄 Autorizație</button>
+                          )}
+                          {araciPass && inAsteptare && (
+                            <>
+                              <button onClick={() => decideAut(r.id, 'autorizat')} style={{ background: '#166534', color: '#fff', border: 'none', borderRadius: 6, padding: '4px 10px', fontSize: 10.5, fontWeight: 700, cursor: 'pointer' }}>✓ Acceptă</button>
+                              <button onClick={() => decideAut(r.id, 'respinsa')} style={{ background: '#7f1d1d', color: '#fff', border: 'none', borderRadius: 6, padding: '4px 10px', fontSize: 10.5, fontWeight: 700, cursor: 'pointer' }}>✕ Respinge</button>
+                            </>
+                          )}
+                          {!araciPass && inAsteptare && <span style={{ fontSize: 10.5, color: '#475569' }}>🔒 blocat</span>}
+                          {r.status === 'respinsa' && <span style={{ fontSize: 10.5, color: '#f87171' }}>—</span>}
+                        </div>
+                      </td>
+                    </tr>
+                    {deschis && (
+                      <tr>
+                        <td colSpan={7} style={{ padding: '0 8px 12px', background: 'rgba(15,23,42,0.6)' }}>
+                          <div style={{ border: '1px solid rgba(59,130,246,0.25)', borderRadius: 8, padding: '12px 14px' }}>
+                            <div style={{ fontSize: 11, fontWeight: 700, color: '#93c5fd', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.4px' }}>📁 Documentele dosarului {r.nr_inregistrare} — verifică înainte de decizie</div>
+                            {nrDocs === 0 && <div style={{ fontSize: 12, color: '#64748b' }}>Nu au fost atașate documente la această cerere.</div>}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                              {(r.documente || []).map((d, di) => (
+                                <div key={di} style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', fontSize: 12, padding: '4px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                                  <span style={{ color: '#94a3b8', minWidth: 180 }}>{d.tip}</span>
+                                  <span style={{ color: '#cbd5e1', flex: 1 }}>{d.nume}</span>
+                                  {d.url
+                                    ? <button onClick={() => descarcaDocDosar(d.url, d.nume)} style={{ background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.35)', color: '#4ade80', borderRadius: 6, padding: '3px 12px', fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>⬇ Descarcă</button>
+                                    : <span style={{ fontSize: 11, color: '#64748b' }}>fără fișier</span>}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                    </Fragment>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          )
+        })()}
+
+        {/* Cereri de acreditare + evaluare periodică — decizie ARACIP */}
+        {evaluariStats && evaluariStats.total > 0 && (() => {
+          const stStil: Record<string, { bg: string; c: string; label: string }> = {
+            depusa: { bg: 'rgba(148,163,184,0.15)', c: '#cbd5e1', label: 'Depusă' },
+            in_analiza: { bg: 'rgba(245,158,11,0.15)', c: '#fbbf24', label: 'În analiză' },
+            aprobat: { bg: 'rgba(34,197,94,0.15)', c: '#4ade80', label: 'Aprobat' },
+            respinsa: { bg: 'rgba(239,68,68,0.15)', c: '#f87171', label: 'Respinsă' },
+          }
+          return (
+          <div style={{ background: 'linear-gradient(135deg, rgba(168,85,247,0.12), rgba(20,184,166,0.05))', border: '1px solid rgba(168,85,247,0.3)', borderRadius: '12px', padding: '16px 20px', marginBottom: '16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', marginBottom: '12px' }}>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#d8b4fe' }}>🏅 Cereri acreditare / evaluare periodică — LIVE</div>
+              <div style={{ fontSize: '20px', fontWeight: 800, color: '#c084fc' }}>{evaluariStats.total}</div>
+            </div>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', minWidth: 700 }}>
+                <thead>
+                  <tr style={{ textAlign: 'left', color: '#64748b' }}>
+                    {['Nr. înreg.', 'Tip', 'Unitate', 'Județ', 'Nivel', 'Status', 'Acțiuni'].map(h => <th key={h} style={{ padding: '4px 8px', fontWeight: 600 }}>{h}</th>)}
+                  </tr>
+                </thead>
+                <tbody>
+                  {evaluariStats.recent.map(r => {
+                    const st = stStil[r.status] || stStil.depusa
+                    const inAsteptare = r.status === 'depusa' || r.status === 'in_analiza'
+                    const tipLbl = r.tip === 'evaluare_periodica' ? 'Evaluare periodică' : 'Acreditare'
+                    return (
+                    <tr key={r.id} style={{ borderTop: '1px solid #334155', color: '#cbd5e1' }}>
+                      <td style={{ padding: '6px 8px', color: '#c084fc', fontWeight: 600, whiteSpace: 'nowrap' }}>{r.nr_inregistrare}</td>
+                      <td style={{ padding: '6px 8px', whiteSpace: 'nowrap' }}>{tipLbl}</td>
+                      <td style={{ padding: '6px 8px' }}>{r.denumire}</td>
+                      <td style={{ padding: '6px 8px' }}>{r.judet || '—'}</td>
+                      <td style={{ padding: '6px 8px' }}>{r.nivel || '—'}</td>
+                      <td style={{ padding: '6px 8px' }}><span style={{ background: st.bg, color: st.c, fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 12, whiteSpace: 'nowrap' }}>{st.label}</span></td>
+                      <td style={{ padding: '6px 8px' }}>
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                          {r.status === 'aprobat' && (
+                            <button onClick={() => genereazaDecizie({ tip: r.tip === 'evaluare_periodica' ? 'evaluare_periodica' : 'acreditare', denumire: r.denumire, cui: r.cui || undefined, judet: r.judet || undefined, nivel: r.nivel || undefined, calificativ: r.calificativ || undefined, nrInregistrare: r.nr_inregistrare })} style={{ background: '#166534', color: '#bbf7d0', border: 'none', borderRadius: 6, padding: '4px 10px', fontSize: 10.5, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>📄 {r.tip === 'evaluare_periodica' ? 'Atestat' : 'Decizie'}</button>
+                          )}
+                          {araciPass && inAsteptare && (
+                            <>
+                              <button onClick={() => decideEval(r.id, 'aprobat')} style={{ background: '#166534', color: '#fff', border: 'none', borderRadius: 6, padding: '4px 10px', fontSize: 10.5, fontWeight: 700, cursor: 'pointer' }}>✓ Aprobă</button>
+                              <button onClick={() => decideEval(r.id, 'respinsa')} style={{ background: '#7f1d1d', color: '#fff', border: 'none', borderRadius: 6, padding: '4px 10px', fontSize: 10.5, fontWeight: 700, cursor: 'pointer' }}>✕ Respinge</button>
+                            </>
+                          )}
+                          {!araciPass && inAsteptare && <span style={{ fontSize: 10.5, color: '#475569' }}>🔒 blocat</span>}
+                        </div>
+                      </td>
+                    </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          )
+        })()}
+
         {/* Stat Cards */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
           {[
@@ -532,12 +898,13 @@ export default function InspectorNational() {
             { key: 'judete', label: 'Situatie Judete' },
             { key: 'documente', label: `Documente Publicate${newDocsCount > 0 ? ` (${newDocsCount} nou)` : ''}` },
             { key: 'arhiva', label: 'Arhiva ARACIP' },
+            { key: 'formare', label: 'Formare' },
           ].map(t => (
             <button
               key={t.key}
-              onClick={() => setTab(t.key as 'judete' | 'documente' | 'arhiva')}
+              onClick={() => setTab(t.key as 'judete' | 'documente' | 'arhiva' | 'formare')}
               style={{
-                background: tab === t.key ? (t.key === 'arhiva' ? '#065f46' : '#1d4ed8') : 'none',
+                background: tab === t.key ? (t.key === 'arhiva' ? '#065f46' : t.key === 'formare' ? '#6d28d9' : '#1d4ed8') : 'none',
                 color: tab === t.key ? '#fff' : '#64748b',
                 border: 'none', borderRadius: '8px', padding: '8px 18px',
                 fontSize: '13px', fontWeight: tab === t.key ? 600 : 400, cursor: 'pointer',
@@ -550,6 +917,73 @@ export default function InspectorNational() {
 
         {/* JUDETE TAB */}
         {tab === 'judete' && (
+          <>
+          {/* ===== DEPUNERI LIVE (lanțul calității: Școală → ISJ → ARACIP) ===== */}
+          <div style={{ background: 'linear-gradient(135deg,#1e293b,#22143f)', border: '1px solid #6d28d9', borderRadius: '12px', padding: '18px 20px', marginBottom: '16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', marginBottom: '14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ width: 9, height: 9, borderRadius: '50%', background: '#22c55e', display: 'inline-block', boxShadow: '0 0 8px #22c55e' }} />
+                <h2 style={{ fontSize: '15px', fontWeight: 700, color: '#f1f5f9' }}>Depuneri LIVE de la unități</h2>
+                <span style={{ background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.4)', color: '#c4b5fd', fontSize: '10px', fontWeight: 700, padding: '2px 10px', borderRadius: '20px' }}>DATE REALE · Supabase</span>
+              </div>
+              <button onClick={loadUnitatiLive} disabled={loadingLive} style={{ background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.3)', borderRadius: '8px', padding: '6px 14px', fontSize: '12px', color: '#c4b5fd', cursor: 'pointer', fontWeight: 600 }}>
+                {loadingLive ? '...' : '🔄 Reîncarcă'}
+              </button>
+            </div>
+
+            {/* Agregate reale */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '12px', marginBottom: unitatiLive.length ? '16px' : '0' }}>
+              <div style={{ background: '#0f172a', borderRadius: '10px', padding: '12px 14px' }}>
+                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 700 }}>Total depuneri</div>
+                <div style={{ fontSize: '24px', fontWeight: 800, color: '#a78bfa' }}>{unitatiLive.length}</div>
+              </div>
+              <div style={{ background: '#0f172a', borderRadius: '10px', padding: '12px 14px' }}>
+                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 700 }}>Județe active</div>
+                <div style={{ fontSize: '24px', fontWeight: 800, color: '#67e8f9' }}>{Object.keys(aggJudetLive).length}</div>
+              </div>
+              <div style={{ background: '#0f172a', borderRadius: '10px', padding: '12px 14px' }}>
+                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 700 }}>Autoevaluări depuse</div>
+                <div style={{ fontSize: '24px', fontWeight: 800, color: '#f59e0b' }}>{aggStatusLive['autoevaluare_depusa'] || 0}</div>
+              </div>
+              <div style={{ background: '#0f172a', borderRadius: '10px', padding: '12px 14px' }}>
+                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 700 }}>Acreditate</div>
+                <div style={{ fontSize: '24px', fontWeight: 800, color: '#22c55e' }}>{aggStatusLive['acreditat'] || 0}</div>
+              </div>
+            </div>
+
+            {unitatiLive.length === 0 ? (
+              <div style={{ fontSize: '13px', color: '#64748b', fontStyle: 'italic', padding: '4px 0' }}>
+                Nicio depunere reală încă. Când o unitate trimite autoevaluarea prin <span style={{ color: '#c4b5fd' }}>/acreditare/depunere</span>, apare aici instant.
+              </div>
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ background: '#0f172a' }}>
+                      {['Unitate', 'Județ', 'Tip', 'Status', 'Calificativ', 'Depus'].map(h => (
+                        <th key={h} style={{ padding: '8px 12px', textAlign: 'left', fontSize: '10px', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {unitatiLive.map(u => (
+                      <tr key={u.id} style={{ borderBottom: '1px solid #1e293b' }}>
+                        <td style={{ padding: '9px 12px', fontSize: '13px', fontWeight: 600, color: '#f1f5f9' }}>{u.nume_unitate}{u.localitate ? <span style={{ color: '#475569', fontWeight: 400 }}> · {u.localitate}</span> : null}</td>
+                        <td style={{ padding: '9px 12px', fontSize: '12px', color: '#94a3b8' }}>{u.judet}</td>
+                        <td style={{ padding: '9px 12px', fontSize: '12px', color: '#94a3b8' }}>{u.tip_unitate}</td>
+                        <td style={{ padding: '9px 12px' }}>
+                          <span style={{ background: (STATUS_LIVE_COLOR[u.status] || '#64748b') + '22', color: STATUS_LIVE_COLOR[u.status] || '#94a3b8', fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '20px' }}>{STATUS_LIVE_LABEL[u.status] || u.status}</span>
+                        </td>
+                        <td style={{ padding: '9px 12px', fontSize: '12px', color: u.calificativ_general ? '#a78bfa' : '#475569' }}>{u.calificativ_general || '—'}</td>
+                        <td style={{ padding: '9px 12px', fontSize: '11px', color: '#64748b' }}>{new Date(u.created_at).toLocaleDateString('ro-RO', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: '20px' }}>
             <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '12px', overflow: 'hidden' }}>
               <div style={{ padding: '16px 20px', borderBottom: '1px solid #334155', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -653,6 +1087,7 @@ export default function InspectorNational() {
               </div>
             </div>
           </div>
+          </>
         )}
 
         {/* DOCUMENTE TAB */}
@@ -744,6 +1179,20 @@ export default function InspectorNational() {
             }}
           >
             <AraArchive password="ARACIP2026" readOnly={false} />
+          </div>
+        )}
+
+        {/* FORMARE TAB — panou administrare formabili (A.2) / evaluatori (A.3) */}
+        {tab === 'formare' && (
+          <div
+            style={{
+              background: '#1e293b',
+              border: '1px solid #334155',
+              borderRadius: '12px',
+              padding: '20px 24px',
+            }}
+          >
+            <FormareAdminPanel embedded />
           </div>
         )}
 
@@ -1396,6 +1845,55 @@ export default function InspectorNational() {
               </>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Modal deblocare decizii ARACIP (înlocuiește prompt parolă) */}
+      {showUnlock && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60, padding: 16 }} onClick={() => setShowUnlock(false)}>
+          <div onClick={e => e.stopPropagation()} style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 16, padding: 28, width: 400, maxWidth: '100%' }}>
+            <h3 style={{ fontSize: 17, fontWeight: 800, color: '#f1f5f9', marginBottom: 6 }}>🔓 Deblochează deciziile ARACIP</h3>
+            <p style={{ fontSize: 12.5, color: '#64748b', marginBottom: 18 }}>Introduceți parola ARACIP pentru a putea accepta/respinge cereri și a vedea documentele dosarelor.</p>
+            <input
+              type="password" autoFocus value={unlockPass}
+              onChange={e => setUnlockPass(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') confirmUnlock() }}
+              placeholder="Parola ARACIP"
+              style={{ width: '100%', background: '#0f172a', border: `1px solid ${unlockErr ? '#ef4444' : '#334155'}`, borderRadius: 8, padding: '11px 14px', fontSize: 14, color: '#e2e8f0', outline: 'none', boxSizing: 'border-box' }}
+            />
+            {unlockErr && <div style={{ fontSize: 12, color: '#f87171', marginTop: 8 }}>{unlockErr}</div>}
+            <div style={{ display: 'flex', gap: 10, marginTop: 18 }}>
+              <button onClick={() => setShowUnlock(false)} style={{ flex: 1, background: '#334155', color: '#94a3b8', border: 'none', borderRadius: 8, padding: 11, fontSize: 13, cursor: 'pointer' }}>Anulează</button>
+              <button onClick={confirmUnlock} disabled={unlocking} style={{ flex: 1, background: unlocking ? '#1e40af' : '#3b82f6', color: '#fff', border: 'none', borderRadius: 8, padding: 11, fontSize: 13, fontWeight: 700, cursor: unlocking ? 'wait' : 'pointer' }}>{unlocking ? 'Se verifică...' : 'Deblochează'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal motiv respingere (înlocuiește prompt motiv) */}
+      {rejectTarget && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60, padding: 16 }} onClick={() => setRejectTarget(null)}>
+          <div onClick={e => e.stopPropagation()} style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 16, padding: 28, width: 460, maxWidth: '100%' }}>
+            <h3 style={{ fontSize: 17, fontWeight: 800, color: '#f87171', marginBottom: 6 }}>✕ Respinge cererea</h3>
+            <p style={{ fontSize: 12.5, color: '#64748b', marginBottom: 16 }}>{rejectTarget.denumire ? <>Respingeți cererea pentru <strong style={{ color: '#cbd5e1' }}>{rejectTarget.denumire}</strong>.</> : 'Confirmați respingerea cererii.'} Motivul apare în notificarea trimisă solicitantului pe email.</p>
+            <label style={{ fontSize: 11, fontWeight: 700, color: '#64748b', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.4px' }}>Motivul respingerii (opțional)</label>
+            <textarea
+              autoFocus value={rejectMotiv} onChange={e => setRejectMotiv(e.target.value)} rows={4}
+              placeholder="ex: Lipsesc avizul ISU și dovada spațiului..."
+              style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', borderRadius: 8, padding: '10px 14px', fontSize: 13.5, color: '#e2e8f0', outline: 'none', resize: 'none', boxSizing: 'border-box' }}
+            />
+            <div style={{ display: 'flex', gap: 10, marginTop: 18 }}>
+              <button onClick={() => setRejectTarget(null)} style={{ flex: 1, background: '#334155', color: '#94a3b8', border: 'none', borderRadius: 8, padding: 11, fontSize: 13, cursor: 'pointer' }}>Anulează</button>
+              <button onClick={confirmReject} disabled={rejecting} style={{ flex: 1, background: rejecting ? '#7f1d1d' : '#dc2626', color: '#fff', border: 'none', borderRadius: 8, padding: 11, fontSize: 13, fontWeight: 700, cursor: rejecting ? 'wait' : 'pointer' }}>{rejecting ? 'Se trimite...' : 'Confirmă respingerea'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast (înlocuiește alert) */}
+      {toast && (
+        <div style={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', zIndex: 70, background: toast.tip === 'ok' ? '#166534' : '#7f1d1d', color: '#fff', borderRadius: 10, padding: '12px 20px', fontSize: 13.5, fontWeight: 600, boxShadow: '0 8px 24px rgba(0,0,0,0.4)', maxWidth: '90vw' }}>
+          {toast.tip === 'ok' ? '✓ ' : '⚠ '}{toast.msg}
         </div>
       )}
     </div>

@@ -1,5 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { rateLimit } from '@/lib/rateLimit'
+import { checkPassword, SessionRole } from '@/lib/session'
+
+// Parolele dedicate pe rol (fiecare arie își are propria parolă).
+// Roluri noi în proiect: formabil (Activitatea A.2), evaluator extern (A.3).
+const ROLE_ENV: Record<string, string | undefined> = {
+  formabil: process.env.FORMABIL_PASSWORD,
+  evaluator: process.env.EVALUATOR_PASSWORD,
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -8,11 +16,39 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Prea multe încercări. Reveniți într-un minut.' }, { status: 429 })
     }
 
-    const { password } = await req.json() as { role?: string; password?: string }
+    const { role, password } = await req.json() as { role?: string; password?: string }
     if (!password || typeof password !== 'string') {
       return NextResponse.json({ error: 'Lipsește parola.' }, { status: 400 })
     }
 
+    // Roluri noi cu parolă dedicată (formabil / evaluator)
+    if (role === 'formabil' || role === 'evaluator') {
+      const expected = ROLE_ENV[role]
+      if (!expected) {
+        console.error(`[auth/check] ${role.toUpperCase()}_PASSWORD lipsă`)
+        return NextResponse.json({ error: 'Configurare server incompletă.' }, { status: 500 })
+      }
+      if (password !== expected) {
+        return NextResponse.json({ error: 'Parolă incorectă.' }, { status: 401 })
+      }
+      return NextResponse.json({ ok: true, role })
+    }
+
+    // Roluri clasice cu parolă dedicată (inspector / isj / admin)
+    if (role === 'inspector' || role === 'isj' || role === 'admin') {
+      try {
+        if (!checkPassword(role as SessionRole, password)) {
+          return NextResponse.json({ error: 'Parolă incorectă.' }, { status: 401 })
+        }
+        return NextResponse.json({ ok: true, role })
+      } catch (e) {
+        console.error('[auth/check] env missing', e)
+        return NextResponse.json({ error: 'Configurare server incompletă.' }, { status: 500 })
+      }
+    }
+
+    // Compatibilitate: aracip-admin / aracip-login (panoul ARA) și orice alt rol
+    // validează contra parolei master existente (nu se schimbă comportamentul lor).
     const masterPwd = process.env.ADMIN_PASSWORD || process.env.ISJ_PASSWORD || process.env.INSPECTOR_PASSWORD
     if (!masterPwd) {
       console.error('[auth/check] niciun env de parolă setat')

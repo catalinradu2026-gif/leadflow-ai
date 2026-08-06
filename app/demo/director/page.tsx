@@ -555,7 +555,7 @@ export default function DirectorPage() {
         {tab === 'notificari' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {/* Dashboard cards: Calendar + RAEI + Checklist */}
-            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: '12px', marginBottom: '6px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px', marginBottom: '6px' }}>
               <CalendarTermene />
               <button
                 onClick={() => router.push('/demo/director/raei')}
@@ -564,6 +564,13 @@ export default function DirectorPage() {
               >
                 <div style={{ fontSize: '14px', fontWeight: 700, color: '#c4b5fd', marginBottom: '6px' }}>📑 Generator RAEI</div>
                 <div style={{ fontSize: '12px', color: '#94a3b8', lineHeight: 1.5 }}>Completează cele 8 secțiuni și generează raportul anual de evaluare internă, gata pentru export PDF.</div>
+              </button>
+              <button
+                onClick={() => router.push('/demo/director/solicitari')}
+                style={{ background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.3)', borderRadius: '12px', padding: '16px', cursor: 'pointer', color: '#e2e8f0', textAlign: 'left' }}
+              >
+                <div style={{ fontSize: '14px', fontWeight: 700, color: '#d8b4fe', marginBottom: '6px' }}>🏅 Solicită Acreditare / Evaluare</div>
+                <div style={{ fontSize: '12px', color: '#94a3b8', lineHeight: 1.5 }}>Depune cererea de acreditare instituțională sau de evaluare externă periodică → ajunge la ISJ și ARACIP.</div>
               </button>
             </div>
             <ChecklistConformitate userId={loginEmail} />

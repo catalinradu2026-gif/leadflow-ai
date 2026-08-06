@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useIsMobile } from '../../hooks/useIsMobile'
 
@@ -27,9 +27,26 @@ const UNITATI_DEMO = [
 ]
 
 const REZULTAT_COLORS: Record<string, string> = {
-  'Excelent': '#22c55e', 'Bine': '#3b82f6', 'Satisfăcător': '#f59e0b',
+  'Excelent': '#22c55e', 'Bine': '#3b82f6', 'Satisfăcător': '#f59e0b', 'Foarte bine': '#22c55e',
   'Nesatisfăcător': '#ef4444', 'Autorizată': '#6366f1', 'Acreditată': '#22c55e',
+  'Depusă': '#f59e0b', 'În evaluare': '#3b82f6',
 }
+
+// Mapează statusul depunerii live → registru corespunzător (id din REGISTRE) + etichetă rezultat.
+function registruDinStatus(status: string): number {
+  if (status === 'acreditat') return 1        // Registrul Unităților Acreditate
+  if (status === 'periodica') return 5        // Registrul Unităților Evaluate Periodic
+  return 2                                     // Autorizare provizorie (autoevaluare_depusa / in_evaluare)
+}
+function rezultatDinLive(status: string, calificativ: string | null): string {
+  if (calificativ) return calificativ
+  if (status === 'acreditat') return 'Acreditată'
+  if (status === 'in_evaluare') return 'În evaluare'
+  if (status === 'periodica') return 'În evaluare'
+  return 'Depusă'
+}
+
+type UnitateRow = { id: number; nume: string; judet: string; tip: string; an: number; rezultat: string; registru: number; live?: boolean }
 
 export default function Registre() {
   const router = useRouter()
@@ -38,8 +55,35 @@ export default function Registre() {
   const [cautare, setCautare] = useState('')
   const [judet, setJudet] = useState('')
   const [an, setAn] = useState('')
+  const [live, setLive] = useState<UnitateRow[]>([])
+  const [loadingLive, setLoadingLive] = useState(false)
 
-  const unitati = UNITATI_DEMO.filter(u => {
+  async function loadLive() {
+    setLoadingLive(true)
+    try {
+      const r = await fetch('/api/unitati')
+      const j = await r.json()
+      const mapped: UnitateRow[] = (j.unitati || []).map((u: any, i: number) => ({
+        id: 900000 + i,
+        nume: u.nume_unitate,
+        judet: u.judet,
+        tip: u.tip_unitate || 'Școală',
+        an: u.created_at ? new Date(u.created_at).getFullYear() : new Date().getFullYear(),
+        rezultat: rezultatDinLive(u.status, u.calificativ_general),
+        registru: registruDinStatus(u.status),
+        live: true,
+      }))
+      setLive(mapped)
+    } catch (e) { console.error('[registre unitati live]', e) }
+    setLoadingLive(false)
+  }
+  useEffect(() => { loadLive() }, [])
+
+  // Unitățile reale depuse apar primele; cele demo rămân ca EXEMPLU.
+  const toate: UnitateRow[] = [...live, ...UNITATI_DEMO]
+  const judeteDisponibile = Array.from(new Set(toate.map(u => u.judet)))
+
+  const unitati = toate.filter(u => {
     const matchReg = registruActiv === null || u.registru === registruActiv
     const matchCautare = u.nume.toLowerCase().includes(cautare.toLowerCase())
     const matchJudet = !judet || u.judet === judet
@@ -110,8 +154,11 @@ export default function Registre() {
           />
           <select value={judet} onChange={e => setJudet(e.target.value)} style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '8px', padding: '8px 14px', fontSize: '13px', color: '#e2e8f0', outline: 'none', cursor: 'pointer' }}>
             <option value="">Toate județele</option>
-            {['Dolj', 'Ilfov', 'Cluj', 'Prahova', 'Constanța'].map(j => <option key={j}>{j}</option>)}
+            {Array.from(new Set([...judeteDisponibile, 'Dolj', 'Ilfov', 'Cluj', 'Prahova', 'Constanța'])).sort((a, b) => a.localeCompare(b, 'ro')).map(j => <option key={j}>{j}</option>)}
           </select>
+          <button onClick={loadLive} disabled={loadingLive} style={{ background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.35)', borderRadius: '8px', padding: '8px 14px', fontSize: '12px', color: '#c4b5fd', cursor: 'pointer', fontWeight: 600 }}>
+            {loadingLive ? '...' : `🔄 LIVE (${live.length})`}
+          </button>
           <select value={an} onChange={e => setAn(e.target.value)} style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '8px', padding: '8px 14px', fontSize: '13px', color: '#e2e8f0', outline: 'none', cursor: 'pointer' }}>
             <option value="">Toți anii</option>
             {[2026,2025,2024,2023,2022,2021,2020].map(a => <option key={a}>{a}</option>)}
@@ -139,8 +186,15 @@ export default function Registre() {
                 {unitati.map((u, i) => {
                   const reg = REGISTRE[u.registru - 1]
                   return (
-                    <tr key={u.id} style={{ borderBottom: i < unitati.length - 1 ? '1px solid #0f172a' : 'none' }}>
-                      <td style={{ padding: '11px 14px', fontSize: '13px', fontWeight: 600, color: '#f1f5f9' }}>{u.nume}</td>
+                    <tr key={u.id} style={{ borderBottom: i < unitati.length - 1 ? '1px solid #0f172a' : 'none', background: u.live ? 'rgba(34,197,94,0.04)' : 'transparent' }}>
+                      <td style={{ padding: '11px 14px', fontSize: '13px', fontWeight: 600, color: '#f1f5f9' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                          {u.live
+                            ? <span style={{ background: 'rgba(34,197,94,0.15)', color: '#22c55e', fontSize: '9px', fontWeight: 800, padding: '1px 6px', borderRadius: '10px' }}>LIVE</span>
+                            : <span style={{ background: 'rgba(148,163,184,0.12)', color: '#64748b', fontSize: '9px', fontWeight: 700, padding: '1px 6px', borderRadius: '10px' }}>exemplu</span>}
+                          {u.nume}
+                        </span>
+                      </td>
                       <td style={{ padding: '11px 14px', fontSize: '12px', color: '#64748b' }}>{u.judet}</td>
                       <td style={{ padding: '11px 14px', fontSize: '12px', color: '#64748b' }}>{u.tip}</td>
                       <td style={{ padding: '11px 14px', fontSize: '12px', color: '#64748b' }}>{u.an}</td>

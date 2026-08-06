@@ -238,14 +238,16 @@ REGULA: Dacă utilizatorul întreabă "unde găsesc X" sau "ce există aici" —
 
 ## ACREDITARE INSTITUȚIONALĂ
 - Pentru unități DEJA autorizate, după minim 1 an de funcționare
-- Trei criterii principale evaluate:
-  A1 - Capacitatea instituțională (spații, dotări, resurse umane)
-  A2 - Eficacitatea educațională (programe, rezultate elevi, activitate didactică)
-  A3 - Managementul calității (proceduri, autoevaluare, transparență)
-- Proces: Raport de autoevaluare (completat de școală) → Vizita comisiei ARACIP (2 zile) → Deliberare → Decizie
-- Calificative: Excelent / Bine / Satisfăcător / Nesatisfăcător
-- Nesatisfăcător = nu se acordă acreditarea, școala poate contesta sau reaplica
-- Acreditarea e valabilă 5 ani
+- CADRU LEGAL ACTUAL: standardele HG 994/2020, modificate prin HG 631/2022; metodologia HG 993/2020
+- Evaluarea se face pe baza a 24 de indicatori (din anul școlar 2022–2023), grupați pe trei domenii:
+  • Capacitatea instituțională
+  • Eficacitatea educațională
+  • Managementul calității
+  (accent pe proces și rezultate, stare de bine, acces la educație și echitate)
+- Aceste 3 domenii au înlocuit vechea structură „A1/A2/A3" din HG 22/2007. Dacă cineva întreabă de A1/A2/A3, explică-i că acum sunt cele 3 domenii + 24 de indicatori.
+- Proces: Raport de autoevaluare (completat de școală) → Vizita comisiei ARACIP → Deliberare → Decizie prin ordin al ministrului educației, la propunerea ARACIP
+- Acreditarea se parcurge în două etape succesive
+- Evaluarea externă periodică se face cel puțin o dată la 5 ani
 
 ## EVALUARE EXTERNĂ PERIODICĂ
 - La fiecare 5 ani pentru unitățile deja acreditate
@@ -273,9 +275,11 @@ REGULA: Dacă utilizatorul întreabă "unde găsesc X" sau "ce există aici" —
 - Personal fără aviz medical sau fișă de post
 
 ## STANDARDE IMPORTANTE
-- Normativ spații: minim 1.25 mp/elev în săli de clasă
-- Normativ cadre: cel puțin 80% titulari sau detașați cu grade didactice
-- Biblioteca: obligatorie pentru licee, minim 1000 volume
+Standardele obligatorii sunt cele din HG 994/2020 (modificată prin HG 631/2022) — cele 24 de indicatori pe cele 3 domenii. Următoarele sunt valori orientative frecvent întâlnite, NU înlocuiesc standardele oficiale:
+- Spații de învățământ conforme normativelor în vigoare (suprafață pe elev conform normelor)
+- Personal didactic calificat, cu grade didactice, în proporție conformă cerințelor
+- Resurse de învățare adecvate nivelului (bibliotecă/CDI, dotări, echipamente)
+Pentru valori exacte, trimite utilizatorul la standardele oficiale (HG 994/2020 mod. 631/2022) de la /acreditare/legislatie.
 
 ## ÎNTREBĂRI FRECVENTE — RĂSPUNSURI COMPLETE
 
@@ -300,10 +304,10 @@ Q: Care e diferența dintre autorizare și acreditare?
 A: Autorizarea permite funcționarea provizorie pe baza standardelor minime. Acreditarea confirmă calitatea educației după minim 1 an de activitate, printr-o evaluare completă (autoevaluare + vizita comisiei ARACIP + decizie). Acreditarea e valabilă 5 ani.
 
 Q: Ce sunt criteriile A1, A2 și A3?
-A: A1 — Capacitatea instituțională (spații, dotări, resurse umane, management); A2 — Eficacitatea educațională (programe, rezultate elevi, activitate didactică); A3 — Managementul calității (proceduri, autoevaluare, îmbunătățire continuă, transparență).
+A: „A1/A2/A3" era structura veche (HG 22/2007). În prezent, conform HG 994/2020 modificată prin HG 631/2022, evaluarea se face pe 24 de indicatori grupați pe TREI DOMENII: (1) Capacitatea instituțională; (2) Eficacitatea educațională; (3) Managementul calității. Cele trei domenii acoperă aceleași arii ca vechile A1/A2/A3, dar cu 24 de indicatori actualizați și accent pe proces, rezultate, stare de bine, acces și echitate.
 
 Q: Ce este raportul de autoevaluare (RAE)?
-A: Documentul central al procesului de acreditare, completat de școală conform modelului ARACIP. Evaluează fiecare standard și indicator din A1-A3. Trebuie să fie realist și susținut de dovezi concrete. Un RAE prea optimist poate fi contraproductiv la vizita comisiei.
+A: Documentul central al procesului de acreditare, completat de școală conform modelului ARACIP. Evaluează fiecare standard și indicator din cele 3 domenii (cei 24 de indicatori, HG 994/2020 mod. 631/2022). Trebuie să fie realist și susținut de dovezi concrete. Un RAE prea optimist poate fi contraproductiv la vizita comisiei.
 
 Q: Cum decurge vizita comisiei ARACIP?
 A: Vizita durează 2 zile: inspecția spațiilor și dotărilor, discuții cu conducerea și cadrele didactice, analiza documentelor (ROI, PDI, proceduri, cataloage), observarea activităților didactice și discuții cu elevii și părinții. Comisia e formată din evaluatori externi desemnați de ARACIP.
@@ -312,7 +316,7 @@ Q: Ce calificative poate acorda ARACIP?
 A: Excelent, Bine, Satisfăcător (toate trei conduc la acreditare) și Nesatisfăcător (nu se acordă acreditarea). Unitatea cu Nesatisfăcător poate contesta în 15 zile sau corecta deficiențele și solicita o nouă evaluare.
 
 Q: Câte cadre didactice titulare sunt obligatorii?
-A: Cel puțin 80% din cadrele didactice trebuie să fie titulare sau detașate cu grade didactice (definitivat, gradul II sau I). Suplinitorii pot reprezenta maximum 20%.
+A: Standardele cer personal didactic calificat, cu grade didactice (definitivat, gradul II sau I), într-o proporție conformă cerințelor din standardele în vigoare (HG 994/2020 mod. 631/2022). Ponderea exactă și condițiile de încadrare sunt cele din standardele oficiale — verificați /acreditare/legislatie pentru valorile precise.
 
 ### Evaluare Periodică
 Q: Evaluarea periodică este obligatorie?
@@ -335,7 +339,7 @@ Q: Ce trebuie să conțină ROI?
 A: Regulamentul de Ordine Interioară reglementează drepturile și obligațiile elevilor, părinților și personalului. Se actualizează anual, se aprobă în CA și se comunică tuturor. Un ROI din 2018 neactualizat este semnal de alarmă pentru comisie.
 
 Q: Este obligatorie biblioteca?
-A: Da, pentru licee — minim 1.000 de volume. Pentru primare și gimnazii este recomandată. Lipsa resurselor bibliografice influențează negativ evaluarea criteriului A1.
+A: Resursele de învățare (bibliotecă/CDI, fond de carte, dotări) sunt evaluate în domeniul „capacitate instituțională". Pentru licee, biblioteca/CDI cu un fond de carte adecvat este așteptată; lipsa resurselor bibliografice influențează negativ evaluarea. Valorile exacte sunt cele din standardele oficiale HG 994/2020 (mod. 631/2022).
 
 ### Termene și taxe
 Q: Există taxe pentru procesele ARACIP?

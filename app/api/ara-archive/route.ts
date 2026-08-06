@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { put, list, del } from '@vercel/blob'
 import crypto from 'crypto'
+import { hasSupabase, getSupabaseServer } from '@/lib/supabase'
 
 const INDEX_KEY = 'ara-archive-index.json'
 const ARCHIVE_PASSWORD = 'ARACIP2026'
 const MAX_BYTES = 10 * 1024 * 1024 // 10 MB
+const TABLE = 'ara_archive'
 
 export interface AraArchiveDoc {
   id: string
@@ -21,7 +23,36 @@ export interface AraArchiveDoc {
 
 type ArchiveIndex = { updatedAt: string; docs: AraArchiveDoc[] }
 
-// ── In-memory cache ──────────────────────────────────────────────────────────
+// ── Supabase row mapping ─────────────────────────────────────────────────────
+interface AraArchiveRow {
+  id: string
+  titlu: string
+  tip: string
+  descriere: string | null
+  uploaded_by: string
+  judet: string
+  text_content: string
+  text_preview: string
+  size: number
+  created_at: string
+}
+
+function rowToDoc(r: AraArchiveRow): AraArchiveDoc {
+  return {
+    id: r.id,
+    titlu: r.titlu,
+    tip: (r.tip as AraArchiveDoc['tip']) || 'Altele',
+    descriere: r.descriere || undefined,
+    uploadedAt: r.created_at,
+    uploadedBy: r.uploaded_by,
+    judet: r.judet,
+    textBlobKey: '', // păstrat pentru compatibilitate; textul e în Supabase (text_content)
+    textPreview: r.text_preview,
+    size: r.size,
+  }
+}
+
+// ── In-memory cache (folosit doar pe calea Blob de fallback) ─────────────────
 let cachedIndex: ArchiveIndex | null = null
 let cacheTs = 0
 const CACHE_TTL = 5 * 60 * 1000
@@ -113,6 +144,22 @@ async function extractTextFromBuffer(
 // ── GET ──────────────────────────────────────────────────────────────────────
 export async function GET(): Promise<NextResponse> {
   try {
+    // Calea principală: Supabase
+    if (hasSupabase()) {
+      const db = getSupabaseServer()
+      if (db) {
+        const { data, error } = await db
+          .from(TABLE)
+          .select('*')
+          .order('created_at', { ascending: false })
+        if (!error && data) {
+          const docs = (data as AraArchiveRow[]).map(rowToDoc)
+          const updatedAt = docs[0]?.uploadedAt || new Date().toISOString()
+          return NextResponse.json({ updatedAt, docs })
+        }
+      }
+    }
+    // Fallback: Vercel Blob
     const idx = await loadArchiveIndex()
     return NextResponse.json({ updatedAt: idx.updatedAt, docs: idx.docs })
   } catch {
@@ -128,7 +175,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: 'Neautorizat.' }, { status: 401 })
     }
 
-    if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    const useSupabase = hasSupabase()
+    if (!useSupabase && !process.env.BLOB_READ_WRITE_TOKEN) {
       return NextResponse.json({ error: 'Configurare server incompletă.' }, { status: 500 })
     }
 
@@ -168,17 +216,42 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       .slice(0, 100_000)
 
     const textPreview = cleanText.slice(0, 300)
-
-    // Store extracted text in Blob
-    const id = crypto.randomUUID()
-    const textBlobKey = `ara-doc-${id}.txt`
-
     const storedText =
       cleanText ||
       (tip === 'Altele'
         ? 'Format nesuportat pentru citire automată.'
         : 'Nu s-a putut extrage text din acest fișier.')
 
+    // ── Calea principală: Supabase ──
+    if (useSupabase) {
+      const db = getSupabaseServer()
+      if (db) {
+        const id = crypto.randomUUID()
+        const { data, error } = await db
+          .from(TABLE)
+          .insert({
+            id,
+            titlu,
+            tip,
+            descriere: descriere ?? null,
+            uploaded_by: uploadedBy,
+            judet,
+            text_content: storedText,
+            text_preview: textPreview,
+            size: file.size,
+          })
+          .select()
+          .single()
+        if (error) {
+          return NextResponse.json({ error: error.message }, { status: 500 })
+        }
+        return NextResponse.json({ ok: true, doc: rowToDoc(data as AraArchiveRow) })
+      }
+    }
+
+    // ── Fallback: Vercel Blob ──
+    const id = crypto.randomUUID()
+    const textBlobKey = `ara-doc-${id}.txt`
     await put(textBlobKey, storedText, {
       access: 'private',
       contentType: 'text/plain; charset=utf-8',
@@ -223,13 +296,24 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: 'ID document lipsă.' }, { status: 400 })
     }
 
+    // ── Calea principală: Supabase ──
+    if (hasSupabase()) {
+      const db = getSupabaseServer()
+      if (db) {
+        const { error } = await db.from(TABLE).delete().eq('id', id)
+        if (error) {
+          return NextResponse.json({ error: error.message }, { status: 500 })
+        }
+        return NextResponse.json({ ok: true })
+      }
+    }
+
+    // ── Fallback: Vercel Blob ──
     const idx = await loadArchiveIndex()
     const doc = idx.docs.find(d => d.id === id)
     if (!doc) {
       return NextResponse.json({ error: 'Document negăsit.' }, { status: 404 })
     }
-
-    // Delete text blob
     if (doc.textBlobKey && process.env.BLOB_READ_WRITE_TOKEN) {
       try {
         const { blobs } = await list({
@@ -243,7 +327,6 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
         // non-fatal
       }
     }
-
     idx.docs = idx.docs.filter(d => d.id !== id)
     await saveArchiveIndex(idx)
     invalidateCache()
@@ -257,9 +340,31 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
 
 // ── Exported loader for use in acreditare-chat ───────────────────────────────
 export async function loadArchiveDocs(maxDocs = 5): Promise<{ doc: AraArchiveDoc; text: string }[]> {
+  // ── Calea principală: Supabase ──
+  if (hasSupabase()) {
+    const db = getSupabaseServer()
+    if (db) {
+      try {
+        const { data, error } = await db
+          .from(TABLE)
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(maxDocs)
+        if (!error && data) {
+          return (data as AraArchiveRow[]).map(r => ({
+            doc: rowToDoc(r),
+            text: (r.text_content || r.text_preview || '').slice(0, 1500),
+          }))
+        }
+      } catch {
+        return []
+      }
+    }
+  }
+
+  // ── Fallback: Vercel Blob ──
   const token = process.env.BLOB_READ_WRITE_TOKEN
   if (!token) return []
-
   try {
     const idx = await loadArchiveIndex()
     const recent = idx.docs.slice(0, maxDocs)

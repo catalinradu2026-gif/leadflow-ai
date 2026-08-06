@@ -1,9 +1,17 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import { LangProvider } from './LangContext'
 import { Analytics } from '@vercel/analytics/next'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import AraChatbot from './components/AraChatbot'
+
+// Viewport pentru afișare corectă pe mobil. NU restricționăm zoom-ul
+// (userScalable / maximumScale) — permiterea zoom-ului e cerință de accesibilitate.
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  themeColor: '#0f172a',
+}
 
 export const metadata: Metadata = {
   icons: {

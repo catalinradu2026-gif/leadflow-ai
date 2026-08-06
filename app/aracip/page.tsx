@@ -1,7 +1,9 @@
 'use client'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { useEffect, useState } from 'react'
+import { JUDETE } from '@/lib/judete'
 
 // Parolele NU mai sunt hardcoded client-side. Verificarea se face server-side via /api/auth/check.
 // Parola pentru upload este transmisă temporar la apelurile POST/PATCH/DELETE (server o validează).
@@ -12,10 +14,19 @@ export default function AracipHome() {
   const isMobile = useIsMobile()
   const [mounted, setMounted] = useState(false)
   const [hovered, setHovered] = useState<string | null>(null)
-  const [modalCard, setModalCard] = useState<{ route: string; title: string } | null>(null)
+  const [modalCard, setModalCard] = useState<{ id: string; route: string; title: string } | null>(null)
   const [loginEmail, setLoginEmail] = useState('')
+  const [loginNume, setLoginNume] = useState('')
+  const [loginUnitate, setLoginUnitate] = useState('')
+  const [loginJudet, setLoginJudet] = useState('')
+  const [loginErr, setLoginErr] = useState('')
   const [parola, setParola] = useState('')
   const [parolaErr, setParolaErr] = useState(false)
+  // Rol ales pentru aria Formare (formabil = A.2, evaluator = A.3)
+  const [formareRol, setFormareRol] = useState<'formabil' | 'evaluator'>('formabil')
+  // Consimțământ GDPR pentru aria Formare (obligatoriu înainte de trimiterea datelor)
+  const [formareConsimtamant, setFormareConsimtamant] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
 
   // Management panel state
   const [showMgmt, setShowMgmt] = useState(false)
@@ -157,36 +168,83 @@ export default function AracipHome() {
 
   useEffect(() => { setMounted(true) }, [])
 
-  function handleCardClick(card: { securizat?: boolean; route: string; title: string }) {
-    if (card.securizat) {
-      setModalCard({ route: card.route, title: card.title })
-      setLoginEmail('')
-      setParola('')
-      setParolaErr(false)
-    } else {
-      router.push(card.route)
-    }
+  // Verifică dacă există deja o sesiune validă pentru aria unei carduri RED.
+  function hasSessionFor(cardId: string): boolean {
+    if (typeof window === 'undefined') return false
+    try {
+      if (cardId === 'formare') return !!localStorage.getItem('aracip_formare_ok')
+      if (cardId === 'isj') return !!localStorage.getItem('ara_session')
+    } catch { /* ignore */ }
+    return false
+  }
+
+  function handleCardClick(card: { id: string; securizat?: boolean; nesecurizat?: boolean; route: string; title: string }) {
+    // VERDE (nesecurizat) = public, acces direct fără login.
+    if (card.nesecurizat) { router.push(card.route); return }
+    // ROȘU (securizat) = necesită login. Dacă există deja sesiune, intră direct.
+    if (hasSessionFor(card.id)) { router.push(card.route); return }
+    setParola(''); setLoginEmail(''); setLoginNume(''); setLoginUnitate(''); setLoginJudet(''); setLoginErr(''); setParolaErr(false); setFormareRol('formabil'); setFormareConsimtamant(false)
+    setModalCard({ id: card.id, route: card.route, title: card.title })
   }
 
   async function submitParola(e: React.FormEvent) {
     e.preventDefault()
+    if (!modalCard || submitting) return
+    // Pentru aria Formare, numele + emailul sunt OBLIGATORII (certificate nominale + panou admin).
+    if (modalCard.id === 'formare') {
+      const nume = loginNume.trim()
+      const email = loginEmail.trim()
+      const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+      if (nume.length < 3) { setLoginErr('Introduceți numele complet.'); return }
+      if (!emailOk) { setLoginErr('Introduceți un email valid.'); return }
+      if (!formareConsimtamant) { setLoginErr('Bifați acordul privind prelucrarea datelor cu caracter personal.'); return }
+      setLoginErr('')
+    }
+    setSubmitting(true)
+    // Rolul pe care îl autentificăm în funcție de card:
+    //  - Formare Profesională → formabil (A.2) sau evaluator (A.3), la alegere.
+    //  - Portal ISJ & Directori → isj (parola dedicată; paginile demo rămân funcționale).
+    const role = modalCard.id === 'formare' ? formareRol : 'isj'
     try {
-      const res = await fetch('/api/auth/check', {
+      const check = await fetch('/api/auth/check', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role: 'aracip-login', email: loginEmail.trim().toLowerCase(), password: parola })
+        body: JSON.stringify({ role, email: loginEmail.trim().toLowerCase(), password: parola })
       })
-      const data = await res.json()
-      if (data?.ok) {
-        try { localStorage.setItem('ara_aracip_login_ok', '1') } catch (e) { console.error('[aracip storage]', e) }
-        router.push(modalCard!.route)
-        setModalCard(null)
-      } else {
-        setParolaErr(true); setParola('')
-      }
-    } catch (e) {
-      console.error('[aracip submitParola]', e)
-      setParolaErr(true); setParola('')
+      const cd = await check.json()
+      if (!cd?.ok) { setParolaErr(true); setParola(''); setSubmitting(false); return }
+
+      // Emite token de sesiune HMAC și persistă-l local (compatibil cu paginile demo).
+      try {
+        const ses = await fetch('/api/auth/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ role, password: parola, email: loginEmail.trim().toLowerCase() || undefined })
+        })
+        const sd = await ses.json()
+        if (sd?.token) localStorage.setItem('ara_session', sd.token)
+      } catch (err) { console.error('[aracip session]', err) }
+
+      try {
+        if (modalCard.id === 'formare') {
+          // Reține rolul ales, astfel încât /formare știe ce vede utilizatorul.
+          localStorage.setItem('aracip_formare_ok', '1')
+          localStorage.setItem('aracip_formare_rol', formareRol)
+          localStorage.setItem('aracip_formare_user', loginEmail.trim().toLowerCase())
+          localStorage.setItem('aracip_formare_nume', loginNume.trim())
+          if (loginUnitate.trim()) localStorage.setItem('aracip_formare_unitate', loginUnitate.trim())
+          else localStorage.removeItem('aracip_formare_unitate')
+          if (loginJudet.trim()) localStorage.setItem('aracip_formare_judet', loginJudet.trim())
+          else localStorage.removeItem('aracip_formare_judet')
+        }
+      } catch (err) { console.error('[aracip storage]', err) }
+
+      const dest = modalCard.route
+      setModalCard(null); setSubmitting(false)
+      router.push(dest)
+    } catch (err) {
+      console.error('[aracip submitParola]', err)
+      setParolaErr(true); setParola(''); setSubmitting(false)
     }
   }
 
@@ -196,6 +254,7 @@ export default function AracipHome() {
       icon: '🏫',
       tag: 'Portal ISJ',
       title: 'Portal Inspectorate\n& Directori',
+      securizat: true,
       desc: 'Dashboard centralizat pentru toate unitățile din județ. Raportare, documente și comunicare în timp real.',
       color: '#6366f1',
       colorLight: 'rgba(99,102,241,0.1)',
@@ -217,30 +276,17 @@ export default function AracipHome() {
       route: '/acreditare',
     },
     {
-      id: 'scoala',
-      icon: '🏫',
-      tag: 'Portal Școală',
-      title: 'Portal\nȘcoală',
-      desc: 'Director, profesori, diriginți și elevi — tot ce are nevoie o școală într-un singur loc.',
+      id: 'formare',
+      icon: '🎓',
+      tag: 'Formare & Simulări',
+      title: 'Formare\nProfesională',
+      securizat: true,
+      desc: 'E-learning, simulare autoevaluare și evaluare externă — dedicată formabililor și evaluatorilor externi din proiect.',
       color: '#0ea5e9',
       colorLight: 'rgba(14,165,233,0.1)',
       colorBorder: 'rgba(14,165,233,0.25)',
       colorHover: 'rgba(14,165,233,0.18)',
-      route: '/scoala',
-      securizat: true,
-    },
-    {
-      id: 'gradinita',
-      icon: '🌈',
-      tag: 'Portal Grădiniță',
-      title: 'Portal\nGrădiniță',
-      desc: 'Director, educatoare și părinți — resurse digitale adaptate pentru unitățile preșcolare.',
-      color: '#f43f5e',
-      colorLight: 'rgba(244,63,94,0.1)',
-      colorBorder: 'rgba(244,63,94,0.25)',
-      colorHover: 'rgba(244,63,94,0.18)',
-      route: '/gradinita',
-      securizat: true,
+      route: '/formare',
     },
   ]
 
@@ -591,6 +637,28 @@ export default function AracipHome() {
           </div>
         </section>
 
+        {/* Cum folosești platforma — pași pentru vizitatori */}
+        <section style={{ maxWidth: '1100px', margin: '0 auto', padding: isMobile ? '10px 20px 30px' : '10px 56px 40px' }}>
+          <div style={{ fontSize: isMobile ? '22px' : '28px', fontWeight: 800, color: '#fff', marginBottom: '6px', textAlign: 'center' }}>Cum folosești platforma</div>
+          <div style={{ fontSize: '14px', color: '#64748b', textAlign: 'center', marginBottom: '26px' }}>Alege în funcție de cine ești:</div>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: '14px' }}>
+            {[
+              { n: '1', icon: '🏫', cine: 'Vrei să deschizi o școală / grădiniță', ce: 'Mergi la „Autorizare, Acreditare & Evaluare" → cardul Autorizare → depune dosarul (public, fără cont).', color: '#3b82f6' },
+              { n: '2', icon: '🎓', cine: 'Ești formabil sau evaluator extern', ce: 'Mergi la „Formare Profesională" → alege rolul → parcurge cursurile și simulările → primești certificatul.', color: '#0ea5e9' },
+              { n: '3', icon: '🏛️', cine: 'Ești director, ISJ sau inspector ARACIP', ce: 'Mergi la „Portal Inspectorate & Directori" → autentificare → documente, autoevaluare, RAEI, tablou central.', color: '#6366f1' },
+              { n: '4', icon: '👪', cine: 'Ești părinte sau cetățean', ce: 'Mergi la „Autorizare, Acreditare & Evaluare" → „Verifică o unitate" → vezi dacă o școală e autorizată/acreditată.', color: '#a855f7' },
+            ].map(s => (
+              <div key={s.n} style={{ display: 'flex', gap: '14px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '14px', padding: '18px 20px' }}>
+                <div style={{ flexShrink: 0, width: 34, height: 34, borderRadius: '50%', background: `${s.color}22`, border: `1px solid ${s.color}66`, color: s.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '15px', fontWeight: 800 }}>{s.n}</div>
+                <div>
+                  <div style={{ fontSize: '14px', fontWeight: 700, color: '#f1f5f9', marginBottom: '4px' }}>{s.icon} {s.cine}</div>
+                  <div style={{ fontSize: '13px', color: '#94a3b8', lineHeight: 1.6 }}>{s.ce}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
         {/* Footer */}
         <footer style={{
           padding: isMobile ? '24px 20px 100px' : '28px 56px',
@@ -608,6 +676,7 @@ export default function AracipHome() {
           <div style={{ fontSize: '12px', color: '#1e293b' }}>
             Powered by <strong style={{ color: '#7c3aed' }}>AIcraiova</strong>
           </div>
+          <Link href="/confidentialitate" style={{ fontSize: '11px', color: '#475569', textDecoration: 'none' }}>Confidențialitate</Link>
         </footer>
       </div>
 
@@ -867,17 +936,70 @@ export default function AracipHome() {
             <div style={{ textAlign: 'center', marginBottom: '28px' }}>
               <div style={{ fontSize: '36px', marginBottom: '12px' }}>🔒</div>
               <div style={{ fontSize: '18px', fontWeight: 800, color: '#f1f5f9', marginBottom: '6px' }}>Acces restricționat</div>
-              <div style={{ fontSize: '13px', color: '#475569' }}>Introduceți parola pentru a accesa secțiunea</div>
+              <div style={{ fontSize: '13px', color: '#475569' }}>{modalCard.title.replace('\n', ' ')} — introduceți parola pentru acces</div>
             </div>
+            {modalCard.id === 'formare' && (
+              <div style={{ marginBottom: '16px' }}>
+                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: '8px', textAlign: 'center' }}>Autentificare ca</div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  {[
+                    { id: 'formabil' as const, label: '🎓 Formabil (A.2)' },
+                    { id: 'evaluator' as const, label: '🔍 Evaluator (A.3)' },
+                  ].map(r => {
+                    const activ = formareRol === r.id
+                    return (
+                      <button key={r.id} type="button" onClick={() => { setFormareRol(r.id); setParolaErr(false) }}
+                        style={{ flex: 1, background: activ ? 'rgba(167,139,250,0.18)' : 'rgba(255,255,255,0.04)', border: `1.5px solid ${activ ? '#a78bfa' : 'rgba(255,255,255,0.12)'}`, color: activ ? '#a78bfa' : '#94a3b8', borderRadius: '10px', padding: '10px 8px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                        {r.label}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
             <form onSubmit={submitParola} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {modalCard.id === 'formare' && (
+                <input
+                  type="text"
+                  placeholder="Nume complet *"
+                  value={loginNume}
+                  onChange={e => { setLoginNume(e.target.value); setLoginErr('') }}
+                  autoFocus
+                  style={{ background: 'rgba(255,255,255,0.05)', border: `1px solid ${loginErr && loginNume.trim().length < 3 ? '#ef4444' : 'rgba(255,255,255,0.1)'}`, borderRadius: '12px', padding: '13px 16px', fontSize: '14px', color: '#f1f5f9', outline: 'none', fontFamily: 'inherit', width: '100%', boxSizing: 'border-box' as const }}
+                />
+              )}
               <input
                 type="email"
-                placeholder="Email"
+                placeholder={modalCard.id === 'formare' ? 'Email *' : 'Email (opțional)'}
                 value={loginEmail}
-                onChange={e => { setLoginEmail(e.target.value); setParolaErr(false) }}
-                autoFocus
+                onChange={e => { setLoginEmail(e.target.value); setParolaErr(false); setLoginErr('') }}
+                autoFocus={modalCard.id !== 'formare'}
                 style={{ background: 'rgba(255,255,255,0.05)', border: `1px solid ${parolaErr ? '#ef4444' : 'rgba(255,255,255,0.1)'}`, borderRadius: '12px', padding: '13px 16px', fontSize: '14px', color: '#f1f5f9', outline: 'none', fontFamily: 'inherit', width: '100%', boxSizing: 'border-box' as const }}
               />
+              {modalCard.id === 'formare' && (
+                <>
+                  <input
+                    type="text"
+                    placeholder="Unitatea de învățământ (opțional)"
+                    value={loginUnitate}
+                    onChange={e => setLoginUnitate(e.target.value)}
+                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '13px 16px', fontSize: '14px', color: '#f1f5f9', outline: 'none', fontFamily: 'inherit', width: '100%', boxSizing: 'border-box' as const }}
+                  />
+                  <select
+                    value={loginJudet}
+                    onChange={e => setLoginJudet(e.target.value)}
+                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '13px 16px', fontSize: '14px', color: loginJudet ? '#f1f5f9' : '#64748b', outline: 'none', fontFamily: 'inherit', width: '100%', boxSizing: 'border-box' as const }}
+                  >
+                    <option value="" style={{ color: '#000' }}>Județ (opțional)</option>
+                    {JUDETE.map(j => <option key={j} value={j} style={{ color: '#000' }}>{j}</option>)}
+                  </select>
+                  <label style={{ display: 'flex', gap: '9px', alignItems: 'flex-start', fontSize: '11.5px', color: '#cbd5e1', cursor: 'pointer', lineHeight: 1.45 }}>
+                    <input type="checkbox" checked={formareConsimtamant} onChange={e => { setFormareConsimtamant(e.target.checked); setLoginErr('') }} style={{ marginTop: '2px', width: '15px', height: '15px', accentColor: '#8b5cf6', flexShrink: 0 }} />
+                    <span>Sunt de acord cu prelucrarea datelor cu caracter personal conform <Link href="/confidentialitate" target="_blank" onClick={e => e.stopPropagation()} style={{ color: '#a78bfa' }}>Politicii de confidențialitate</Link>.</span>
+                  </label>
+                </>
+              )}
+              {loginErr && <div style={{ fontSize: '12px', color: '#ef4444', textAlign: 'center' }}>{loginErr}</div>}
               <input
                 type="password"
                 placeholder="Parolă"
@@ -885,9 +1007,9 @@ export default function AracipHome() {
                 onChange={e => { setParola(e.target.value); setParolaErr(false) }}
                 style={{ background: parolaErr ? 'rgba(239,68,68,0.08)' : 'rgba(255,255,255,0.05)', border: `1px solid ${parolaErr ? '#ef4444' : 'rgba(255,255,255,0.1)'}`, borderRadius: '12px', padding: '13px 16px', fontSize: '14px', color: '#f1f5f9', outline: 'none', fontFamily: 'inherit', width: '100%', boxSizing: 'border-box' as const }}
               />
-              {parolaErr && <div style={{ fontSize: '12px', color: '#ef4444', textAlign: 'center' }}>Email sau parolă incorectă.</div>}
-              <button type="submit" style={{ background: 'linear-gradient(135deg, #7c3aed, #6366f1)', border: 'none', borderRadius: '12px', padding: '13px', fontSize: '14px', fontWeight: 700, color: '#fff', cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 4px 16px rgba(124,58,237,0.35)' }}>
-                Intră →
+              {parolaErr && <div style={{ fontSize: '12px', color: '#ef4444', textAlign: 'center' }}>Parolă incorectă.</div>}
+              <button type="submit" disabled={submitting} style={{ background: 'linear-gradient(135deg, #7c3aed, #6366f1)', border: 'none', borderRadius: '12px', padding: '13px', fontSize: '14px', fontWeight: 700, color: '#fff', cursor: submitting ? 'wait' : 'pointer', opacity: submitting ? 0.7 : 1, fontFamily: 'inherit', boxShadow: '0 4px 16px rgba(124,58,237,0.35)' }}>
+                {submitting ? 'Se verifică...' : 'Intră →'}
               </button>
               <button type="button" onClick={() => setModalCard(null)} style={{ background: 'none', border: 'none', color: '#475569', cursor: 'pointer', fontSize: '13px', fontFamily: 'inherit', padding: '8px' }}>
                 Anulează

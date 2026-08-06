@@ -4,8 +4,8 @@ import { checkPassword, signSession, SessionRole } from '@/lib/session'
 import crypto from 'crypto'
 
 // POST /api/auth/session
-// Body: { role: 'admin'|'isj'|'inspector'|'director'|'diriginte', password?: string, email?: string }
-// Pentru admin/isj/inspector: necesită parolă demo. Emite token HMAC.
+// Body: { role: 'admin'|'isj'|'inspector'|'formabil'|'evaluator'|'director'|'diriginte', password?: string, email?: string }
+// Pentru admin/isj/inspector/formabil/evaluator: necesită parolă demo. Emite token HMAC.
 // Pentru director/diriginte: acceptă orice email (autentificare demo soft) și emite token.
 export async function POST(req: NextRequest) {
   try {
@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
     const { role, password, email } = await req.json() as { role?: SessionRole; password?: string; email?: string }
     if (!role) return NextResponse.json({ error: 'Rol lipsă.' }, { status: 400 })
 
-    if (role === 'admin' || role === 'isj' || role === 'inspector') {
+    if (role === 'admin' || role === 'isj' || role === 'inspector' || role === 'formabil' || role === 'evaluator') {
       if (!password || typeof password !== 'string') {
         return NextResponse.json({ error: 'Parolă lipsă.' }, { status: 400 })
       }

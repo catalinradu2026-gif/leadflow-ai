@@ -6,323 +6,99 @@ export default function AcreditareLanding() {
   const router = useRouter()
   const isMobile = useIsMobile()
 
+  // Cele 3 etape din ciclul de viață al unei unități.
+  // securizat = doar pentru unități existente (director logat) → duce în Portalul Director.
+  const etape = [
+    {
+      icon: '📋', tag: 'ETAPA 1 · UNITATE NOUĂ', color: '#3b82f6', colorSoft: 'rgba(59,130,246,',
+      titlu: 'Autorizare\nde Funcționare',
+      desc: 'Pentru unități școlare NOI sau existente care vor un nivel/specializare nouă. Depui dosarul digital; ARACIP verifică standardele minime.',
+      cta: 'Depune dosarul →', ctaReal: true, securizat: false, notaDirector: false, route: '/acreditare/autorizare',
+      tags: ['Persoane fizice', 'Unități existente', 'Public'],
+    },
+    {
+      icon: '🏅', tag: 'ETAPA 2 · DUPĂ ~1 AN', color: '#a855f7', colorSoft: 'rgba(168,85,247,',
+      titlu: 'Acreditare\nInstituțională',
+      desc: 'Pentru unitățile deja autorizate. Vezi cum funcționează: dosarul de acreditare, vizita comisiei ARACIP, raportul și decizia.',
+      cta: 'Vezi cum funcționează →', ctaReal: false, securizat: false, notaDirector: true, route: '/acreditare/acreditare-scolara',
+      tags: ['Info publică', 'Unitate autorizată'],
+    },
+    {
+      icon: '🔄', tag: 'ETAPA 3 · LA FIECARE 5 ANI', color: '#14b8a6', colorSoft: 'rgba(20,184,166,',
+      titlu: 'Evaluare Externă\nPeriodică',
+      desc: 'Pentru unitățile acreditate, la fiecare 5 ani. Vezi cum funcționează: calendarul, rapoartele și deciziile ARACIP.',
+      cta: 'Vezi cum funcționează →', ctaReal: false, securizat: false, notaDirector: true, route: '/acreditare/evaluare-periodica',
+      tags: ['Info publică', 'Unitate acreditată'],
+    },
+  ]
+
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'linear-gradient(135deg, #0f172a 0%, #1a1035 50%, #0f172a 100%)',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: isMobile ? '16px' : '40px 20px',
-      fontFamily: "'Segoe UI', Arial, sans-serif",
-    }}>
+    <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #0f172a 0%, #1a1035 50%, #0f172a 100%)', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: isMobile ? '16px' : '40px 20px', fontFamily: "'Segoe UI', Arial, sans-serif" }}>
 
-      <button onClick={() => router.push('/aracip')} style={{ position: 'fixed', top: 20, left: 20, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '8px 16px', color: '#94a3b8', cursor: 'pointer', fontSize: '13px', fontFamily: 'inherit' }}>← Înapoi</button>
+      <button onClick={() => router.push('/aracip')} style={{ position: 'fixed', top: 20, left: 20, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '8px 16px', color: '#94a3b8', cursor: 'pointer', fontSize: '13px', fontFamily: 'inherit', zIndex: 20 }}>← Înapoi</button>
 
-      {/* Header badge */}
-      <div style={{ textAlign: 'center', marginBottom: '56px' }}>
-        <div style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '10px',
-          background: 'rgba(255,255,255,0.07)',
-          border: '1px solid rgba(255,255,255,0.12)',
-          borderRadius: '40px',
-          padding: '8px 20px',
-          marginBottom: '28px',
-          fontSize: '13px',
-          color: '#c4b5fd',
-          letterSpacing: '0.5px',
-        }}>
+      {/* Header */}
+      <div style={{ textAlign: 'center', marginTop: isMobile ? '48px' : '20px', marginBottom: '40px' }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '40px', padding: '8px 20px', marginBottom: '24px', fontSize: '13px', color: '#c4b5fd', letterSpacing: '0.5px' }}>
           <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e', display: 'inline-block', boxShadow: '0 0 8px #22c55e' }} />
           Platformă ARACIP · Asigurarea Calității în Educație
         </div>
-
-        <h1 style={{
-          fontSize: isMobile ? '32px' : '48px',
-          fontWeight: 800,
-          color: '#fff',
-          lineHeight: 1.15,
-          marginBottom: '18px',
-          letterSpacing: '-1.5px',
-        }}>
-          Autorizare, Acreditare<br />
-          <span style={{ color: '#a78bfa' }}>și Evaluare Periodică</span>
+        <h1 style={{ fontSize: isMobile ? '30px' : '46px', fontWeight: 800, color: '#fff', lineHeight: 1.15, marginBottom: '16px', letterSpacing: '-1.5px' }}>
+          Autorizare, Acreditare<br /><span style={{ color: '#a78bfa' }}>și Evaluare Periodică</span>
         </h1>
-
-        <p style={{
-          fontSize: '17px',
-          color: '#94a3b8',
-          maxWidth: '540px',
-          lineHeight: 1.7,
-          margin: '0 auto',
-        }}>
-          Platforma digitală ARACIP pentru managementul calității în unitățile de învățământ preuniversitar din România.
+        <p style={{ fontSize: '16px', color: '#94a3b8', maxWidth: '580px', lineHeight: 1.7, margin: '0 auto' }}>
+          Parcursul unei unități de învățământ în relația cu ARACIP. 🟢 Autorizarea e publică (oricine o poate depune); 🔒 acreditarea și evaluarea periodică se fac din Portalul Director.
         </p>
-
-        <div style={{ marginTop: '24px' }}>
-          <button
-            onClick={() => router.push('/acreditare/dashboard')}
-            style={{
-              background: 'rgba(167,139,250,0.12)',
-              border: '1px solid #a78bfa',
-              borderRadius: '12px',
-              padding: '12px 28px',
-              fontSize: '14px',
-              fontWeight: 700,
-              color: '#a78bfa',
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-            }}
-          >
-            🏛️ Dashboard ARACIP — Toate Unitățile Școlare →
-          </button>
-        </div>
       </div>
 
-      {/* Cards */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)',
-        gap: '24px',
-        maxWidth: '1080px',
-        width: '100%',
-        marginBottom: '48px',
-      }}>
-
-        {/* Autorizare */}
-        <div
-          onClick={() => router.push('/acreditare/autorizare')}
-          style={{
-            background: isMobile ? 'rgba(59,130,246,0.14)' : 'rgba(59,130,246,0.07)',
-            border: '2px solid #3b82f6',
-            borderRadius: '20px',
-            padding: '40px 32px',
-            cursor: 'pointer',
-            transition: 'all 0.2s',
-            position: 'relative',
-            overflow: 'hidden',
-            transform: isMobile ? 'translateY(-4px)' : undefined,
-            boxShadow: isMobile ? '0 12px 32px rgba(59,130,246,0.25), 0 4px 0 rgba(59,130,246,0.4)' : undefined,
-          }}
-          onMouseEnter={e => {
-            (e.currentTarget as HTMLDivElement).style.background = 'rgba(59,130,246,0.14)'
-            ;(e.currentTarget as HTMLDivElement).style.transform = 'translateY(-4px)'
-          }}
-          onMouseLeave={e => {
-            (e.currentTarget as HTMLDivElement).style.background = 'rgba(59,130,246,0.07)'
-            ;(e.currentTarget as HTMLDivElement).style.transform = 'translateY(0)'
-          }}
-        >
-          <div style={{ position: 'absolute', top: '-30px', right: '-30px', width: '120px', height: '120px', background: 'rgba(59,130,246,0.1)', borderRadius: '50%' }} />
-          <div style={{ fontSize: '52px', marginBottom: '18px' }}>📋</div>
-          <div style={{
-            display: 'inline-block',
-            background: '#1d4ed8',
-            color: '#bfdbfe',
-            fontSize: '11px',
-            fontWeight: 700,
-            padding: '3px 12px',
-            borderRadius: '20px',
-            marginBottom: '14px',
-            letterSpacing: '0.5px',
-          }}>
-            ETAPA 1 · FUNCȚIONARE PROVIZORIE
-          </div>
-          <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#fff', marginBottom: '12px', lineHeight: 1.2 }}>
-            Autorizare<br />de Funcționare
-          </h2>
-          <p style={{ fontSize: '14px', color: '#94a3b8', lineHeight: 1.7, marginBottom: '28px' }}>
-            Dosar digital pentru unități școlare noi. Verificare standarde minime, urmărire status, comunicare ARACIP în timp real.
-          </p>
-          <div style={{
-            background: '#3b82f6',
-            color: '#fff',
-            padding: '13px 24px',
-            borderRadius: '12px',
-            fontSize: '14px',
-            fontWeight: 700,
-            display: 'inline-block',
-          }}>
-            Depune dosar →
-          </div>
-          <div style={{ marginTop: '20px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            {['Școli noi', 'Dosar digital', 'Status live'].map(tag => (
-              <span key={tag} style={{ background: 'rgba(59,130,246,0.18)', color: '#93c5fd', fontSize: '11px', padding: '3px 10px', borderRadius: '20px' }}>{tag}</span>
-            ))}
-          </div>
+      {/* Cele 3 etape */}
+      <div style={{ width: '100%', maxWidth: '1080px' }}>
+        <div style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '16px', textAlign: 'center' }}>
+          Parcursul unei unități — cele 3 etape
         </div>
-
-        {/* Acreditare */}
-        <div
-          onClick={() => router.push('/acreditare/acreditare-scolara')}
-          style={{
-            background: isMobile ? 'rgba(168,85,247,0.14)' : 'rgba(168,85,247,0.07)',
-            border: '2px solid #a855f7',
-            borderRadius: '20px',
-            padding: '40px 32px',
-            cursor: 'pointer',
-            transition: 'all 0.2s',
-            position: 'relative',
-            overflow: 'hidden',
-            transform: isMobile ? 'translateY(-4px)' : undefined,
-            boxShadow: isMobile ? '0 12px 32px rgba(168,85,247,0.25), 0 4px 0 rgba(168,85,247,0.4)' : undefined,
-          }}
-          onMouseEnter={e => {
-            (e.currentTarget as HTMLDivElement).style.background = 'rgba(168,85,247,0.14)'
-            ;(e.currentTarget as HTMLDivElement).style.transform = 'translateY(-4px)'
-          }}
-          onMouseLeave={e => {
-            (e.currentTarget as HTMLDivElement).style.background = 'rgba(168,85,247,0.07)'
-            ;(e.currentTarget as HTMLDivElement).style.transform = 'translateY(0)'
-          }}
-        >
-          <div style={{ position: 'absolute', top: '-30px', right: '-30px', width: '120px', height: '120px', background: 'rgba(168,85,247,0.1)', borderRadius: '50%' }} />
-          <div style={{ fontSize: '52px', marginBottom: '18px' }}>🏅</div>
-          <div style={{
-            display: 'inline-block',
-            background: '#7e22ce',
-            color: '#e9d5ff',
-            fontSize: '11px',
-            fontWeight: 700,
-            padding: '3px 12px',
-            borderRadius: '20px',
-            marginBottom: '14px',
-            letterSpacing: '0.5px',
-          }}>
-            ETAPA 2 · ACREDITARE PERMANENTĂ
-          </div>
-          <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#fff', marginBottom: '12px', lineHeight: 1.2 }}>
-            Acreditare<br />Instituțională
-          </h2>
-          <p style={{ fontSize: '14px', color: '#94a3b8', lineHeight: 1.7, marginBottom: '28px' }}>
-            Evaluare completă a calității educației oferite. Dosar acreditare, vizita comisiei ARACIP, raport final și decizie de acreditare.
-          </p>
-          <div style={{
-            background: '#a855f7',
-            color: '#fff',
-            padding: '13px 24px',
-            borderRadius: '12px',
-            fontSize: '14px',
-            fontWeight: 700,
-            display: 'inline-block',
-          }}>
-            Solicită acreditare →
-          </div>
-          <div style={{ marginTop: '20px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            {['Calitate', 'Comisie ARACIP', 'Decizie oficială'].map(tag => (
-              <span key={tag} style={{ background: 'rgba(168,85,247,0.18)', color: '#d8b4fe', fontSize: '11px', padding: '3px 10px', borderRadius: '20px' }}>{tag}</span>
-            ))}
-          </div>
-        </div>
-
-        {/* Evaluare Periodica */}
-        <div
-          onClick={() => router.push('/acreditare/evaluare-periodica')}
-          style={{
-            background: isMobile ? 'rgba(20,184,166,0.14)' : 'rgba(20,184,166,0.07)',
-            border: '2px solid #14b8a6',
-            borderRadius: '20px',
-            padding: '40px 32px',
-            cursor: 'pointer',
-            transition: 'all 0.2s',
-            position: 'relative',
-            overflow: 'hidden',
-            transform: isMobile ? 'translateY(-4px)' : undefined,
-            boxShadow: isMobile ? '0 12px 32px rgba(20,184,166,0.25), 0 4px 0 rgba(20,184,166,0.4)' : undefined,
-          }}
-          onMouseEnter={e => {
-            (e.currentTarget as HTMLDivElement).style.background = 'rgba(20,184,166,0.14)'
-            ;(e.currentTarget as HTMLDivElement).style.transform = 'translateY(-4px)'
-          }}
-          onMouseLeave={e => {
-            (e.currentTarget as HTMLDivElement).style.background = 'rgba(20,184,166,0.07)'
-            ;(e.currentTarget as HTMLDivElement).style.transform = 'translateY(0)'
-          }}
-        >
-          <div style={{ position: 'absolute', top: '-30px', right: '-30px', width: '120px', height: '120px', background: 'rgba(20,184,166,0.1)', borderRadius: '50%' }} />
-          <div style={{ fontSize: '52px', marginBottom: '18px' }}>🔄</div>
-          <div style={{
-            display: 'inline-block',
-            background: '#0f766e',
-            color: '#99f6e4',
-            fontSize: '11px',
-            fontWeight: 700,
-            padding: '3px 12px',
-            borderRadius: '20px',
-            marginBottom: '14px',
-            letterSpacing: '0.5px',
-          }}>
-            ETAPA 3 · LA FIECARE 5 ANI
-          </div>
-          <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#fff', marginBottom: '12px', lineHeight: 1.2 }}>
-            Evaluare Externă<br />Periodică
-          </h2>
-          <p style={{ fontSize: '14px', color: '#94a3b8', lineHeight: 1.7, marginBottom: '28px' }}>
-            Reevaluarea calității la fiecare 5 ani pentru menținerea acreditării. Rapoarte online, calendar vizite, decizii și recomandări ARACIP.
-          </p>
-          <div style={{
-            background: '#14b8a6',
-            color: '#fff',
-            padding: '13px 24px',
-            borderRadius: '12px',
-            fontSize: '14px',
-            fontWeight: 700,
-            display: 'inline-block',
-          }}>
-            Vezi calendar →
-          </div>
-          <div style={{ marginTop: '20px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            {['5 ani', 'Toate școlile', 'Raport ARACIP'].map(tag => (
-              <span key={tag} style={{ background: 'rgba(20,184,166,0.18)', color: '#5eead4', fontSize: '11px', padding: '3px 10px', borderRadius: '20px' }}>{tag}</span>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Resurse */}
-      <div style={{ width: '100%', maxWidth: '1080px', marginBottom: '48px' }}>
-        <div style={{ fontSize: '11px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '16px' }}>
-          Resurse & Informații
-        </div>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(3, 1fr)',
-          gap: '12px',
-        }}>
-          {[
-            { icon: '📋', label: 'Registre Naționale', desc: '7 registre cu toate unitățile', color: '#6366f1', route: '/acreditare/registre' },
-            { icon: '⚖️', label: 'Legislație', desc: 'Acte normative centralizate', color: '#a855f7', route: '/acreditare/legislatie' },
-            { icon: '📊', label: 'Statistici Naționale', desc: 'Date agregate pe județe', color: '#f59e0b', route: '/acreditare/dashboard' },
-          ].map(r => (
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: '24px', marginBottom: '40px' }}>
+          {etape.map(e => (
             <div
-              key={r.label}
-              onClick={() => router.push(r.route)}
-              style={{
-                background: 'rgba(255,255,255,0.03)',
-                border: '1px solid rgba(255,255,255,0.07)',
-                borderRadius: '14px',
-                padding: '16px',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-              }}
-              onMouseEnter={e => {
-                (e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,0.06)'
-                ;(e.currentTarget as HTMLDivElement).style.borderColor = `${r.color}44`
-                ;(e.currentTarget as HTMLDivElement).style.transform = 'translateY(-2px)'
-              }}
-              onMouseLeave={e => {
-                (e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,0.03)'
-                ;(e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(255,255,255,0.07)'
-                ;(e.currentTarget as HTMLDivElement).style.transform = 'translateY(0)'
-              }}
+              key={e.tag}
+              role="button"
+              tabIndex={0}
+              onClick={() => router.push(e.route)}
+              onKeyDown={ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); router.push(e.route) } }}
+              style={{ background: `${e.colorSoft}${isMobile ? '0.14' : '0.07'})`, border: `2px solid ${e.securizat ? 'rgba(239,68,68,0.5)' : e.color}`, borderRadius: '20px', padding: '32px 28px', cursor: 'pointer', transition: 'all 0.2s', position: 'relative', overflow: 'hidden' }}
+              onMouseEnter={ev => { (ev.currentTarget as HTMLDivElement).style.background = `${e.colorSoft}0.14)`; (ev.currentTarget as HTMLDivElement).style.transform = 'translateY(-4px)' }}
+              onMouseLeave={ev => { (ev.currentTarget as HTMLDivElement).style.background = `${e.colorSoft}${isMobile ? '0.14' : '0.07'})`; (ev.currentTarget as HTMLDivElement).style.transform = 'translateY(0)' }}
             >
+              {/* Colț status: verde (acțiune publică) / albastru (info publică) */}
+              <div style={{ position: 'absolute', top: 14, right: 14, background: e.ctaReal ? 'rgba(34,197,94,0.15)' : 'rgba(59,130,246,0.12)', border: `1px solid ${e.ctaReal ? 'rgba(34,197,94,0.5)' : 'rgba(59,130,246,0.4)'}`, color: e.ctaReal ? '#4ade80' : '#93c5fd', fontSize: '10px', fontWeight: 700, padding: '3px 10px', borderRadius: '20px' }}>
+                {e.ctaReal ? '🟢 Public' : 'ℹ️ Info publică'}
+              </div>
+              <div style={{ fontSize: '48px', marginBottom: '16px' }}>{e.icon}</div>
+              <div style={{ display: 'inline-block', background: e.color, color: '#fff', fontSize: '10.5px', fontWeight: 700, padding: '3px 12px', borderRadius: '20px', marginBottom: '14px', letterSpacing: '0.5px' }}>{e.tag}</div>
+              <h2 style={{ fontSize: '22px', fontWeight: 800, color: '#fff', marginBottom: '12px', lineHeight: 1.2, whiteSpace: 'pre-line' }}>{e.titlu}</h2>
+              <p style={{ fontSize: '13.5px', color: '#94a3b8', lineHeight: 1.7, marginBottom: '24px' }}>{e.desc}</p>
+              <div style={{ background: e.ctaReal ? e.color : 'transparent', color: e.ctaReal ? '#fff' : (e.securizat ? '#f87171' : e.color), border: e.ctaReal ? 'none' : `1.5px solid ${e.securizat ? 'rgba(239,68,68,0.5)' : `${e.color}88`}`, padding: '12px 22px', borderRadius: '12px', fontSize: '13.5px', fontWeight: 700, display: 'inline-block' }}>{e.cta}</div>
+              {e.notaDirector && <div style={{ marginTop: '10px', fontSize: '11px', color: '#f87171' }}>🔒 Depunerea efectivă se face din Portalul Director</div>}
+              <div style={{ marginTop: '16px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {e.tags.map(tag => <span key={tag} style={{ background: `${e.colorSoft}0.18)`, color: '#cbd5e1', fontSize: '11px', padding: '3px 10px', borderRadius: '20px' }}>{tag}</span>)}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Resurse publice */}
+      <div style={{ width: '100%', maxWidth: '1080px', marginBottom: '40px' }}>
+        <div style={{ fontSize: '11px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '6px' }}>Resurse & Informații (publice)</div>
+        <div style={{ fontSize: '12.5px', color: '#64748b', marginBottom: '16px', lineHeight: 1.6, maxWidth: '640px' }}>Pentru <strong style={{ color: '#94a3b8' }}>părinți și public</strong> — verificați dacă o școală/grădiniță este autorizată sau acreditată și consultați legislația în vigoare. Acces liber, fără cont.</div>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: '12px' }}>
+          {[
+            { icon: '🔎', label: 'Verifică o unitate', desc: 'Vezi dacă o școală/grădiniță e autorizată sau acreditată (pentru părinți și public)', color: '#6366f1', route: '/acreditare/registre' },
+            { icon: '⚖️', label: 'Legislație', desc: 'Actele normative în vigoare (referință publică)', color: '#a855f7', route: '/acreditare/legislatie' },
+          ].map(r => (
+            <div key={r.label} role="button" tabIndex={0} onClick={() => router.push(r.route)} onKeyDown={ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); router.push(r.route) } }}
+              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '14px', padding: '16px', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '12px' }}
+              onMouseEnter={ev => { (ev.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,0.06)'; (ev.currentTarget as HTMLDivElement).style.borderColor = `${r.color}44` }}
+              onMouseLeave={ev => { (ev.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,0.03)'; (ev.currentTarget as HTMLDivElement).style.borderColor = 'rgba(255,255,255,0.07)' }}>
               <div style={{ width: 40, height: 40, borderRadius: '10px', background: `${r.color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', flexShrink: 0 }}>{r.icon}</div>
               <div>
                 <div style={{ fontSize: '13px', fontWeight: 700, color: '#e2e8f0' }}>{r.label}</div>
@@ -334,14 +110,7 @@ export default function AcreditareLanding() {
       </div>
 
       {/* Stats */}
-      <div style={{
-        display: 'flex',
-        gap: '56px',
-        borderTop: '1px solid rgba(255,255,255,0.07)',
-        paddingTop: '32px',
-        flexWrap: 'wrap',
-        justifyContent: 'center',
-      }}>
+      <div style={{ display: 'flex', gap: isMobile ? '32px' : '56px', borderTop: '1px solid rgba(255,255,255,0.07)', paddingTop: '32px', flexWrap: 'wrap', justifyContent: 'center' }}>
         {[
           { val: '11.500', label: 'Unități Școlare' },
           { val: '42', label: 'Județe + București' },
@@ -355,7 +124,7 @@ export default function AcreditareLanding() {
         ))}
       </div>
 
-      <div style={{ marginTop: '32px', fontSize: '12px', color: '#334155', textAlign: 'center' }}>
+      <div style={{ marginTop: '32px', marginBottom: '20px', fontSize: '12px', color: '#334155', textAlign: 'center' }}>
         Powered by <strong style={{ color: '#a78bfa' }}>AIcraiova</strong> · NewTime Concept Solutions S.R.L. · în parteneriat cu <strong style={{ color: '#a78bfa' }}>ARACIP</strong>
       </div>
     </div>
