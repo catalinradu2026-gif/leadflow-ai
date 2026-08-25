@@ -8,6 +8,8 @@ const CARDS = [
   { href: '/demo-bt-2026/credite', emoji: '🏠', title: 'Credite', desc: 'Nevoi personale, imobiliar/ipotecar, Prima Casă.' },
   { href: '/demo-bt-2026/conturi', emoji: '🏦', title: 'Conturi curente', desc: 'Deschidere 100% online, fără comision de administrare.' },
   { href: '/demo-bt-2026/imm', emoji: '📈', title: 'IMM & companii', desc: 'BT Mic, BT Profi, BT Invest, garanții FNGCIMM/FEI.' },
+  { href: '/demo-bt-2026/onboarding', emoji: '🚀', title: 'Deschidere cont online', desc: 'Ghid pas cu pas prin procesul real NEOcont, prin BT Pay.' },
+  { href: '/demo-bt-2026/suport', emoji: '🧭', title: 'Triaj suport (concept)', desc: 'Demonstrație conceptuală — cum ar clasifica Ana o problemă de suport.' },
 ]
 
 export default function DemoBtHub() {
