@@ -52,7 +52,8 @@ export default function BTGate({ children }: { children: ReactNode }) {
 
   if (!unlocked) {
     return (
-      <div style={{ minHeight: '100vh', background: '#0a1a2a', fontFamily: "'Segoe UI', Arial, sans-serif", color: '#e2e8f0', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+      <div style={{ minHeight: '100vh', background: '#0a1a2a', fontFamily: "'Segoe UI', Arial, sans-serif", color: '#e2e8f0', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px', position: 'relative' }}>
+        <BTWatermark />
         <div style={{ textAlign: 'center', marginBottom: '28px' }}>
           <div style={{ width: 56, height: 56, borderRadius: '16px', background: 'linear-gradient(135deg, #2ea89d, #1b7a72)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '26px', margin: '0 auto 16px' }}>🔒</div>
           <div style={{ fontSize: '19px', fontWeight: 800 }}>Demo privat — acces restricționat</div>
@@ -74,31 +75,45 @@ export default function BTGate({ children }: { children: ReactNode }) {
             {checking ? 'Se verifică...' : 'Intră →'}
           </button>
         </form>
-        <DemoDisclaimer />
       </div>
     )
   }
 
   return (
     <>
-      <DemoDisclaimer />
+      <BTWatermark />
       {children}
     </>
   )
 }
 
-export function DemoDisclaimer() {
+// ============================================================================
+// Watermark diagonal — protecție legală/marcă. Înlocuiește bannerul separat de
+// disclaimer: textul "DEMO — prototip neoficial" e vizibil pe toată pagina, la
+// opacitate redusă, ca un preview de stock photo. NU blochează interacțiunea
+// (pointer-events: none) și nu afectează lizibilitatea conținutului dedesubt.
+// Dezvăluirea AI Act ("sunt Ana, asistent AI, nu om") e SEPARATĂ și rămâne doar
+// în widget-ul de chat (header + primul mesaj) — nu se amestecă cu watermark-ul.
+// ============================================================================
+function BTWatermark() {
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='560' height='420'>
+    <g transform='rotate(-30 280 210)' font-family='Segoe UI, Arial, sans-serif' font-size='19' font-weight='700' fill='rgba(226,232,240,0.09)'>
+      <text x='-120' y='40'>DEMO — prototip neoficial</text>
+      <text x='-120' y='150'>DEMO — prototip neoficial</text>
+      <text x='-120' y='260'>DEMO — prototip neoficial</text>
+      <text x='-120' y='370'>DEMO — prototip neoficial</text>
+    </g>
+  </svg>`
+  const dataUri = `data:image/svg+xml,${encodeURIComponent(svg)}`
   return (
     <div
+      aria-hidden="true"
       style={{
-        background: '#3a2a06', borderBottom: '1px solid #7a5a10', color: '#fcd34d',
-        fontSize: '12px', fontWeight: 600, textAlign: 'center', padding: '8px 16px', lineHeight: 1.5,
-        position: 'sticky', top: 0, zIndex: 10000, fontFamily: "'Segoe UI', Arial, sans-serif",
+        position: 'fixed', inset: 0, zIndex: 5000, pointerEvents: 'none',
+        backgroundImage: `url("${dataUri}")`,
+        backgroundRepeat: 'repeat',
+        backgroundSize: '560px 420px',
       }}
-    >
-      ⚠️ Demo conceptual — prototip neoficial. Nu reprezintă un produs sau serviciu oficial Banca Transilvania.
-      {' '}🤖 Chat-ul de pe această pagină este operat de „Ana", un asistent de inteligență artificială — nu vorbiți
-      cu o persoană reală.
-    </div>
+    />
   )
 }
