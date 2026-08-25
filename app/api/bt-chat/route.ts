@@ -338,9 +338,10 @@ export async function POST(req: NextRequest) {
       try {
         const response = await groq.chat.completions.create({
           model,
-          // 500 era prea puțin pentru răspunsurile mai lungi (cardul de simulare credit,
-          // FAQ IMM detaliat, pre-calificare) — tăia răspunsul la mijlocul propoziției.
-          max_tokens: 900,
+          // 500, apoi 900 tot erau prea puțin pentru răspunsurile lungi (tabele comparative
+          // IMM cu 6+ rânduri, cardul de simulare credit + explicații) — tăiau răspunsul la
+          // mijlocul propoziției chiar și după ce am încercat toate modelele din listă.
+          max_tokens: 1400,
           temperature: 0.6,
           messages: chatMessages,
         })
