@@ -19,6 +19,9 @@ export default function BtAdmin() {
   const [auth, setAuth] = useState(false)
   const [authErr, setAuthErr] = useState('')
   const [checking, setChecking] = useState(false)
+  const [stage, setStage] = useState<'password' | 'code'>('password')
+  const [code, setCode] = useState('')
+  const [codeErr, setCodeErr] = useState('')
   const [data, setData] = useState<Knowledge | null>(null)
   const [tab, setTab] = useState<'cunostinte' | 'comportament'>('cunostinte')
   const [saving, setSaving] = useState(false)
@@ -27,6 +30,13 @@ export default function BtAdmin() {
   const [uploading, setUploading] = useState(false)
   const [uploadMsg, setUploadMsg] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  async function completeLogin() {
+    const kRes = await fetch('/api/bt-knowledge')
+    const kJson = await kRes.json()
+    setData(kJson)
+    setAuth(true)
+  }
 
   async function login(e?: React.FormEvent) {
     e?.preventDefault()
@@ -40,13 +50,40 @@ export default function BtAdmin() {
         body: JSON.stringify({ password: pass }),
       })
       const json = await res.json()
-      if (!json.ok) { setAuthErr(json.error || 'Parolă incorectă.'); setChecking(false); return }
-      const kRes = await fetch('/api/bt-knowledge')
-      const kJson = await kRes.json()
-      setData(kJson)
-      setAuth(true)
+      if (json.ok) {
+        // Parolă corectă și 2FA dezactivat — acces direct.
+        await completeLogin()
+      } else if (json.twoFactorRequired) {
+        // Parolă corectă, dar mai e nevoie de codul din aplicația de autentificare.
+        setStage('code')
+      } else {
+        setAuthErr(json.error || 'Parolă incorectă.')
+      }
     } catch {
       setAuthErr('Eroare de conexiune.')
+    }
+    setChecking(false)
+  }
+
+  async function verifyCode(e?: React.FormEvent) {
+    e?.preventDefault()
+    if (!code.trim() || checking) return
+    setChecking(true)
+    setCodeErr('')
+    try {
+      const res = await fetch('/api/bt-admin-auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: pass, code: code.trim() }),
+      })
+      const json = await res.json()
+      if (json.ok) {
+        await completeLogin()
+      } else {
+        setCodeErr(json.error || 'Cod incorect.')
+      }
+    } catch {
+      setCodeErr('Eroare de conexiune.')
     }
     setChecking(false)
   }
@@ -112,18 +149,55 @@ export default function BtAdmin() {
     setData(d => d ? { ...d, behaviorRules: d.behaviorRules.filter(x => x.id !== id) } : d)
   }
 
-  if (!auth) {
+  if (!auth && stage === 'password') {
     return (
       <div style={{ minHeight: '100vh', background: '#0a1a2a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Segoe UI', Arial, sans-serif" }}>
         <div style={{ background: NAVY, border: '1px solid rgba(255,255,255,0.08)', borderRadius: '16px', padding: '36px', width: '340px', boxSizing: 'border-box' }}>
           <div style={{ fontSize: '24px', textAlign: 'center', marginBottom: '8px' }}>🔧</div>
           <h2 style={{ color: '#f1f5f9', textAlign: 'center', marginBottom: '4px', fontSize: '17px' }}>Admin demo BT</h2>
-          <p style={{ color: '#64748b', textAlign: 'center', marginBottom: '22px', fontSize: '12px' }}>Cunoștințe Ana — acces restricționat echipei</p>
+          <p style={{ color: '#64748b', textAlign: 'center', marginBottom: '22px', fontSize: '12px' }}>Pasul 1 din 2 — parolă · Cunoștințe Ana, acces restricționat echipei</p>
           <form onSubmit={login} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <input type="password" placeholder="Parolă admin" value={pass} onChange={e => setPass(e.target.value)} autoFocus style={inp} />
             {authErr && <div style={{ color: '#ef4444', fontSize: '12px', textAlign: 'center' }}>{authErr}</div>}
-            <button type="submit" disabled={checking} style={{ ...btn(), width: '100%' }}>{checking ? 'Se verifică...' : 'Intră →'}</button>
+            <button type="submit" disabled={checking} style={{ ...btn(), width: '100%' }}>{checking ? 'Se verifică...' : 'Continuă →'}</button>
           </form>
+        </div>
+      </div>
+    )
+  }
+
+  if (!auth && stage === 'code') {
+    return (
+      <div style={{ minHeight: '100vh', background: '#0a1a2a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Segoe UI', Arial, sans-serif" }}>
+        <div style={{ background: NAVY, border: '1px solid rgba(255,255,255,0.08)', borderRadius: '16px', padding: '36px', width: '360px', boxSizing: 'border-box' }}>
+          <div style={{ fontSize: '24px', textAlign: 'center', marginBottom: '8px' }}>🔐</div>
+          <h2 style={{ color: '#f1f5f9', textAlign: 'center', marginBottom: '4px', fontSize: '17px' }}>Verificare în doi pași</h2>
+          <p style={{ color: '#64748b', textAlign: 'center', marginBottom: '18px', fontSize: '12px' }}>
+            Pasul 2 din 2 — introduceți codul de 6 cifre din aplicația de autentificare (Google Authenticator, Authy etc.)
+          </p>
+          <form onSubmit={verifyCode} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <input
+              type="text"
+              inputMode="numeric"
+              maxLength={6}
+              placeholder="000000"
+              value={code}
+              onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              autoFocus
+              style={{ ...inp, textAlign: 'center', fontSize: '22px', letterSpacing: '6px', fontWeight: 700 }}
+            />
+            {codeErr && <div style={{ color: '#ef4444', fontSize: '12px', textAlign: 'center' }}>{codeErr}</div>}
+            <button type="submit" disabled={checking || code.length !== 6} style={{ ...btn(), width: '100%' }}>{checking ? 'Se verifică...' : 'Confirmă →'}</button>
+            <button type="button" onClick={() => { setStage('password'); setCode(''); setCodeErr('') }} style={{ background: 'none', border: 'none', color: '#64748b', fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit' }}>← Înapoi la parolă</button>
+          </form>
+          <details style={{ marginTop: '18px', fontSize: '11px', color: '#475569' }}>
+            <summary style={{ cursor: 'pointer', color: '#64748b' }}>Nu ați configurat încă aplicația de autentificare?</summary>
+            <div style={{ marginTop: '8px', lineHeight: 1.6 }}>
+              În aplicația de autentificare (Google Authenticator, Authy, Microsoft Authenticator etc.), alegeți
+              „Adaugă cont" → „Introduceți cheia manual" și folosiți cheia de configurare primită separat de la
+              administratorul demo-ului. Codul afișat se schimbă la fiecare 30 de secunde.
+            </div>
+          </details>
         </div>
       </div>
     )
