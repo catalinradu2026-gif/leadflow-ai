@@ -17,7 +17,7 @@ export default function ConturiPage() {
     <BTGate>
       <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #0a1a2a, #0f2942)', fontFamily: "'Segoe UI', Arial, sans-serif", color: '#e2e8f0' }}>
         <div style={{ maxWidth: '820px', margin: '0 auto', padding: '40px 24px 100px' }}>
-          <Link href="/demo-bt-x7k2" style={{ fontSize: '12px', color: '#64748b', textDecoration: 'none' }}>← Înapoi</Link>
+          <Link href="/demo-bt-2026" style={{ fontSize: '12px', color: '#64748b', textDecoration: 'none' }}>← Înapoi</Link>
           <div style={{ fontSize: '38px', marginTop: '18px', marginBottom: '6px' }}>🏦</div>
           <h1 style={{ fontSize: '28px', fontWeight: 800, marginBottom: '8px' }}>Conturi curente</h1>
           <p style={{ fontSize: '14px', color: '#94a3b8', marginBottom: '24px', maxWidth: '600px', lineHeight: 1.6 }}>

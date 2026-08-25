@@ -4,10 +4,10 @@ import BTGate from './BTGate'
 import BTChatbot from '../components/BTChatbot'
 
 const CARDS = [
-  { href: '/demo-bt-x7k2/carduri', emoji: '💳', title: 'Carduri', desc: 'Debit, credit, business — Star Card, Visa Classic, BT Flying Blue și altele.' },
-  { href: '/demo-bt-x7k2/credite', emoji: '🏠', title: 'Credite', desc: 'Nevoi personale, imobiliar/ipotecar, Prima Casă.' },
-  { href: '/demo-bt-x7k2/conturi', emoji: '🏦', title: 'Conturi curente', desc: 'Deschidere 100% online, fără comision de administrare.' },
-  { href: '/demo-bt-x7k2/imm', emoji: '📈', title: 'IMM & companii', desc: 'BT Mic, BT Profi, BT Invest, garanții FNGCIMM/FEI.' },
+  { href: '/demo-bt-2026/carduri', emoji: '💳', title: 'Carduri', desc: 'Debit, credit, business — Star Card, Visa Classic, BT Flying Blue și altele.' },
+  { href: '/demo-bt-2026/credite', emoji: '🏠', title: 'Credite', desc: 'Nevoi personale, imobiliar/ipotecar, Prima Casă.' },
+  { href: '/demo-bt-2026/conturi', emoji: '🏦', title: 'Conturi curente', desc: 'Deschidere 100% online, fără comision de administrare.' },
+  { href: '/demo-bt-2026/imm', emoji: '📈', title: 'IMM & companii', desc: 'BT Mic, BT Profi, BT Invest, garanții FNGCIMM/FEI.' },
 ]
 
 export default function DemoBtHub() {

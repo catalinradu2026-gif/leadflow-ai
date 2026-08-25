@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 
 // Segment complet noindex — demo privat, nu trebuie indexat niciodată de Google.
-// Se aplică automat tuturor paginilor din /demo-bt-x7k2/* (App Router moștenește metadata).
+// Se aplică automat tuturor paginilor din /demo-bt-2026/* (App Router moștenește metadata).
 export const metadata: Metadata = {
   title: 'Demo privat',
   robots: {
