@@ -44,7 +44,6 @@ export default function DemoBtHub() {
       <BTChatbot
         context="general"
         salut="Bună ziua! Sunt Ana, asistentul AI virtual pentru acest demo — nu sunt un consultant uman. Sunt aici să vă ajut să găsiți exact ce vă trebuie. Ce căutați astăzi — un card, un credit, un cont curent, sau soluții pentru firma dumneavoastră?"
-        intrebari={['Vreau un card', 'Am nevoie de un credit', 'Vreau un cont curent', 'Am o firmă / IMM']}
       />
     </BTGate>
   )

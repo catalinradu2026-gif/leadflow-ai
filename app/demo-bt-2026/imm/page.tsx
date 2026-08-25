@@ -58,7 +58,6 @@ export default function ImmPage() {
       <BTChatbot
         context="imm"
         salut="Bună ziua! Sunt Ana, asistentul AI virtual — nu sunt un consultant uman. Spuneți-mi puțin despre firma dumneavoastră — ce domeniu, și aveți nevoie de capital de lucru, de o investiție, sau de o garanție pentru un credit fără garanții proprii suficiente?"
-        intrebari={['Capital de lucru', 'Finanțare investiție', 'Nu am garanții suficiente']}
       />
     </BTGate>
   )

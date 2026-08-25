@@ -38,7 +38,6 @@ export default function ConturiPage() {
       <BTChatbot
         context="conturi"
         salut="Bună ziua! Sunt Ana, asistentul AI virtual — nu sunt un consultant uman. Pentru contul curent — vreți în lei sau valută, și preferați să faceți totul 100% online? Spuneți-mi ce folosiți cel mai des (plăți curente, transferuri, economii) ca să vă recomand corect."
-        intrebari={['Cont în lei', 'Cont în valută', 'Deschidere 100% online']}
       />
     </BTGate>
   )

@@ -60,7 +60,6 @@ export default function CarduriPage() {
       <BTChatbot
         context="carduri"
         salut="Bună ziua! Sunt Ana, asistentul AI virtual — nu sunt un consultant uman. Văd că vă interesează cardurile. Ca să vă recomand exact ce trebuie — căutați un card de zi cu zi (debit), unul de credit cu rate sau puncte, sau ceva pentru firmă? Și în lei sau valută?"
-        intrebari={['Card de debit simplu', 'Card de credit cu rate', 'Card pentru firmă']}
       />
     </BTGate>
   )
