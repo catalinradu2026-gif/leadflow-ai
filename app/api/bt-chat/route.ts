@@ -172,23 +172,35 @@ export async function POST(req: NextRequest) {
     }
 
     const systemPrompt = buildSystemPrompt(typeof context === 'string' ? context : 'general')
+    const chatMessages = [
+      { role: 'system' as const, content: systemPrompt },
+      ...(messages as { role: string; content: string }[]).slice(-10).map(m => ({
+        role: m.role as 'user' | 'assistant',
+        content: m.content.slice(0, 1500),
+      })),
+    ]
 
-    const response = await groq.chat.completions.create({
-      model: 'llama-3.3-70b-versatile',
-      max_tokens: 500,
-      temperature: 0.6,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        ...(messages as { role: string; content: string }[]).slice(-10).map(m => ({
-          role: m.role as 'user' | 'assistant',
-          content: m.content.slice(0, 1500),
-        })),
-      ],
-    })
+    // Listă de modele Groq de încercat în ordine — dacă primul e indisponibil/decomisionat
+    // (cum s-a întâmplat cu 'llama-3.3-70b-versatile', scos din Groq), trecem automat la
+    // următorul, ca Ana să nu pice complet din cauza unui singur model.
+    const MODELS = ['openai/gpt-oss-120b', 'llama-3.3-70b-versatile', 'openai/gpt-oss-20b']
+    let lastErr: unknown
+    for (const model of MODELS) {
+      try {
+        const response = await groq.chat.completions.create({
+          model,
+          max_tokens: 500,
+          temperature: 0.6,
+          messages: chatMessages,
+        })
+        const text = response.choices[0]?.message?.content
+        if (text) return NextResponse.json({ text })
+      } catch (e) {
+        lastErr = e
+      }
+    }
 
-    const text = response.choices[0]?.message?.content
-    if (text) return NextResponse.json({ text })
-
+    console.error('[bt-chat] toate modelele au eșuat:', lastErr instanceof Error ? lastErr.message : lastErr)
     return NextResponse.json({ text: 'Momentan am o problemă tehnică. Reîncercați în câteva secunde.' })
   } catch (e) {
     console.error('[bt-chat]', e)
