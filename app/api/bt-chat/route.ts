@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Groq from 'groq-sdk'
 import { rateLimit } from '@/lib/rateLimit'
+import { getBtKnowledge } from '@/app/api/bt-knowledge/route'
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
 
@@ -168,7 +169,9 @@ Nu forța acest flow — doar când descrie efectiv o problemă de suport.
 ${BT_KNOWLEDGE}
 
 ═══ REGULI STRICTE ═══
-- Folosești DOAR informațiile de mai sus, în orice flux (simulator, FAQ IMM, pre-calificare, comparator,
+- Folosești DOAR informațiile de mai sus ȘI din secțiunile "CUNOȘTINȚE ADĂUGATE DE ADMIN" / "REGULI DE
+  COMPORTAMENT ADĂUGATE DE ADMIN" (dacă apar mai jos) — ambele sunt la fel de sigure de folosit, nu doar
+  cunoștințele hardcodate. Asta e valabil în orice flux (simulator, FAQ IMM, pre-calificare, comparator,
   onboarding, triaj). Dacă o cifră (dobândă, comision, sumă, document, prag) NU apare explicit aici, NU o
   calculezi, NU o estimezi, NU o "rotunjești" — spui clar că nu ai informația exactă și oferi legătura cu un
   consultant BT real. O cifră greșită prezentată ca reală e mai gravă decât "nu știu exact".
@@ -219,7 +222,25 @@ export async function POST(req: NextRequest) {
       if (m.content.length > 2000) return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
     }
 
-    const systemPrompt = buildSystemPrompt(typeof context === 'string' ? context : 'general')
+    let systemPrompt = buildSystemPrompt(typeof context === 'string' ? context : 'general')
+
+    // Cunoștințe + reguli de comportament adăugate de admin din /demo-bt-2026/admin,
+    // FĂRĂ deploy de cod — completează (nu înlocuiesc) baza hardcodată de mai sus.
+    // NU e fine-tuning de model, e injecție de context la runtime în system prompt.
+    try {
+      const dyn = await getBtKnowledge()
+      if (dyn.entries?.length) {
+        systemPrompt += `\n\n═══ CUNOȘTINȚE ADĂUGATE DE ADMIN (BT) — la fel de sigure de folosit ═══\n` +
+          dyn.entries.map(e => `- ${e.titlu}: ${e.continut}`).join('\n')
+      }
+      if (dyn.behaviorRules?.length) {
+        systemPrompt += `\n\n═══ REGULI DE COMPORTAMENT ADĂUGATE DE ADMIN — respectă-le direct ═══\n` +
+          dyn.behaviorRules.map(r => `- ${r.text}`).join('\n')
+      }
+    } catch (e) {
+      console.error('[bt-chat] getBtKnowledge eșuat, continui doar cu baza hardcodată:', e)
+    }
+
     // Contextul conversației se limitează la ultimele 6 mesaje (nu 10) — contul Groq
     // folosit are un plafon strict de 8000 tokeni/minut per model; sistemul de prompt
     // + istoricul + bugetul de răspuns trebuie să încapă confortabil sub acel plafon.
