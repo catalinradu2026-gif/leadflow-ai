@@ -241,7 +241,7 @@ export async function POST(req: NextRequest) {
       try {
         const response = await groq.chat.completions.create({
           model,
-          max_tokens: 800,
+          max_tokens: 1100,
           temperature: 0.6,
           messages: chatMessages,
         })
