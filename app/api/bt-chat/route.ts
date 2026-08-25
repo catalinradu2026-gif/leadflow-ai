@@ -166,6 +166,18 @@ ${BT_KNOWLEDGE}
   îi spui politicos că nu e nevoie și că acesta e doar un demo.`
 }
 
+// Modelele Groq scriu uneori diacriticele românești ș/ț cu sedilă (ş U+015F, ţ U+0163
+// — moștenite din codificarea turcă) în loc de forma corectă cu virgulă dedesubt (ș
+// U+0219, ț U+021B). Normalizăm mereu server-side, indiferent ce a scris modelul —
+// instrucțiunea din prompt singură nu garantează asta 100% din timp.
+function fixDiacritics(text: string): string {
+  return text
+    .replace(/ş/g, 'ș')
+    .replace(/Ş/g, 'Ș')
+    .replace(/ţ/g, 'ț')
+    .replace(/Ţ/g, 'Ț')
+}
+
 export async function POST(req: NextRequest) {
   try {
     const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
@@ -208,7 +220,7 @@ export async function POST(req: NextRequest) {
           messages: chatMessages,
         })
         const text = response.choices[0]?.message?.content
-        if (text) return NextResponse.json({ text })
+        if (text) return NextResponse.json({ text: fixDiacritics(text) })
       } catch (e) {
         lastErr = e
       }
