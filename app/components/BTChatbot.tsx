@@ -22,6 +22,8 @@ type Props = {
  * preview la 4s, fereastră 380px/520px, typing indicator, voce activă implicit).
  * Vocea folosește app/edu/tts.ts (Web Speech API nativ, deja tunat pentru română,
  * folosit și de Ava) — echivalentul local al lib/speech.ts din Schobel.
+ * Input vocal (microfon) — SpeechRecognition nativ din browser, ro-RO, același
+ * pattern ca la components/AraChatbot.tsx.
  * Paletă navy/teal — deliberat diferită de identitatea vizuală reală a Băncii
  * Transilvania. Cunoștințele despre produse stau în system prompt-ul rutei
  * /api/bt-chat, nu aici.
@@ -33,6 +35,8 @@ export default function BTChatbot({ context, salut, titlu = 'Ana', subtitlu = 'A
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [voiceOn, setVoiceOn] = useState(true)
+  const [listening, setListening] = useState(false)
+  const recognitionRef = useRef<any>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -44,8 +48,8 @@ export default function BTChatbot({ context, salut, titlu = 'Ana', subtitlu = 'A
     if (open) bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, open])
 
-  async function send() {
-    const text = input.trim()
+  async function send(overrideText?: string) {
+    const text = (overrideText ?? input).trim()
     if (!text || loading) return
     const next = [...messages, { role: 'user' as const, content: text }]
     setMessages(next)
@@ -86,6 +90,36 @@ export default function BTChatbot({ context, salut, titlu = 'Ana', subtitlu = 'A
       if (v) stopSpeaking()
       return !v
     })
+  }
+
+  // Input vocal — Web Speech API nativ din browser (gratuit, fără serviciu extern),
+  // același pattern ca la AraChatbot.tsx: ascultă în română, pune transcrierea în
+  // input pe măsură ce vorbește, și trimite automat mesajul la rezultatul final.
+  function startListening() {
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    if (!SR) {
+      alert('Microfonul nu este suportat în acest browser. Folosiți Chrome sau Edge pe desktop, sau Safari/Chrome pe mobil.')
+      return
+    }
+    if (listening) { recognitionRef.current?.stop(); setListening(false); return }
+    stopSpeaking()
+    const rec = new SR()
+    rec.lang = 'ro-RO'
+    rec.continuous = false
+    rec.interimResults = true
+    rec.onstart = () => setListening(true)
+    rec.onresult = (e: any) => {
+      const transcript = Array.from(e.results).map((r: any) => r[0].transcript).join('')
+      setInput(transcript)
+      if (e.results[e.results.length - 1].isFinal) {
+        rec.stop()
+        send(transcript)
+      }
+    }
+    rec.onerror = () => setListening(false)
+    rec.onend = () => setListening(false)
+    recognitionRef.current = rec
+    rec.start()
   }
 
   return (
@@ -162,12 +196,20 @@ export default function BTChatbot({ context, salut, titlu = 'Ana', subtitlu = 'A
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && send()}
-              placeholder="Scrieți întrebarea…"
-              className="flex-1 rounded-md border border-white/10 bg-[#0f2942] px-3 py-2.5 text-sm text-[#e2e8f0] outline-none transition-colors focus:border-[#2ea89d]"
+              placeholder={listening ? '🎙️ Ascult…' : 'Scrieți sau apăsați 🎙️…'}
+              className={`flex-1 rounded-md border px-3 py-2.5 text-sm text-[#e2e8f0] outline-none transition-colors focus:border-[#2ea89d] ${listening ? 'border-red-500 bg-red-500/10' : 'border-white/10 bg-[#0f2942]'}`}
               style={{ fontSize: '16px' }}
             />
             <button
-              onClick={send}
+              onClick={startListening}
+              title={listening ? 'Oprește microfonul' : 'Vorbește cu Ana'}
+              aria-label={listening ? 'Oprește microfonul' : 'Vorbește cu Ana'}
+              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-md border text-lg transition-all ${listening ? 'border-red-500 bg-red-500/25 animate-pulse' : 'border-[#2ea89d] bg-[#2ea89d]/20'}`}
+            >
+              🎙️
+            </button>
+            <button
+              onClick={() => send()}
               disabled={!input.trim() || loading}
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-[#2ea89d] text-[#04141a] transition-all hover:bg-[#26958c] disabled:cursor-not-allowed disabled:opacity-40"
               aria-label="Trimite"
