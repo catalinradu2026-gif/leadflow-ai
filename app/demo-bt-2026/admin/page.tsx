@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 
 type Entry = { id: string; titlu: string; continut: string }
 type Rule = { id: string; text: string }
@@ -24,6 +24,9 @@ export default function BtAdmin() {
   const [saving, setSaving] = useState(false)
   const [savedMsg, setSavedMsg] = useState('')
   const [ruleInput, setRuleInput] = useState('')
+  const [uploading, setUploading] = useState(false)
+  const [uploadMsg, setUploadMsg] = useState('')
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   async function login(e?: React.FormEvent) {
     e?.preventDefault()
@@ -74,6 +77,29 @@ export default function BtAdmin() {
   }
   function delEntry(id: string) {
     setData(d => d ? { ...d, entries: d.entries.filter(x => x.id !== id) } : d)
+  }
+
+  async function handleFileUpload(file: File) {
+    setUploading(true)
+    setUploadMsg('')
+    try {
+      const fd = new FormData()
+      fd.append('password', pass)
+      fd.append('file', file)
+      const res = await fetch('/api/bt-upload', { method: 'POST', body: fd })
+      const json = await res.json()
+      if (!res.ok || json.error) {
+        setUploadMsg('Eroare: ' + (json.error || 'încărcare eșuată'))
+      } else {
+        setData(d => d ? { ...d, entries: [{ id: uid(), titlu: json.name || file.name, continut: json.extractedText || '' }, ...d.entries] } : d)
+        setUploadMsg(`„${json.name}" adăugat ca intrare nouă — verificați conținutul și apăsați „Salvează tot".`)
+        setTimeout(() => setUploadMsg(''), 6000)
+      }
+    } catch {
+      setUploadMsg('Eroare de conexiune la încărcare.')
+    }
+    setUploading(false)
+    if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
   function addRule() {
@@ -145,7 +171,29 @@ export default function BtAdmin() {
             <div style={{ fontSize: '12px', color: '#64748b' }}>
               Produse noi, oferte, corecții — orice informație pe care Ana trebuie să o știe instant, fără deploy de cod.
             </div>
-            <button onClick={addEntry} style={{ ...btn('rgba(255,255,255,0.06)', false), alignSelf: 'flex-start', border: '1px solid rgba(255,255,255,0.15)' }}>+ Adaugă intrare</button>
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+              <button onClick={addEntry} style={{ ...btn('rgba(255,255,255,0.06)', false), border: '1px solid rgba(255,255,255,0.15)' }}>+ Adaugă intrare (text)</button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.docx,.xlsx,.jpg,.jpeg"
+                style={{ display: 'none' }}
+                onChange={e => { const f = e.target.files?.[0]; if (f) handleFileUpload(f) }}
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                style={{ ...btn(uploading ? '#334155' : TEAL), border: 'none' }}
+              >
+                {uploading ? 'Se procesează...' : '📎 Încarcă fișier (PDF/DOCX/XLSX)'}
+              </button>
+              <span style={{ fontSize: '11px', color: '#475569' }}>JPEG neacceptat — vezi motiv la încercare</span>
+            </div>
+            {uploadMsg && (
+              <div style={{ fontSize: '12px', color: uploadMsg.startsWith('Eroare') ? '#ef4444' : '#22c55e', background: uploadMsg.startsWith('Eroare') ? 'rgba(239,68,68,0.08)' : 'rgba(34,197,94,0.08)', border: `1px solid ${uploadMsg.startsWith('Eroare') ? 'rgba(239,68,68,0.3)' : 'rgba(34,197,94,0.3)'}`, borderRadius: '8px', padding: '10px 14px', lineHeight: 1.6 }}>
+                {uploadMsg}
+              </div>
+            )}
             {data.entries.map(en => (
               <div key={en.id} style={{ background: NAVY, border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <div style={{ display: 'flex', gap: '8px' }}>
