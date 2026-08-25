@@ -320,22 +320,32 @@ export async function POST(req: NextRequest) {
     // următorul, ca Ana să nu pice complet din cauza unui singur model.
     const MODELS = ['openai/gpt-oss-120b', 'llama-3.3-70b-versatile', 'openai/gpt-oss-20b']
     let lastErr: unknown
+    let lastTruncated: string | null = null
     for (const model of MODELS) {
       try {
         const response = await groq.chat.completions.create({
           model,
-          max_tokens: 500,
+          // 500 era prea puțin pentru răspunsurile mai lungi (cardul de simulare credit,
+          // FAQ IMM detaliat, pre-calificare) — tăia răspunsul la mijlocul propoziției.
+          max_tokens: 900,
           temperature: 0.6,
           messages: chatMessages,
         })
-        const text = response.choices[0]?.message?.content
-        if (text) return NextResponse.json({ text: fixDiacritics(text) })
+        const choice = response.choices[0]
+        const text = choice?.message?.content
+        // Dacă răspunsul s-a oprit din lipsă de tokeni (finish_reason 'length'), încercăm
+        // următorul model din listă în loc să livrăm un text tăiat la mijlocul cuvântului.
+        if (text && choice?.finish_reason !== 'length') return NextResponse.json({ text: fixDiacritics(text) })
+        if (text) { lastTruncated = text; lastErr = new Error('response truncated (finish_reason=length)') }
       } catch (e) {
         lastErr = e
       }
     }
 
     console.error('[bt-chat] toate modelele au eșuat:', lastErr instanceof Error ? lastErr.message : lastErr)
+    // Un răspuns tăiat la final e tot mai util decât un mesaj generic de eroare —
+    // îl livrăm ca variantă de rezervă, mai bun decât nimic.
+    if (lastTruncated) return NextResponse.json({ text: fixDiacritics(lastTruncated) })
     return NextResponse.json({ text: 'Momentan am o problemă tehnică. Reîncercați în câteva secunde.' })
   } catch (e) {
     console.error('[bt-chat]', e)
