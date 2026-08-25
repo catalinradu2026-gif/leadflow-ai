@@ -7,11 +7,21 @@ import { totpEnabled, verifyTotp } from '@/lib/totp'
 // EXCLUSIV din env, fără fallback hardcodat în cod (fallback-urile scrise în sursă
 // au fost semnalate ca risc de securitate). Setează în Vercel:
 // DEMO_BT_ADMIN_PASSWORD și BT_ADMIN_TOTP_SECRET.
+//
+// 2FA (TOTP) e complet implementat și funcțional mai jos, dar comutabil prin
+// BT_ADMIN_2FA_ENABLED — implicit (lipsă sau orice altă valoare decât "true")
+// înseamnă DEZACTIVAT, ca accesul la panoul admin să nu ceară o aplicație de
+// autentificare configurată la o primă demonstrație. Se activează oricând mai
+// târziu doar setând BT_ADMIN_2FA_ENABLED=true în Vercel, fără cod nou.
+function twoFactorEnabledFlag(): boolean {
+  return process.env.BT_ADMIN_2FA_ENABLED === 'true'
+}
 
-// POST { password, code? } — flux în 2 pași:
+// POST { password, code? } — flux în 2 pași (doar când BT_ADMIN_2FA_ENABLED=true):
 //   1. Doar parola → dacă e corectă și 2FA e activ, întoarce { ok:false, twoFactorRequired:true }
 //      (parola validă, dar autentificarea NU e completă — clientul arată ecranul de cod).
 //   2. Parolă + cod → dacă ambele sunt corecte, întoarce { ok:true }.
+// Când BT_ADMIN_2FA_ENABLED nu e "true", parola singură e suficientă pentru acces.
 export async function POST(req: NextRequest) {
   try {
     const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
@@ -24,11 +34,6 @@ export async function POST(req: NextRequest) {
       console.error('[bt-admin-auth] DEMO_BT_ADMIN_PASSWORD lipsă din env')
       return NextResponse.json({ error: 'Configurare server incompletă.' }, { status: 500 })
     }
-    const BT_TOTP_SECRET = process.env.BT_ADMIN_TOTP_SECRET
-    if (!BT_TOTP_SECRET) {
-      console.error('[bt-admin-auth] BT_ADMIN_TOTP_SECRET lipsă din env')
-      return NextResponse.json({ error: 'Configurare server incompletă (2FA).' }, { status: 500 })
-    }
 
     const { password, code } = await req.json() as { password?: string; code?: string }
     if (!password || typeof password !== 'string') {
@@ -38,9 +43,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Parolă incorectă.' }, { status: 401 })
     }
 
+    if (!twoFactorEnabledFlag()) {
+      // 2FA dezactivat prin flag — parola singură e suficientă. Codul de
+      // verificare TOTP de mai jos rămâne intact și gata de folosit imediat
+      // ce BT_ADMIN_2FA_ENABLED=true e setat în Vercel.
+      return NextResponse.json({ ok: true, twoFactorRequired: false })
+    }
+
+    const BT_TOTP_SECRET = process.env.BT_ADMIN_TOTP_SECRET
+    if (!BT_TOTP_SECRET) {
+      console.error('[bt-admin-auth] BT_ADMIN_2FA_ENABLED=true dar BT_ADMIN_TOTP_SECRET lipsă din env')
+      return NextResponse.json({ error: 'Configurare server incompletă (2FA).' }, { status: 500 })
+    }
+
     if (!totpEnabled(BT_TOTP_SECRET)) {
-      // Nu ar trebui să se întâmple (secretul e verificat mai sus), dar rămâne
-      // grațios dacă cineva setează explicit un secret invalid/prea scurt.
+      // Secret invalid/prea scurt — rămâne grațios, nu blochează accesul.
       return NextResponse.json({ ok: true, twoFactorRequired: false })
     }
 
