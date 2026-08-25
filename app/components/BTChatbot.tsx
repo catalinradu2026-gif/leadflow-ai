@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { speak, stopSpeaking } from '../edu/tts'
 
 type Message = { role: 'user' | 'assistant'; content: string }
 
@@ -18,7 +19,9 @@ type Props = {
 /**
  * Widget de chat pentru demo-ul privat BT — structură și comportament identice cu
  * components/ChatWidget.tsx din schobel-engineering-partners (buton fix, bulă de
- * preview la 4s, fereastră 380px/520px, typing indicator), fără sistemul de voce.
+ * preview la 4s, fereastră 380px/520px, typing indicator, voce activă implicit).
+ * Vocea folosește app/edu/tts.ts (Web Speech API nativ, deja tunat pentru română,
+ * folosit și de Ava) — echivalentul local al lib/speech.ts din Schobel.
  * Paletă navy/teal — deliberat diferită de identitatea vizuală reală a Băncii
  * Transilvania. Cunoștințele despre produse stau în system prompt-ul rutei
  * /api/bt-chat, nu aici.
@@ -29,6 +32,7 @@ export default function BTChatbot({ context, salut, titlu = 'Ana', subtitlu = 'A
   const [messages, setMessages] = useState<Message[]>([{ role: 'assistant', content: salut }])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  const [voiceOn, setVoiceOn] = useState(true)
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -57,16 +61,31 @@ export default function BTChatbot({ context, salut, titlu = 'Ana', subtitlu = 'A
       const data = await res.json()
       const reply = data.text || 'Momentan nu pot răspunde. Reîncercați în câteva secunde.'
       setMessages(prev => [...prev, { role: 'assistant', content: reply }])
+      if (voiceOn) speak(reply)
     } catch {
-      setMessages(prev => [...prev, { role: 'assistant', content: 'Eroare de conexiune. Reîncercați.' }])
+      const errMsg = 'Eroare de conexiune. Reîncercați.'
+      setMessages(prev => [...prev, { role: 'assistant', content: errMsg }])
+      if (voiceOn) speak(errMsg)
     } finally {
       setLoading(false)
     }
   }
 
   function toggleOpen() {
-    setOpen(o => !o)
+    setOpen(o => {
+      const next = !o
+      if (!next) stopSpeaking()
+      else if (voiceOn && messages.length === 1) speak(messages[0].content)
+      return next
+    })
     setBubble(false)
+  }
+
+  function toggleVoice() {
+    setVoiceOn(v => {
+      if (v) stopSpeaking()
+      return !v
+    })
   }
 
   return (
@@ -87,7 +106,18 @@ export default function BTChatbot({ context, salut, titlu = 'Ana', subtitlu = 'A
               <p className="truncate text-xs text-[#fcd34d]">{subtitlu}</p>
             </div>
             <button
-              onClick={() => setOpen(false)}
+              onClick={toggleVoice}
+              className="shrink-0 rounded-md px-2 py-1 text-base leading-none text-[#94a3b8] transition-colors hover:text-[#f1f5f9]"
+              aria-label={voiceOn ? 'Oprește vocea' : 'Pornește vocea'}
+              title={voiceOn ? 'Oprește vocea' : 'Pornește vocea'}
+            >
+              {voiceOn ? '🔊' : '🔇'}
+            </button>
+            <button
+              onClick={() => {
+                stopSpeaking()
+                setOpen(false)
+              }}
               className="shrink-0 rounded-md px-2 py-1 text-lg leading-none text-[#94a3b8] transition-colors hover:text-[#f1f5f9]"
               aria-label="Închide"
             >

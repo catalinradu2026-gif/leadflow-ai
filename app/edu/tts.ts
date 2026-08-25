@@ -106,6 +106,11 @@ function pauseAfter(chunk: string): number {
   return 120
 }
 
+export function stopSpeaking() {
+  if (typeof window === 'undefined' || !window.speechSynthesis) return
+  window.speechSynthesis.cancel()
+}
+
 export function speak(text: string, onEnd?: () => void) {
   if (typeof window === 'undefined' || !window.speechSynthesis) return
   window.speechSynthesis.cancel()
