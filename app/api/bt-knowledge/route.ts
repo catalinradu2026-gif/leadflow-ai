@@ -12,7 +12,7 @@ import { rateLimit } from '@/lib/rateLimit'
 // ============================================================================
 
 const BLOB_KEY = 'bt-knowledge.json'
-const ADMIN_PASSWORD = process.env.DEMO_BT_ADMIN_PASSWORD || 'BTadmin2026x9'
+// EXCLUSIV din env, fără fallback hardcodat în cod (semnalat ca risc de securitate).
 
 // Intrare de cunoștințe adăugată de admin (produs nou, ofertă, corecție etc.)
 export type BtKnowledgeEntry = { id: string; titlu: string; continut: string }
@@ -64,6 +64,12 @@ export async function POST(req: NextRequest) {
     const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
     if (!rateLimit(`bt-knowledge:${ip}`, 20, 60_000)) {
       return NextResponse.json({ error: 'Prea multe cereri. Reveniți într-un minut.' }, { status: 429 })
+    }
+
+    const ADMIN_PASSWORD = process.env.DEMO_BT_ADMIN_PASSWORD
+    if (!ADMIN_PASSWORD) {
+      console.error('[POST /api/bt-knowledge] DEMO_BT_ADMIN_PASSWORD lipsă din env')
+      return NextResponse.json({ error: 'Configurare server incompletă.' }, { status: 500 })
     }
 
     const { password, knowledge } = await req.json() as { password?: string; knowledge?: Partial<BtKnowledge> }

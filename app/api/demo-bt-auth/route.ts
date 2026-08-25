@@ -1,15 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { rateLimit } from '@/lib/rateLimit'
 
-// Parola demo-ului privat BT. Setează DEMO_BT_PASSWORD în env pe Vercel pentru a o schimba;
-// fallback-ul de mai jos e doar pentru rulare locală fără .env.local.
-const DEMO_PASSWORD = process.env.DEMO_BT_PASSWORD || 'BTconsultant25'
+// Parola demo-ului privat BT — EXCLUSIV din env, fără fallback hardcodat în cod
+// (fallback-urile scrise în sursă au fost semnalate ca risc de securitate: ajung
+// în git history și sunt vizibile oricui vede codul). Setează DEMO_BT_PASSWORD
+// în Vercel → Settings → Environment Variables.
 
 export async function POST(req: NextRequest) {
   try {
     const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
     if (!rateLimit(`demo-bt-auth:${ip}`, 15, 60_000)) {
       return NextResponse.json({ error: 'Prea multe încercări. Reveniți într-un minut.' }, { status: 429 })
+    }
+
+    const DEMO_PASSWORD = process.env.DEMO_BT_PASSWORD
+    if (!DEMO_PASSWORD) {
+      console.error('[demo-bt-auth] DEMO_BT_PASSWORD lipsă din env')
+      return NextResponse.json({ error: 'Configurare server incompletă.' }, { status: 500 })
     }
 
     const { password } = await req.json() as { password?: string }

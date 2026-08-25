@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { rateLimit } from '@/lib/rateLimit'
 
-// Aceeași parolă de admin ca /api/bt-admin-auth și /api/bt-knowledge.
-const ADMIN_PASSWORD = process.env.DEMO_BT_ADMIN_PASSWORD || 'BTadmin2026x9'
+// Aceeași parolă de admin ca /api/bt-admin-auth și /api/bt-knowledge — EXCLUSIV din env.
 const MAX_BYTES = 10 * 1024 * 1024 // 10 MB
 const MAX_EXTRACTED_CHARS = 20000 // suficient pentru o intrare de cunoștințe, nu pentru romane
 
@@ -74,6 +73,12 @@ export async function POST(req: NextRequest) {
     const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
     if (!rateLimit(`bt-upload:${ip}`, 15, 60_000)) {
       return NextResponse.json({ error: 'Prea multe cereri. Reveniți într-un minut.' }, { status: 429 })
+    }
+
+    const ADMIN_PASSWORD = process.env.DEMO_BT_ADMIN_PASSWORD
+    if (!ADMIN_PASSWORD) {
+      console.error('[POST /api/bt-upload] DEMO_BT_ADMIN_PASSWORD lipsă din env')
+      return NextResponse.json({ error: 'Configurare server incompletă.' }, { status: 500 })
     }
 
     const formData = await req.formData()

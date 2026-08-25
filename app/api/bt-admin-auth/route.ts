@@ -4,14 +4,9 @@ import { totpEnabled, verifyTotp } from '@/lib/totp'
 
 // Parolă SEPARATĂ de parola de vizitator (DEMO_BT_PASSWORD) — doar pentru
 // Catalin/echipa BT care administrează conținutul, nu pentru vizitatorii demo-ului.
-const ADMIN_PASSWORD = process.env.DEMO_BT_ADMIN_PASSWORD || 'BTadmin2026x9'
-
-// 2FA TOTP (cod din Google Authenticator/Authy) — al doilea factor real, funcțional,
-// nu doar promis. Secret dedicat panoului BT (separat de ADMIN_TOTP_SECRET folosit de
-// panoul Formare/ARACIP). Fallback hardcodat ca demo-ul să funcționeze din prima, fără
-// configurare manuală pe Vercel — Catalin poate suprascrie cu BT_ADMIN_TOTP_SECRET.
-// Cheie de setup (adăugați manual în aplicația de autentificare, "introduceți cheia"):
-const BT_TOTP_SECRET = process.env.BT_ADMIN_TOTP_SECRET || 'JMLSGFQHNMODWQQW'
+// EXCLUSIV din env, fără fallback hardcodat în cod (fallback-urile scrise în sursă
+// au fost semnalate ca risc de securitate). Setează în Vercel:
+// DEMO_BT_ADMIN_PASSWORD și BT_ADMIN_TOTP_SECRET.
 
 // POST { password, code? } — flux în 2 pași:
 //   1. Doar parola → dacă e corectă și 2FA e activ, întoarce { ok:false, twoFactorRequired:true }
@@ -24,6 +19,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Prea multe încercări. Reveniți într-un minut.' }, { status: 429 })
     }
 
+    const ADMIN_PASSWORD = process.env.DEMO_BT_ADMIN_PASSWORD
+    if (!ADMIN_PASSWORD) {
+      console.error('[bt-admin-auth] DEMO_BT_ADMIN_PASSWORD lipsă din env')
+      return NextResponse.json({ error: 'Configurare server incompletă.' }, { status: 500 })
+    }
+    const BT_TOTP_SECRET = process.env.BT_ADMIN_TOTP_SECRET
+    if (!BT_TOTP_SECRET) {
+      console.error('[bt-admin-auth] BT_ADMIN_TOTP_SECRET lipsă din env')
+      return NextResponse.json({ error: 'Configurare server incompletă (2FA).' }, { status: 500 })
+    }
+
     const { password, code } = await req.json() as { password?: string; code?: string }
     if (!password || typeof password !== 'string') {
       return NextResponse.json({ error: 'Lipsește parola.' }, { status: 400 })
@@ -33,8 +39,8 @@ export async function POST(req: NextRequest) {
     }
 
     if (!totpEnabled(BT_TOTP_SECRET)) {
-      // 2FA dezactivat (nu ar trebui să se întâmple — avem fallback hardcodat — dar
-      // rămâne grațios dacă cineva golește explicit env-ul).
+      // Nu ar trebui să se întâmple (secretul e verificat mai sus), dar rămâne
+      // grațios dacă cineva setează explicit un secret invalid/prea scurt.
       return NextResponse.json({ ok: true, twoFactorRequired: false })
     }
 
