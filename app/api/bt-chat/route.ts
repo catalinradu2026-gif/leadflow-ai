@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import Groq from 'groq-sdk'
 import { rateLimit } from '@/lib/rateLimit'
 import { getBtKnowledge } from '@/app/api/bt-knowledge/route'
+import { logConversation, extractPhone } from '@/app/api/bt-log/route'
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
 
@@ -93,12 +94,21 @@ replică pe acest subiect clarifică explicit că e o demonstrație a logicii de
 Urmezi TRIAJ SUPORT — DEMO CONCEPTUAL de mai jos.`,
 }
 
-function buildSystemPrompt(context: string): string {
+function buildSystemPrompt(context: string, lang?: string): string {
   const intro = CONTEXT_INTRO[context] || CONTEXT_INTRO.general
+  const langBlock = lang && lang !== 'română'
+    ? `\n═══ LIMBĂ SELECTATĂ DE UTILIZATOR ═══\nUtilizatorul a ales explicit limba "${lang}" din selectorul de pe pagină.
+Răspunde ÎNTOTDEAUNA în ${lang}, indiferent în ce limbă scrie el, chiar de la primul mesaj — generezi răspunsul
+DIRECT în ${lang}, gândind în acea limbă pe baza cunoștințelor de mai jos (care sunt în română), NU traduci
+mecanic cuvânt cu cuvânt un răspuns românesc. Cifrele, denumirile de produse BT (Star Card, BT Flying Blue,
+NEOcont etc.) și disclaimerele legale rămân neschimbate ca formă, dar propozițiile din jurul lor sunt în
+${lang}, natural, ca un vorbitor nativ. Dacă utilizatorul scrie totuși în altă limbă, continui oricum în
+${lang} (limba selectată are prioritate față de limba mesajului).\n`
+    : ''
   return `Te numești Ana, consultant bancar senior pe un DEMO PRIVAT (prototip neoficial) inspirat din produsele
 publice ale Băncii Transilvania. Dacă ești întrebată cum te numești, spui "Ana". NU ești angajată reală BT, iar
 acest demo NU e un produs oficial al băncii — dacă ești întrebată direct, spui asta clar și natural.
-
+${langBlock}
 ═══ DEZVĂLUIRE AI (EU AI Act, obligatoriu din 2 aug 2026) ═══
 Ești AI, NU o persoană reală. Prima replică din conversație include deja mențiunea asta (afișată separat) — nu
 o repeți la fiecare mesaj, dar dacă ești întrebată oricând ("ești om?", "ești robot?", "ești AI?") confirmi
@@ -228,7 +238,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ text: 'Prea multe mesaje. Încercați din nou în câteva secunde.' }, { status: 429 })
     }
 
-    const { messages, context } = await req.json() as { messages?: unknown; context?: string }
+    const { messages, context, lang } = await req.json() as { messages?: unknown; context?: string; lang?: string }
     if (!messages || !Array.isArray(messages)) {
       return NextResponse.json({ error: 'Invalid messages' }, { status: 400 })
     }
@@ -240,7 +250,19 @@ export async function POST(req: NextRequest) {
       if (m.content.length > 2000) return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
     }
 
-    let systemPrompt = buildSystemPrompt(typeof context === 'string' ? context : 'general')
+    const safeContext = typeof context === 'string' ? context : 'general'
+    const lastUserMsg = [...(messages as { role: string; content: string }[])].reverse().find(m => m.role === 'user')?.content || ''
+    // Așteptat (dar non-fatal — try/catch intern în logConversation) ca intrarea să chiar
+    // ajungă în Blob înainte ca funcția serverless să se închidă; scrierile sunt rapide
+    // (~100-200ms) față de apelul Groq care oricum durează câteva secunde.
+    await logConversation({
+      ts: new Date().toISOString(),
+      context: safeContext,
+      userMessage: lastUserMsg.slice(0, 500),
+      leadPhone: extractPhone(lastUserMsg),
+    })
+
+    let systemPrompt = buildSystemPrompt(safeContext, typeof lang === 'string' ? lang : undefined)
 
     // Cunoștințe + reguli de comportament adăugate de admin din /demo-bt-2026/admin,
     // FĂRĂ deploy de cod — completează (nu înlocuiesc) baza hardcodată de mai sus.
