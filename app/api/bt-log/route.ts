@@ -97,13 +97,19 @@ export function extractEmail(text: string): string | undefined {
 // Semnalează dacă răspunsul Anei sugerează un gol de cunoștințe (a spus explicit că nu
 // are o informație exactă) — folosit pentru raportul de piață agregat (secțiunea
 // "întrebări la care Ana nu a putut răspunde clar"), NU pentru a bloca vreun răspuns.
+// ATENȚIE la fals-pozitive: disclaimerul STANDARD de simulare ("Pentru cifra exactă, o
+// simulare oficială...") apare la FIECARE simulare și NU e un gap real — excludem explicit
+// răspunsurile care conțin cardul de simulare, altfel gapCount ar exploda cu hedge-uri
+// normale de business, nu goluri reale de cunoștințe.
 const GAP_PHRASES = [
-  'nu am informația exactă', 'nu am acea informație', 'nu am cifra exactă', 'nu am cifra publică',
-  'nu cunosc', 'nu știu exact', 'necunoscut public', 'nu am acces la', 'nu am detaliul exact',
-  'nu am această informație',
+  'nu dispun de', 'nu am o cifr', 'nu am cifra', 'nu am informația exactă', 'nu am acea informație',
+  'nu am această informație', 'nu cunosc', 'nu știu exact', 'necunoscut public', 'nu am acces la',
+  'nu am detaliul exact', 'nu am acele adrese', 'nu am acele informații',
 ]
 export function detectGap(replyText: string): boolean {
   const low = replyText.toLowerCase()
+  // Exclus: hedge-ul standard de simulare (nu e un gol real de cunoștințe, e disclaimer de rutină).
+  if (low.includes('simulare orientativă') || low.includes('rată lunară estimată')) return false
   return GAP_PHRASES.some(p => low.includes(p))
 }
 
