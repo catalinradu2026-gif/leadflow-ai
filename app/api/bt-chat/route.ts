@@ -171,6 +171,13 @@ Varianta nouă: [sumă] lei | [perioadă] luni | ~[rată] lei/lună
 Când interesul e concret (nu curiozitate generală), după ce afli natural venit, vechime în muncă, tip credit,
 sumă și urgență, dai un verdict ORIENTATIV: profil solid → "aveți șanse bune, decizia finală aparține analizei
 băncii"; profil neclar/riscant → "ar fi nevoie de discuție directă cu un consultant".
+TRASABILITATE — OBLIGATORIU la orice verdict de pre-calificare: nu dai verdictul sec, adaugi imediat o justificare
+scurtă (1 propoziție) care spune EXACT pe ce te bazezi, cu cifrele reale din conversație — ex. "pe baza venitului
+declarat de 4.500 lei și sumei cerute de 15.000 lei pe 24 luni (rată estimată ~700 lei/lună, sub 35% din venit),
+raportul rată/venit e confortabil" sau "cu venitul declarat de 2.200 lei și o rată estimată de ~950 lei/lună,
+raportul rată/venit trece de pragul uzual — de-asta recomand discuția directă". Dacă lipsește vreo cifră (ex.
+userul n-a spus venitul), spui explicit că verdictul e orientativ TOCMAI din lipsa acelei informații, nu inventezi
+o cifră ca să pari mai precis.
 ORICE mesaj care cere explicit un consultant ("vreau să vorbesc cu un consultant", "vreau o programare" etc.) —
 FIE apărut natural după verdict, FIE cerut direct de user — declanșează ACELAȘI flow, OBLIGATORIU cu sloturi
 concrete, NU doar o cerere de telefon: oferi 3 sloturi simulate (ex. "Mâine 10:00, Mâine 14:00, Joi 11:00") ȘI
@@ -365,7 +372,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ text: 'Prea multe mesaje. Încercați din nou în câteva secunde.' }, { status: 429 })
     }
 
-    const { messages, context, lang } = await req.json() as { messages?: unknown; context?: string; lang?: string }
+    const { messages, context, lang, conversationId } = await req.json() as { messages?: unknown; context?: string; lang?: string; conversationId?: string }
     if (!messages || !Array.isArray(messages)) {
       return NextResponse.json({ error: 'Invalid messages' }, { status: 400 })
     }
@@ -376,6 +383,11 @@ export async function POST(req: NextRequest) {
       if (typeof m.content !== 'string') return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
       if (m.content.length > 2000) return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
     }
+    // conversationId — generat client-side (BTChatbot.tsx), un id opac per sesiune de chat,
+    // NU date personale. Folosit doar de Agent Assist Live (admin) ca să lege mesajele
+    // aceleiași conversații între ele, ca să reconstruiască un transcript complet după telefon.
+    const safeConversationId = typeof conversationId === 'string' && /^[a-zA-Z0-9-]{1,64}$/.test(conversationId)
+      ? conversationId : undefined
 
     const safeContext = typeof context === 'string' ? context : 'general'
     const lastUserMsg = [...(messages as { role: string; content: string }[])].reverse().find(m => m.role === 'user')?.content || ''
@@ -443,6 +455,8 @@ export async function POST(req: NextRequest) {
             userMessage: lastUserMsg.slice(0, 500),
             leadPhone: extractPhone(lastUserMsg),
             possibleGap: detectGap(fixed),
+            conversationId: safeConversationId,
+            assistantReply: fixed.slice(0, 1500),
           })
           await maybeSendFollowUpEmail(lastUserMsg, fixed)
           return NextResponse.json({ text: fixed })

@@ -1,5 +1,5 @@
 'use client'
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 
 type Entry = { id: string; titlu: string; continut: string }
 type Rule = { id: string; text: string }
@@ -21,6 +21,17 @@ type MarketReport = {
   gapQuestions: { intrebare: string; context: string; data: string }[]
   gapCount: number
 }
+type AgentAssist = {
+  found: boolean
+  conversationCount?: number
+  topics: string[]
+  objections: string[]
+  lastAmount: number | null
+  lastMonths: number | null
+  gapCount: number
+  transcript: { ts: string; context: string; user: string; ana: string | null }[]
+  error?: string
+}
 
 const TEAL = '#2ea89d'
 const NAVY = '#0f2942'
@@ -40,11 +51,15 @@ export default function BtAdmin() {
   const [code, setCode] = useState('')
   const [codeErr, setCodeErr] = useState('')
   const [data, setData] = useState<Knowledge | null>(null)
-  const [tab, setTab] = useState<'cunostinte' | 'comportament' | 'dashboard' | 'piata'>('cunostinte')
+  const [tab, setTab] = useState<'cunostinte' | 'comportament' | 'dashboard' | 'piata' | 'consultant'>('cunostinte')
   const [dash, setDash] = useState<DashboardData | null>(null)
   const [dashLoading, setDashLoading] = useState(false)
   const [market, setMarket] = useState<MarketReport | null>(null)
   const [marketLoading, setMarketLoading] = useState(false)
+  const [assistPhone, setAssistPhone] = useState('')
+  const [assistActivePhone, setAssistActivePhone] = useState('')
+  const [assist, setAssist] = useState<AgentAssist | null>(null)
+  const [assistLoading, setAssistLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [savedMsg, setSavedMsg] = useState('')
   const [ruleInput, setRuleInput] = useState('')
@@ -84,6 +99,36 @@ export default function BtAdmin() {
     }
     setMarketLoading(false)
   }
+
+  // Agent Assist Live — consultantul caută un telefon deja colectat și vede transcriptul
+  // + sumarul discuției acelui lead cu Ana. "Live" = polling simplu la 8s cât timp căutarea
+  // e activă (nu WebSocket — inutil de complex pentru un demo, dar tot actualizează în timp
+  // real cât consultantul stă cu pagina deschisă lângă client).
+  const loadAgentAssist = useCallback(async (phone: string, silent = false) => {
+    if (!phone.trim()) return
+    if (!silent) setAssistLoading(true)
+    try {
+      const r = await fetch(`/api/bt-agent-assist?phone=${encodeURIComponent(phone.trim())}`)
+      const j = await r.json()
+      setAssist(j)
+    } catch {
+      setAssist({ found: false, topics: [], objections: [], lastAmount: null, lastMonths: null, gapCount: 0, transcript: [], error: 'Eroare de conexiune.' })
+    }
+    if (!silent) setAssistLoading(false)
+  }, [])
+
+  function searchAgentAssist(e?: React.FormEvent) {
+    e?.preventDefault()
+    if (!assistPhone.trim()) return
+    setAssistActivePhone(assistPhone.trim())
+    loadAgentAssist(assistPhone.trim())
+  }
+
+  useEffect(() => {
+    if (!assistActivePhone || tab !== 'consultant') return
+    const id = setInterval(() => loadAgentAssist(assistActivePhone, true), 8000)
+    return () => clearInterval(id)
+  }, [assistActivePhone, tab, loadAgentAssist])
 
   function downloadMarketCsv() {
     if (!market) return
@@ -257,8 +302,9 @@ export default function BtAdmin() {
           <h2 style={{ color: '#f1f5f9', textAlign: 'center', marginBottom: '4px', fontSize: '17px' }}>Admin demo BT</h2>
           <p style={{ color: '#64748b', textAlign: 'center', marginBottom: '22px', fontSize: '12px' }}>Pasul 1 din 2 — parolă · Cunoștințe Ana, acces restricționat echipei</p>
           <form onSubmit={login} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <input type="password" placeholder="Parolă admin" value={pass} onChange={e => setPass(e.target.value)} autoFocus style={inp} />
-            {authErr && <div style={{ color: '#ef4444', fontSize: '12px', textAlign: 'center' }}>{authErr}</div>}
+            <label htmlFor="bt-admin-pass" className="sr-only">Parolă admin</label>
+            <input id="bt-admin-pass" type="password" placeholder="Parolă admin" aria-label="Parolă admin" aria-invalid={!!authErr} value={pass} onChange={e => setPass(e.target.value)} autoFocus style={inp} />
+            {authErr && <div role="alert" style={{ color: '#ef4444', fontSize: '12px', textAlign: 'center' }}>{authErr}</div>}
             <button type="submit" disabled={checking} style={{ ...btn(), width: '100%' }}>{checking ? 'Se verifică...' : 'Continuă →'}</button>
           </form>
         </div>
@@ -276,17 +322,21 @@ export default function BtAdmin() {
             Pasul 2 din 2 — introduceți codul de 6 cifre din aplicația de autentificare (Google Authenticator, Authy etc.)
           </p>
           <form onSubmit={verifyCode} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <label htmlFor="bt-admin-code" className="sr-only">Cod de verificare în doi pași, 6 cifre</label>
             <input
+              id="bt-admin-code"
               type="text"
               inputMode="numeric"
               maxLength={6}
               placeholder="000000"
+              aria-label="Cod de verificare în doi pași, 6 cifre"
+              aria-invalid={!!codeErr}
               value={code}
               onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
               autoFocus
               style={{ ...inp, textAlign: 'center', fontSize: '22px', letterSpacing: '6px', fontWeight: 700 }}
             />
-            {codeErr && <div style={{ color: '#ef4444', fontSize: '12px', textAlign: 'center' }}>{codeErr}</div>}
+            {codeErr && <div role="alert" style={{ color: '#ef4444', fontSize: '12px', textAlign: 'center' }}>{codeErr}</div>}
             <button type="submit" disabled={checking || code.length !== 6} style={{ ...btn(), width: '100%' }}>{checking ? 'Se verifică...' : 'Confirmă →'}</button>
             <button type="button" onClick={() => { setStage('password'); setCode(''); setCodeErr('') }} style={{ background: 'none', border: 'none', color: '#64748b', fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit' }}>← Înapoi la parolă</button>
           </form>
@@ -321,7 +371,7 @@ export default function BtAdmin() {
           <div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>Ultima actualizare: {data.updatedAt.slice(0, 16).replace('T', ' ')}</div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          {savedMsg && <span style={{ fontSize: '13px', color: savedMsg.startsWith('Eroare') ? '#ef4444' : '#22c55e' }}>{savedMsg}</span>}
+          {savedMsg && <span role="status" aria-live="polite" style={{ fontSize: '13px', color: savedMsg.startsWith('Eroare') ? '#ef4444' : '#22c55e' }}>{savedMsg}</span>}
           <button onClick={save} disabled={saving} style={btn(saving ? '#334155' : '#22c55e', false)}>
             {saving ? 'Se salvează...' : '💾 Salvează tot'}
           </button>
@@ -335,15 +385,94 @@ export default function BtAdmin() {
           o informație greșită, Ana o va prezenta ca fiind reală — verificați ce introduceți.
         </div>
 
-        <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
-          <button style={tabStyle('dashboard')} onClick={() => setTab('dashboard')}>📊 Dashboard</button>
-          <button style={tabStyle('piata')} onClick={() => setTab('piata')}>📈 Raport de piață</button>
-          <button style={tabStyle('cunostinte')} onClick={() => setTab('cunostinte')}>Cunoștințe ({data.entries.length})</button>
-          <button style={tabStyle('comportament')} onClick={() => setTab('comportament')}>Personalizare comportament Ana ({data.behaviorRules.length})</button>
+        <div role="tablist" aria-label="Secțiuni admin" style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
+          <button role="tab" aria-selected={tab === 'dashboard'} id="bt-tab-dashboard" aria-controls="bt-panel-dashboard" style={tabStyle('dashboard')} onClick={() => setTab('dashboard')}>📊 Dashboard</button>
+          <button role="tab" aria-selected={tab === 'piata'} id="bt-tab-piata" aria-controls="bt-panel-piata" style={tabStyle('piata')} onClick={() => setTab('piata')}>📈 Raport de piață</button>
+          <button role="tab" aria-selected={tab === 'consultant'} id="bt-tab-consultant" aria-controls="bt-panel-consultant" style={tabStyle('consultant')} onClick={() => setTab('consultant')}>🎧 Agent Assist Live</button>
+          <button role="tab" aria-selected={tab === 'cunostinte'} id="bt-tab-cunostinte" aria-controls="bt-panel-cunostinte" style={tabStyle('cunostinte')} onClick={() => setTab('cunostinte')}>Cunoștințe ({data.entries.length})</button>
+          <button role="tab" aria-selected={tab === 'comportament'} id="bt-tab-comportament" aria-controls="bt-panel-comportament" style={tabStyle('comportament')} onClick={() => setTab('comportament')}>Personalizare comportament Ana ({data.behaviorRules.length})</button>
         </div>
 
+        {tab === 'consultant' && (
+          <div id="bt-panel-consultant" role="tabpanel" aria-labelledby="bt-tab-consultant" style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+            <div style={{ background: 'rgba(46,168,157,0.08)', border: '1px solid rgba(46,168,157,0.25)', borderRadius: '10px', padding: '10px 16px', fontSize: '12px', color: '#7dd3c0', lineHeight: 1.6 }}>
+              🎧 Introduceți numărul de telefon al unui lead deja colectat (din pre-calificare) ca să vedeți
+              transcriptul complet + un sumar al discuției lui cu Ana. Se actualizează automat la 8 secunde
+              cât timp căutarea e activă.
+            </div>
+            <form onSubmit={searchAgentAssist} style={{ display: 'flex', gap: '8px' }}>
+              <label htmlFor="bt-assist-phone" className="sr-only">Telefon lead</label>
+              <input
+                id="bt-assist-phone"
+                value={assistPhone}
+                onChange={e => setAssistPhone(e.target.value)}
+                placeholder="ex: 0722 123 456"
+                aria-label="Telefon lead"
+                style={{ ...inp, flex: 1 }}
+              />
+              <button type="submit" disabled={assistLoading || !assistPhone.trim()} style={btn()}>
+                {assistLoading ? 'Se caută...' : '🔍 Caută'}
+              </button>
+            </form>
+
+            {assist && !assist.found && (
+              <div style={{ fontSize: '12px', color: '#475569', fontStyle: 'italic' }}>
+                {assist.error || 'Niciun lead găsit cu acest telefon în log — verificați numărul sau așteptați să scrie clientul.'}
+              </div>
+            )}
+
+            {assist && assist.found && (
+              <>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px' }}>
+                  <div style={{ background: NAVY, border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '14px' }}>
+                    <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '6px' }}>Subiecte discutate</div>
+                    <div style={{ fontSize: '13px', color: '#e2e8f0', lineHeight: 1.6 }}>{assist.topics.join(', ') || '—'}</div>
+                  </div>
+                  <div style={{ background: NAVY, border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '14px' }}>
+                    <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '6px' }}>Sumă / perioadă cerută (ultima menționată)</div>
+                    <div style={{ fontSize: '13px', color: TEAL, fontWeight: 700 }}>
+                      {assist.lastAmount ? `${assist.lastAmount.toLocaleString('ro-RO')} lei` : '—'}
+                      {assist.lastMonths ? ` · ${assist.lastMonths} luni` : ''}
+                    </div>
+                  </div>
+                  <div style={{ background: NAVY, border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '14px' }}>
+                    <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '6px' }}>Goluri de informație în discuție</div>
+                    <div style={{ fontSize: '13px', color: assist.gapCount > 0 ? '#fcd34d' : '#e2e8f0', fontWeight: 700 }}>{assist.gapCount}</div>
+                  </div>
+                </div>
+
+                <div>
+                  <div style={{ fontSize: '12px', fontWeight: 700, color: '#94a3b8', marginBottom: '10px' }}>Obiecții ridicate</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                    {assist.objections.length === 0 && <span style={{ fontSize: '12px', color: '#475569', fontStyle: 'italic' }}>Nicio obiecție detectată.</span>}
+                    {assist.objections.map(o => (
+                      <span key={o} style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '20px', padding: '5px 12px', fontSize: '12px', color: '#fca5a5', fontWeight: 600 }}>{o}</span>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <div style={{ fontSize: '12px', fontWeight: 700, color: '#94a3b8', marginBottom: '10px' }}>Transcript complet ({assist.transcript.length} mesaje)</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '480px', overflowY: 'auto' }}>
+                    {assist.transcript.map((m, i) => (
+                      <div key={i} style={{ background: NAVY, border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '10px 14px', fontSize: '12px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                          <span style={{ color: '#64748b' }}>{m.context}</span>
+                          <span style={{ color: '#64748b' }}>{m.ts.slice(0, 16).replace('T', ' ')}</span>
+                        </div>
+                        <div style={{ color: '#e2e8f0', marginBottom: m.ana ? '6px' : 0 }}><b style={{ color: TEAL }}>Client:</b> {m.user}</div>
+                        {m.ana && <div style={{ color: '#94a3b8' }}><b style={{ color: '#fcd34d' }}>Ana:</b> {m.ana}</div>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
         {tab === 'piata' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div id="bt-panel-piata" role="tabpanel" aria-labelledby="bt-tab-piata" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div style={{ background: 'rgba(46,168,157,0.08)', border: '1px solid rgba(46,168,157,0.25)', borderRadius: '10px', padding: '10px 16px', fontSize: '12px', color: '#7dd3c0', lineHeight: 1.6 }}>
               📊 Statistici AGREGATE și ANONIMIZATE, utile pentru bancă — fără nume, telefon sau email individual.
               Separat de tab-ul de leaduri (acolo rămân datele individuale de contact).
@@ -438,7 +567,7 @@ export default function BtAdmin() {
         )}
 
         {tab === 'dashboard' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div id="bt-panel-dashboard" role="tabpanel" aria-labelledby="bt-tab-dashboard" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
               <button onClick={loadDashboard} disabled={dashLoading} style={{ ...btn('rgba(255,255,255,0.06)', false), border: '1px solid rgba(255,255,255,0.15)', fontSize: '12px', padding: '6px 12px' }}>
                 {dashLoading ? 'Se actualizează...' : '↻ Actualizează'}
@@ -512,7 +641,7 @@ export default function BtAdmin() {
         )}
 
         {tab === 'cunostinte' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div id="bt-panel-cunostinte" role="tabpanel" aria-labelledby="bt-tab-cunostinte" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div style={{ fontSize: '12px', color: '#64748b' }}>
               Produse noi, oferte, corecții — orice informație pe care Ana trebuie să o știe instant, fără deploy de cod.
             </div>
@@ -535,17 +664,19 @@ export default function BtAdmin() {
               <span style={{ fontSize: '11px', color: '#475569' }}>JPEG neacceptat — vezi motiv la încercare</span>
             </div>
             {uploadMsg && (
-              <div style={{ fontSize: '12px', color: uploadMsg.startsWith('Eroare') ? '#ef4444' : '#22c55e', background: uploadMsg.startsWith('Eroare') ? 'rgba(239,68,68,0.08)' : 'rgba(34,197,94,0.08)', border: `1px solid ${uploadMsg.startsWith('Eroare') ? 'rgba(239,68,68,0.3)' : 'rgba(34,197,94,0.3)'}`, borderRadius: '8px', padding: '10px 14px', lineHeight: 1.6 }}>
+              <div role="status" aria-live="polite" style={{ fontSize: '12px', color: uploadMsg.startsWith('Eroare') ? '#ef4444' : '#22c55e', background: uploadMsg.startsWith('Eroare') ? 'rgba(239,68,68,0.08)' : 'rgba(34,197,94,0.08)', border: `1px solid ${uploadMsg.startsWith('Eroare') ? 'rgba(239,68,68,0.3)' : 'rgba(34,197,94,0.3)'}`, borderRadius: '8px', padding: '10px 14px', lineHeight: 1.6 }}>
                 {uploadMsg}
               </div>
             )}
             {data.entries.map(en => (
               <div key={en.id} style={{ background: NAVY, border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <div style={{ display: 'flex', gap: '8px' }}>
-                  <input value={en.titlu} onChange={e => updateEntry(en.id, 'titlu', e.target.value)} placeholder="Titlu (ex: Card XYZ — ofertă nouă)" style={{ ...inp, flex: 1, fontWeight: 600 }} />
-                  <button onClick={() => delEntry(en.id)} style={{ ...btn('#ef4444', false), padding: '6px 10px', flexShrink: 0 }}>✕</button>
+                  <label htmlFor={`bt-entry-titlu-${en.id}`} className="sr-only">Titlu intrare cunoștințe</label>
+                  <input id={`bt-entry-titlu-${en.id}`} value={en.titlu} onChange={e => updateEntry(en.id, 'titlu', e.target.value)} placeholder="Titlu (ex: Card XYZ — ofertă nouă)" aria-label="Titlu intrare cunoștințe" style={{ ...inp, flex: 1, fontWeight: 600 }} />
+                  <button onClick={() => delEntry(en.id)} aria-label={`Șterge intrarea „${en.titlu || 'fără titlu'}"`} style={{ ...btn('#ef4444', false), padding: '6px 10px', flexShrink: 0 }}>✕</button>
                 </div>
-                <textarea value={en.continut} onChange={e => updateEntry(en.id, 'continut', e.target.value)} placeholder="Conținut — ce trebuie să știe Ana exact" style={ta} />
+                <label htmlFor={`bt-entry-continut-${en.id}`} className="sr-only">Conținut intrare cunoștințe</label>
+                <textarea id={`bt-entry-continut-${en.id}`} value={en.continut} onChange={e => updateEntry(en.id, 'continut', e.target.value)} placeholder="Conținut — ce trebuie să știe Ana exact" aria-label="Conținut intrare cunoștințe" style={ta} />
               </div>
             ))}
             {data.entries.length === 0 && <div style={{ fontSize: '12px', color: '#475569', fontStyle: 'italic' }}>Nicio intrare încă.</div>}
@@ -553,18 +684,21 @@ export default function BtAdmin() {
         )}
 
         {tab === 'comportament' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div id="bt-panel-comportament" role="tabpanel" aria-labelledby="bt-tab-comportament" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div style={{ fontSize: '12px', color: '#64748b' }}>
               Scrieți instrucțiuni în limbaj natural (ex. „fii mai formală", „menționează mereu dobânda promoțională
               la final", „nu mai vorbi despre cardul X"). Se salvează ca regulă directă, injectată în promptul Anei —
               nu e fine-tuning de model, e configurare de instrucțiuni.
             </div>
             <div style={{ display: 'flex', gap: '8px' }}>
+              <label htmlFor="bt-rule-input" className="sr-only">Regulă nouă de comportament</label>
               <input
+                id="bt-rule-input"
                 value={ruleInput}
                 onChange={e => setRuleInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && addRule()}
                 placeholder="Scrieți o regulă de comportament și apăsați Enter…"
+                aria-label="Regulă nouă de comportament"
                 style={{ ...inp, flex: 1 }}
               />
               <button onClick={addRule} style={btn()}>+ Adaugă regulă</button>
@@ -573,7 +707,7 @@ export default function BtAdmin() {
               {data.behaviorRules.map(r => (
                 <div key={r.id} style={{ background: NAVY, border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <span style={{ fontSize: '13px', color: '#e2e8f0', flex: 1, lineHeight: 1.5 }}>{r.text}</span>
-                  <button onClick={() => delRule(r.id)} style={{ ...btn('#ef4444', false), padding: '5px 9px', flexShrink: 0, fontSize: '11px' }}>✕</button>
+                  <button onClick={() => delRule(r.id)} aria-label={`Șterge regula: ${r.text}`} style={{ ...btn('#ef4444', false), padding: '5px 9px', flexShrink: 0, fontSize: '11px' }}>✕</button>
                 </div>
               ))}
               {data.behaviorRules.length === 0 && <div style={{ fontSize: '12px', color: '#475569', fontStyle: 'italic' }}>Nicio regulă încă.</div>}

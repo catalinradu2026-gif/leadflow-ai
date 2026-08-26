@@ -9,6 +9,13 @@ import { put, list } from '@vercel/blob'
 // activitate pe zile. Fiecare mesaj de user trimis către Ana generează o
 // intrare — logat din app/api/bt-chat/route.ts, nu blochează răspunsul dacă
 // eșuează (try/catch, non-fatal).
+//
+// IMUTABILITATE: acest fișier NU expune niciun handler PUT/PATCH/DELETE, doar
+// GET (citire) + logConversation (append, apelat exclusiv din bt-chat). Nu
+// există niciun buton/formular în /demo-bt-2026/admin care editează sau șterge
+// o intrare individuală din acest log — tab-urile de admin editează DOAR
+// bt-knowledge.json (cunoștințe + reguli de comportament), un fișier separat.
+// Verdictele de pre-calificare ale Anei, o dată logate, rămân neschimbate.
 // ============================================================================
 
 const BLOB_KEY = 'bt-conversations-log.json'
@@ -20,6 +27,8 @@ export type BtLogEntry = {
   userMessage: string
   leadPhone?: string
   possibleGap?: boolean // răspunsul Anei a semnalat că nu are informația exactă (vezi detectGap)
+  conversationId?: string // id generat client-side per sesiune de chat — leagă mesajele aceleiași conversații
+  assistantReply?: string // răspunsul REAL al Anei la acest mesaj — necesar pt. Agent Assist Live (transcript complet)
 }
 
 let cached: BtLogEntry[] | null = null
@@ -83,6 +92,12 @@ const PHONE_RE = /(?:\+?40|0)\s?7\d{2}[\s.-]?\d{3}[\s.-]?\d{3}/
 export function extractPhone(text: string): string | undefined {
   const m = text.match(PHONE_RE)
   return m ? m[0].replace(/[\s.-]/g, '') : undefined
+}
+
+/** Normalizează un număr RO la ultimele 9 cifre (7xxxxxxxx), indiferent de prefix (0/+40/0040/40). */
+export function normalizePhone(raw: string): string {
+  const digits = raw.replace(/\D/g, '')
+  return digits.slice(-9)
 }
 
 // Extrage o adresă de email dintr-un text — folosit pentru follow-up-ul real pe email din

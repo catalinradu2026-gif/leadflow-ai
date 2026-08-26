@@ -41,6 +41,13 @@ export default function BTChatbot({ context, salut, titlu = 'Ana', subtitlu = 'A
   const [langMenuOpen, setLangMenuOpen] = useState(false)
   const recognitionRef = useRef<any>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+  // Id opac generat o singură dată per montare a widgetului (o "sesiune" de chat) — NU e
+  // date personale, doar leagă mesajele aceleiași conversații pentru Agent Assist Live din
+  // admin (consultantul vede transcriptul complet, nu doar mesajul cu telefonul).
+  const conversationIdRef = useRef<string>(
+    typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `bt-${Date.now()}-${Math.random().toString(36).slice(2)}`
+  )
 
   useEffect(() => {
     const t = setTimeout(() => setBubble(true), 4000)
@@ -56,6 +63,23 @@ export default function BTChatbot({ context, salut, titlu = 'Ana', subtitlu = 'A
     if (open) bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, open])
 
+  // Accesibilitate: Esc închide fereastra de chat (echivalentul tastaturii pentru
+  // butonul ×), util pentru utilizatorii care navighează doar cu tastatura.
+  useEffect(() => {
+    if (!open) return
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') { stopSpeaking(); setOpen(false) }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [open])
+
+  // Focus mutat automat pe input la deschidere — util pentru utilizatorii de
+  // tastatură/screen-reader, care altfel ar rămâne cu focusul pe butonul de trigger.
+  useEffect(() => {
+    if (open) inputRef.current?.focus()
+  }, [open])
+
   async function send(overrideText?: string) {
     const text = (overrideText ?? input).trim()
     if (!text || loading) return
@@ -67,7 +91,7 @@ export default function BTChatbot({ context, salut, titlu = 'Ana', subtitlu = 'A
       const res = await fetch('/api/bt-chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: next, context, lang }),
+        body: JSON.stringify({ messages: next, context, lang, conversationId: conversationIdRef.current }),
       })
       if (!res.ok) throw new Error('chat request failed')
       const data = await res.json()
@@ -134,6 +158,9 @@ export default function BTChatbot({ context, salut, titlu = 'Ana', subtitlu = 'A
     <>
       {open && (
         <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Chat cu ${titlu}, asistent AI`}
           className="fixed bottom-24 left-3 right-3 z-50 flex flex-col overflow-hidden rounded-lg border border-white/10 bg-[#0a1a2a] shadow-2xl md:bottom-28 md:left-auto md:right-6 md:w-[380px]"
           style={{ height: '520px', maxHeight: '72dvh', fontFamily: "'Segoe UI', Arial, sans-serif" }}
         >
@@ -200,7 +227,13 @@ export default function BTChatbot({ context, salut, titlu = 'Ana', subtitlu = 'A
             </button>
           </div>
 
-          <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
+          <div
+            role="log"
+            aria-live="polite"
+            aria-relevant="additions"
+            aria-label="Conversație cu Ana"
+            className="flex-1 space-y-3 overflow-y-auto px-4 py-4"
+          >
             {messages.map((m, i) => (
               <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div
@@ -211,13 +244,15 @@ export default function BTChatbot({ context, salut, titlu = 'Ana', subtitlu = 'A
                       : 'bg-[#0f2942] text-[#e2e8f0] border border-white/10',
                   ].join(' ')}
                 >
+                  <span className="sr-only">{m.role === 'user' ? 'Dvs.: ' : 'Ana: '}</span>
                   {m.content}
                 </div>
               </div>
             ))}
             {loading && (
-              <div className="flex justify-start">
-                <div className="flex gap-1.5 rounded-lg border border-white/10 bg-[#0f2942] px-4 py-3">
+              <div className="flex justify-start" aria-live="polite">
+                <span className="sr-only">Ana scrie…</span>
+                <div className="flex gap-1.5 rounded-lg border border-white/10 bg-[#0f2942] px-4 py-3" aria-hidden="true">
                   {[0, 150, 300].map(delay => (
                     <span
                       key={delay}
@@ -232,13 +267,17 @@ export default function BTChatbot({ context, salut, titlu = 'Ana', subtitlu = 'A
           </div>
 
           <div className="flex gap-2 border-t border-white/10 p-3">
+            <label htmlFor="bt-chat-input" className="sr-only">Scrieți un mesaj pentru Ana</label>
             <input
+              id="bt-chat-input"
+              ref={inputRef}
               type="text"
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && send()}
               placeholder={listening ? '🎙️ Ascult…' : 'Scrieți sau apăsați 🎙️…'}
-              className={`flex-1 rounded-md border px-3 py-2.5 text-sm text-[#e2e8f0] outline-none transition-colors focus:border-[#2ea89d] ${listening ? 'border-red-500 bg-red-500/10' : 'border-white/10 bg-[#0f2942]'}`}
+              aria-label="Scrieți un mesaj pentru Ana"
+              className={`flex-1 rounded-md border px-3 py-2.5 text-sm text-[#e2e8f0] transition-colors focus:border-[#2ea89d] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#2ea89d] ${listening ? 'border-red-500 bg-red-500/10' : 'border-white/10 bg-[#0f2942]'}`}
               style={{ fontSize: '16px' }}
             />
             <button
@@ -264,21 +303,24 @@ export default function BTChatbot({ context, salut, titlu = 'Ana', subtitlu = 'A
       )}
 
       {bubble && !open && (
-        <div
-          className="fixed bottom-24 right-4 z-50 max-w-[240px] cursor-pointer rounded-lg rounded-br-sm border border-white/10 bg-[#0a1a2a] px-4 py-3 shadow-xl md:bottom-28"
-          onClick={toggleOpen}
-        >
+        <div className="fixed bottom-24 right-4 z-50 max-w-[240px] rounded-lg rounded-br-sm border border-white/10 bg-[#0a1a2a] px-4 py-3 shadow-xl md:bottom-28">
           <button
             className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-white/10 text-xs text-[#94a3b8] hover:text-[#f1f5f9]"
             onClick={e => {
               e.stopPropagation()
               setBubble(false)
             }}
-            aria-label="Închide"
+            aria-label="Închide mesajul"
           >
             ×
           </button>
-          <p className="text-sm leading-relaxed text-[#e2e8f0]">{salut}</p>
+          <button
+            onClick={toggleOpen}
+            className="block w-full cursor-pointer bg-transparent p-0 text-left"
+            aria-label={`Deschide chat cu Ana: ${salut}`}
+          >
+            <p className="text-sm leading-relaxed text-[#e2e8f0]">{salut}</p>
+          </button>
         </div>
       )}
 

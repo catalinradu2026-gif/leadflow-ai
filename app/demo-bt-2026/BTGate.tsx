@@ -62,15 +62,20 @@ export default function BTGate({ children }: { children: ReactNode }) {
           </div>
         </div>
         <form onSubmit={handleSubmit} style={{ width: '100%', maxWidth: '340px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <label htmlFor="bt-gate-password" className="sr-only">Parolă de acces demo</label>
           <input
+            id="bt-gate-password"
             type="password"
             placeholder="Parolă"
+            aria-label="Parolă de acces demo"
+            aria-invalid={!!error}
+            aria-describedby={error ? 'bt-gate-error' : undefined}
             value={password}
             onChange={e => setPassword(e.target.value)}
             autoFocus
-            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '10px', padding: '12px 16px', fontSize: '14px', color: '#f1f5f9', outline: 'none', fontFamily: 'inherit', width: '100%', boxSizing: 'border-box' }}
+            style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${error ? '#ef4444' : 'rgba(255,255,255,0.12)'}`, borderRadius: '10px', padding: '12px 16px', fontSize: '14px', color: '#f1f5f9', outline: 'none', fontFamily: 'inherit', width: '100%', boxSizing: 'border-box' }}
           />
-          {error && <div style={{ fontSize: '12px', color: '#ef4444', textAlign: 'center' }}>{error}</div>}
+          {error && <div id="bt-gate-error" role="alert" style={{ fontSize: '12px', color: '#ef4444', textAlign: 'center' }}>{error}</div>}
           <button type="submit" disabled={checking} style={{ background: 'linear-gradient(135deg, #2ea89d, #1b7a72)', border: 'none', borderRadius: '10px', padding: '12px 24px', fontSize: '14px', fontWeight: 700, color: '#04141a', cursor: 'pointer', fontFamily: 'inherit' }}>
             {checking ? 'Se verifică...' : 'Intră →'}
           </button>
