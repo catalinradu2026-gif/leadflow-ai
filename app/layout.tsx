@@ -3,7 +3,7 @@ import './globals.css'
 import { LangProvider } from './LangContext'
 import { Analytics } from '@vercel/analytics/next'
 import { SpeedInsights } from '@vercel/speed-insights/next'
-import AraChatbot from './components/AraChatbot'
+import GlobalAraChatbotGate from './components/GlobalAraChatbotGate'
 
 // Viewport pentru afișare corectă pe mobil. NU restricționăm zoom-ul
 // (userScalable / maximumScale) — permiterea zoom-ului e cerință de accesibilitate.
@@ -217,7 +217,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaWebSite) }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaFAQ) }} />
       </head>
-      <body><LangProvider>{children}<AraChatbot /></LangProvider><Analytics /><SpeedInsights /></body>
+      <body><LangProvider>{children}<GlobalAraChatbotGate /></LangProvider><Analytics /><SpeedInsights /></body>
     </html>
   )
 }

@@ -209,9 +209,14 @@ function getQuickQuestions(pathname: string): string[] {
   return QUICK_QUESTIONS.default
 }
 
+// ARA deservește exclusiv platforma ARACIP / EDU. Pe paginile de prezentare
+// (acasă, Nido, Home Smart, evaluare NIS2) răspunde Ava, nu ARA.
+const RUTE_ARA = ['/aracip', '/acreditare', '/edu', '/formare', '/scoala', '/gradinita', '/demo']
+
 export default function AraChatbot() {
   const pathname = usePathname()
-  if (pathname === '/') return null
+  const esteRutaARA = RUTE_ARA.some((r) => pathname === r || pathname.startsWith(r + '/'))
+  if (!esteRutaARA) return null
   const pagina = PAGE_LABELS[pathname] || 'Platformă ARACIP'
   const quickQuestions = getQuickQuestions(pathname)
 
@@ -340,6 +345,7 @@ export default function AraChatbot() {
             <div>
               <div style={{ fontSize: '13px', fontWeight: 700, color: '#f1f5f9' }}>ARA · Asistent ARACIP</div>
               <div style={{ fontSize: '11px', color: '#64748b' }}>{pagina}</div>
+              <div style={{ fontSize: '10px', fontWeight: 600, color: '#14b8a6', marginTop: '2px' }}>🤖 Asistent AI · nu e un om</div>
             </div>
             <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
               {speaking && <span style={{ fontSize: '11px', color: '#14b8a6' }}>🔊</span>}
