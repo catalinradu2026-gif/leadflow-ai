@@ -111,10 +111,12 @@ const GAP_PHRASES = [
 // echivalente ca sens ("nu este publicată în sursele oficiale disponibile" nu conține nicio
 // frază din lista de mai sus). Acoperim familiile tipice de "nu am informația" în română.
 const GAP_PATTERNS: RegExp[] = [
-  /nu (este|e|sunt)\s+(o\s+)?(informați\w*|cifr\w*|dat\w*)?\s*.{0,15}(public\w*|oficial\w*|disponibil\w*)/i,
-  /nu (dispun|avem|am)\s+.{0,25}(cifr\w*|informați\w*|dat\w*|detali\w*)/i,
-  /nu (cunosc|știu)\b/i,
-  /necunoscut\s+public/i,
+  // "nu este/nu există o cifră publică exactă", "nu sunt date oficiale disponibile" etc.
+  /nu\s+(este|e|sunt|există)\s+(o\s+)?(informați\w*|cifr\w*|dat\w*)?\s*.{0,20}(public\w*|oficial\w*|disponibil\w*|exact\w*)/i,
+  // "nu dispun de", "nu am acea informație", "nu avem acel detaliu"
+  /nu\s+(dispun|avem|am)\s+.{0,25}(cifr\w*|informați\w*|dat\w*|detali\w*)/i,
+  /nu\s+(cunosc|știu)\b/i,
+  /necunoscut[ăa]?\s+public/i,
 ]
 export function detectGap(replyText: string): boolean {
   const low = replyText.toLowerCase()
