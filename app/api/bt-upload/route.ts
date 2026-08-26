@@ -6,7 +6,7 @@ const MAX_BYTES = 10 * 1024 * 1024 // 10 MB
 const MAX_EXTRACTED_CHARS = 20000 // suficient pentru o intrare de cunoștințe, nu pentru romane
 
 // ============================================================================
-// Upload de documente pentru panoul admin BT (Cunoștințe Ana). Extrage text din
+// Upload de documente pentru panoul admin BT (Cunoștințe Nora). Extrage text din
 // PDF/DOCX/XLSX și îl întoarce clientului, care îl adaugă ca intrare editabilă
 // în lista de cunoștințe (admin revede/editează înainte de „Salvează tot").
 //

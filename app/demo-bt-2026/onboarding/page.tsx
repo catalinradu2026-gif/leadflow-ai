@@ -42,7 +42,7 @@ export default function OnboardingPage() {
           <h1 style={{ fontSize: '28px', fontWeight: 800, marginBottom: '8px' }}>Deschidere cont online — ghid pas cu pas</h1>
           <p style={{ fontSize: '14px', color: '#94a3b8', marginBottom: '10px', maxWidth: '600px', lineHeight: 1.6 }}>
             Procesul real de deschidere a unui cont NEOcont prin aplicația BT Pay — 100% online, fără drum la bancă.
-            Ana vă poate ghida pas cu pas direct în chat, sau puteți citi rezumatul de mai jos.
+            Nora vă poate ghida pas cu pas direct în chat, sau puteți citi rezumatul de mai jos.
           </p>
           <div style={{ display: 'inline-flex', gap: '16px', marginBottom: '28px', flexWrap: 'wrap' }}>
             <span style={{ fontSize: '12px', fontWeight: 700, color: '#2ea89d', background: 'rgba(46,168,157,0.12)', border: '1px solid rgba(46,168,157,0.3)', borderRadius: '20px', padding: '4px 12px' }}>⏱ ~7-10 minute</span>
@@ -82,7 +82,7 @@ export default function OnboardingPage() {
       </div>
       <BTChatbot
         context="onboarding"
-        salut="Bună ziua! Sunt Ana, asistentul AI virtual — nu sunt un consultant uman. Vă pot ghida pas cu pas prin procesul de deschidere a unui cont online, sau răspund direct dacă aveți o întrebare punctuală (ex. ce acte vă trebuie). Cum preferați să continuăm?"
+        salut="Bună ziua! Sunt Nora, asistentul AI virtual — nu sunt un consultant uman. Vă pot ghida pas cu pas prin procesul de deschidere a unui cont online, sau răspund direct dacă aveți o întrebare punctuală (ex. ce acte vă trebuie). Cum preferați să continuăm?"
       />
     </BTGate>
   )

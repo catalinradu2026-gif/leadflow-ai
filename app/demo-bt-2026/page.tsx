@@ -9,7 +9,7 @@ const CARDS = [
   { href: '/demo-bt-2026/conturi', emoji: '🏦', title: 'Conturi curente', desc: 'Deschidere 100% online, fără comision de administrare.' },
   { href: '/demo-bt-2026/imm', emoji: '📈', title: 'IMM & companii', desc: 'BT Mic, BT Profi, BT Invest, garanții FNGCIMM/FEI.' },
   { href: '/demo-bt-2026/onboarding', emoji: '🚀', title: 'Deschidere cont online', desc: 'Ghid pas cu pas prin procesul real NEOcont, prin BT Pay.' },
-  { href: '/demo-bt-2026/suport', emoji: '🧭', title: 'Triaj suport (concept)', desc: 'Demonstrație conceptuală — cum ar clasifica Ana o problemă de suport.' },
+  { href: '/demo-bt-2026/suport', emoji: '🧭', title: 'Triaj suport (concept)', desc: 'Demonstrație conceptuală — cum ar clasifica Nora o problemă de suport.' },
 ]
 
 export default function DemoBtHub() {
@@ -45,7 +45,7 @@ export default function DemoBtHub() {
       </div>
       <BTChatbot
         context="general"
-        salut="Bună ziua! Sunt Ana, asistentul AI virtual pentru acest demo — nu sunt un consultant uman. Sunt aici să vă ajut să găsiți exact ce vă trebuie. Ce căutați astăzi — un card, un credit, un cont curent, sau soluții pentru firma dumneavoastră?"
+        salut="Bună ziua! Sunt Nora, asistentul AI virtual pentru acest demo — nu sunt un consultant uman. Sunt aici să vă ajut să găsiți exact ce vă trebuie. Ce căutați astăzi — un card, un credit, un cont curent, sau soluții pentru firma dumneavoastră?"
       />
     </BTGate>
   )

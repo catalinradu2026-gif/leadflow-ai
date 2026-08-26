@@ -37,7 +37,7 @@ export default function ConturiPage() {
       </div>
       <BTChatbot
         context="conturi"
-        salut="Bună ziua! Sunt Ana, asistentul AI virtual — nu sunt un consultant uman. Pentru contul curent — vreți în lei sau valută, și preferați să faceți totul 100% online? Spuneți-mi ce folosiți cel mai des (plăți curente, transferuri, economii) ca să vă recomand corect."
+        salut="Bună ziua! Sunt Nora, asistentul AI virtual — nu sunt un consultant uman. Pentru contul curent — vreți în lei sau valută, și preferați să faceți totul 100% online? Spuneți-mi ce folosiți cel mai des (plăți curente, transferuri, economii) ca să vă recomand corect."
       />
     </BTGate>
   )

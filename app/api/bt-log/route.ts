@@ -6,7 +6,7 @@ import { put, list } from '@vercel/blob'
 // complex/ML, doar o listă append-only în Vercel Blob (același bucket ca
 // bt-knowledge.json), suficientă să populeze: total mesaje, cuvinte-cheie
 // frecvente, leaduri colectate (telefon din fluxul de pre-calificare) și
-// activitate pe zile. Fiecare mesaj de user trimis către Ana generează o
+// activitate pe zile. Fiecare mesaj de user trimis către Nora generează o
 // intrare — logat din app/api/bt-chat/route.ts, nu blochează răspunsul dacă
 // eșuează (try/catch, non-fatal).
 //
@@ -101,7 +101,7 @@ export function normalizePhone(raw: string): string {
 }
 
 // Extrage o adresă de email dintr-un text — folosit pentru follow-up-ul real pe email din
-// /api/bt-chat (Ana îl cere conversațional, serverul îl detectează determinist ca să declanșeze
+// /api/bt-chat (Nora îl cere conversațional, serverul îl detectează determinist ca să declanșeze
 // trimiterea reală, nu doar să se bazeze pe ce "spune" LLM-ul).
 const EMAIL_RE = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/
 export function extractEmail(text: string): string | undefined {
@@ -109,9 +109,9 @@ export function extractEmail(text: string): string | undefined {
   return m ? m[0] : undefined
 }
 
-// Semnalează dacă răspunsul Anei sugerează un gol de cunoștințe (a spus explicit că nu
+// Semnalează dacă răspunsul Norei sugerează un gol de cunoștințe (a spus explicit că nu
 // are o informație exactă) — folosit pentru raportul de piață agregat (secțiunea
-// "întrebări la care Ana nu a putut răspunde clar"), NU pentru a bloca vreun răspuns.
+// "întrebări la care Nora nu a putut răspunde clar"), NU pentru a bloca vreun răspuns.
 // ATENȚIE la fals-pozitive: disclaimerul STANDARD de simulare ("Pentru cifra exactă, o
 // simulare oficială...") apare la FIECARE simulare și NU e un gap real — excludem explicit
 // răspunsurile care conțin cardul de simulare, altfel gapCount ar exploda cu hedge-uri
@@ -121,7 +121,7 @@ const GAP_PHRASES = [
   'nu am această informație', 'nu cunosc', 'nu știu exact', 'necunoscut public', 'nu am acces la',
   'nu am detaliul exact', 'nu am acele adrese', 'nu am acele informații',
 ]
-// Reguli pe bază de tipar (nu doar substring exact) — Ana formulează liber golurile de
+// Reguli pe bază de tipar (nu doar substring exact) — Nora formulează liber golurile de
 // cunoștințe, testarea live a arătat că fraze exacte din GAP_PHRASES ratează des formulări
 // echivalente ca sens ("nu este publicată în sursele oficiale disponibile" nu conține nicio
 // frază din lista de mai sus). Acoperim familiile tipice de "nu am informația" în română.

@@ -97,7 +97,7 @@ export default function BTGate({ children }: { children: ReactNode }) {
 // disclaimer: textul "DEMO — prototip neoficial" e vizibil pe toată pagina, la
 // opacitate redusă, ca un preview de stock photo. NU blochează interacțiunea
 // (pointer-events: none) și nu afectează lizibilitatea conținutului dedesubt.
-// Dezvăluirea AI Act ("sunt Ana, asistent AI, nu om") e SEPARATĂ și rămâne doar
+// Dezvăluirea AI Act ("sunt Nora, asistent AI, nu om") e SEPARATĂ și rămâne doar
 // în widget-ul de chat (header + primul mesaj) — nu se amestecă cu watermark-ul.
 // ============================================================================
 function BTWatermark() {

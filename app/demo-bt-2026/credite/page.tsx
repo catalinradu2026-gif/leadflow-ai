@@ -51,7 +51,7 @@ export default function CreditePage() {
       </div>
       <BTChatbot
         context="credite"
-        salut="Bună ziua! Sunt Ana, asistentul AI virtual — nu sunt un consultant uman. Pentru ce anume aveți nevoie de finanțare — nevoi personale, cumpărarea unei locuințe, sau altceva? Și, dacă vreți, spuneți-mi suma aproximativă la care vă gândiți."
+        salut="Bună ziua! Sunt Nora, asistentul AI virtual — nu sunt un consultant uman. Pentru ce anume aveți nevoie de finanțare — nevoi personale, cumpărarea unei locuințe, sau altceva? Și, dacă vreți, spuneți-mi suma aproximativă la care vă gândiți."
       />
     </BTGate>
   )

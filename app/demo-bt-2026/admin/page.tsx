@@ -101,7 +101,7 @@ export default function BtAdmin() {
   }
 
   // Agent Assist Live — consultantul caută un telefon deja colectat și vede transcriptul
-  // + sumarul discuției acelui lead cu Ana. "Live" = polling simplu la 8s cât timp căutarea
+  // + sumarul discuției acelui lead cu Nora. "Live" = polling simplu la 8s cât timp căutarea
   // e activă (nu WebSocket — inutil de complex pentru un demo, dar tot actualizează în timp
   // real cât consultantul stă cu pagina deschisă lângă client).
   const loadAgentAssist = useCallback(async (phone: string, silent = false) => {
@@ -243,7 +243,7 @@ export default function BtAdmin() {
         body: JSON.stringify({ password: pass, knowledge: { entries: data.entries, behaviorRules: data.behaviorRules } }),
       })
       const json = await res.json()
-      if (json.ok) { setSavedMsg('Salvat! Ana știe imediat.'); setTimeout(() => setSavedMsg(''), 3000) }
+      if (json.ok) { setSavedMsg('Salvat! Nora știe imediat.'); setTimeout(() => setSavedMsg(''), 3000) }
       else setSavedMsg('Eroare: ' + json.error)
     } catch {
       setSavedMsg('Eroare de conexiune.')
@@ -300,7 +300,7 @@ export default function BtAdmin() {
         <div style={{ background: NAVY, border: '1px solid rgba(255,255,255,0.08)', borderRadius: '16px', padding: '36px', width: '340px', boxSizing: 'border-box' }}>
           <div style={{ fontSize: '24px', textAlign: 'center', marginBottom: '8px' }}>🔧</div>
           <h2 style={{ color: '#f1f5f9', textAlign: 'center', marginBottom: '4px', fontSize: '17px' }}>Admin demo BT</h2>
-          <p style={{ color: '#64748b', textAlign: 'center', marginBottom: '22px', fontSize: '12px' }}>Pasul 1 din 2 — parolă · Cunoștințe Ana, acces restricționat echipei</p>
+          <p style={{ color: '#64748b', textAlign: 'center', marginBottom: '22px', fontSize: '12px' }}>Pasul 1 din 2 — parolă · Cunoștințe Nora, acces restricționat echipei</p>
           <form onSubmit={login} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <label htmlFor="bt-admin-pass" className="sr-only">Parolă admin</label>
             <input id="bt-admin-pass" type="password" placeholder="Parolă admin" aria-label="Parolă admin" aria-invalid={!!authErr} value={pass} onChange={e => setPass(e.target.value)} autoFocus style={inp} />
@@ -367,7 +367,7 @@ export default function BtAdmin() {
     <div style={{ minHeight: '100vh', background: '#0a1a2a', fontFamily: "'Segoe UI', Arial, sans-serif", color: '#e2e8f0', padding: '24px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', maxWidth: '820px', margin: '0 auto 20px' }}>
         <div>
-          <h1 style={{ fontSize: '19px', fontWeight: 800, color: '#f1f5f9', margin: 0 }}>🔧 Admin demo BT — Ana</h1>
+          <h1 style={{ fontSize: '19px', fontWeight: 800, color: '#f1f5f9', margin: 0 }}>🔧 Admin demo BT — Nora</h1>
           <div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>Ultima actualizare: {data.updatedAt.slice(0, 16).replace('T', ' ')}</div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -382,7 +382,7 @@ export default function BtAdmin() {
         <div style={{ background: 'rgba(252,211,77,0.08)', border: '1px solid rgba(252,211,77,0.3)', borderRadius: '10px', padding: '10px 16px', marginBottom: '20px', fontSize: '12px', color: '#fcd34d', lineHeight: 1.6 }}>
           ⚠️ Tot ce adăugați aici devine parte din cunoștințele „de încredere" ale Anei — se folosește exact ca
           baza de cunoștințe existentă (nu o înlocuiește). Regulile anti-inventare rămân valabile: dacă adăugați
-          o informație greșită, Ana o va prezenta ca fiind reală — verificați ce introduceți.
+          o informație greșită, Nora o va prezenta ca fiind reală — verificați ce introduceți.
         </div>
 
         <div role="tablist" aria-label="Secțiuni admin" style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
@@ -390,14 +390,14 @@ export default function BtAdmin() {
           <button role="tab" aria-selected={tab === 'piata'} id="bt-tab-piata" aria-controls="bt-panel-piata" style={tabStyle('piata')} onClick={() => setTab('piata')}>📈 Raport de piață</button>
           <button role="tab" aria-selected={tab === 'consultant'} id="bt-tab-consultant" aria-controls="bt-panel-consultant" style={tabStyle('consultant')} onClick={() => setTab('consultant')}>🎧 Agent Assist Live</button>
           <button role="tab" aria-selected={tab === 'cunostinte'} id="bt-tab-cunostinte" aria-controls="bt-panel-cunostinte" style={tabStyle('cunostinte')} onClick={() => setTab('cunostinte')}>Cunoștințe ({data.entries.length})</button>
-          <button role="tab" aria-selected={tab === 'comportament'} id="bt-tab-comportament" aria-controls="bt-panel-comportament" style={tabStyle('comportament')} onClick={() => setTab('comportament')}>Personalizare comportament Ana ({data.behaviorRules.length})</button>
+          <button role="tab" aria-selected={tab === 'comportament'} id="bt-tab-comportament" aria-controls="bt-panel-comportament" style={tabStyle('comportament')} onClick={() => setTab('comportament')}>Personalizare comportament Nora ({data.behaviorRules.length})</button>
         </div>
 
         {tab === 'consultant' && (
           <div id="bt-panel-consultant" role="tabpanel" aria-labelledby="bt-tab-consultant" style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
             <div style={{ background: 'rgba(46,168,157,0.08)', border: '1px solid rgba(46,168,157,0.25)', borderRadius: '10px', padding: '10px 16px', fontSize: '12px', color: '#7dd3c0', lineHeight: 1.6 }}>
               🎧 Introduceți numărul de telefon al unui lead deja colectat (din pre-calificare) ca să vedeți
-              transcriptul complet + un sumar al discuției lui cu Ana. Se actualizează automat la 8 secunde
+              transcriptul complet + un sumar al discuției lui cu Nora. Se actualizează automat la 8 secunde
               cât timp căutarea e activă.
             </div>
             <form onSubmit={searchAgentAssist} style={{ display: 'flex', gap: '8px' }}>
@@ -461,7 +461,7 @@ export default function BtAdmin() {
                           <span style={{ color: '#64748b' }}>{m.ts.slice(0, 16).replace('T', ' ')}</span>
                         </div>
                         <div style={{ color: '#e2e8f0', marginBottom: m.ana ? '6px' : 0 }}><b style={{ color: TEAL }}>Client:</b> {m.user}</div>
-                        {m.ana && <div style={{ color: '#94a3b8' }}><b style={{ color: '#fcd34d' }}>Ana:</b> {m.ana}</div>}
+                        {m.ana && <div style={{ color: '#94a3b8' }}><b style={{ color: '#fcd34d' }}>Nora:</b> {m.ana}</div>}
                       </div>
                     ))}
                   </div>
@@ -547,7 +547,7 @@ export default function BtAdmin() {
                 </div>
 
                 <div>
-                  <div style={{ fontSize: '12px', fontWeight: 700, color: '#94a3b8', marginBottom: '10px' }}>Întrebări la care Ana nu a putut răspunde clar ({market.gapCount})</div>
+                  <div style={{ fontSize: '12px', fontWeight: 700, color: '#94a3b8', marginBottom: '10px' }}>Întrebări la care Nora nu a putut răspunde clar ({market.gapCount})</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     {market.gapQuestions.length === 0 && <span style={{ fontSize: '12px', color: '#475569', fontStyle: 'italic' }}>Niciun gol de informație detectat încă.</span>}
                     {market.gapQuestions.slice().reverse().slice(0, 20).map((g, i) => (
@@ -643,7 +643,7 @@ export default function BtAdmin() {
         {tab === 'cunostinte' && (
           <div id="bt-panel-cunostinte" role="tabpanel" aria-labelledby="bt-tab-cunostinte" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div style={{ fontSize: '12px', color: '#64748b' }}>
-              Produse noi, oferte, corecții — orice informație pe care Ana trebuie să o știe instant, fără deploy de cod.
+              Produse noi, oferte, corecții — orice informație pe care Nora trebuie să o știe instant, fără deploy de cod.
             </div>
             <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
               <button onClick={addEntry} style={{ ...btn('rgba(255,255,255,0.06)', false), border: '1px solid rgba(255,255,255,0.15)' }}>+ Adaugă intrare (text)</button>
@@ -676,7 +676,7 @@ export default function BtAdmin() {
                   <button onClick={() => delEntry(en.id)} aria-label={`Șterge intrarea „${en.titlu || 'fără titlu'}"`} style={{ ...btn('#ef4444', false), padding: '6px 10px', flexShrink: 0 }}>✕</button>
                 </div>
                 <label htmlFor={`bt-entry-continut-${en.id}`} className="sr-only">Conținut intrare cunoștințe</label>
-                <textarea id={`bt-entry-continut-${en.id}`} value={en.continut} onChange={e => updateEntry(en.id, 'continut', e.target.value)} placeholder="Conținut — ce trebuie să știe Ana exact" aria-label="Conținut intrare cunoștințe" style={ta} />
+                <textarea id={`bt-entry-continut-${en.id}`} value={en.continut} onChange={e => updateEntry(en.id, 'continut', e.target.value)} placeholder="Conținut — ce trebuie să știe Nora exact" aria-label="Conținut intrare cunoștințe" style={ta} />
               </div>
             ))}
             {data.entries.length === 0 && <div style={{ fontSize: '12px', color: '#475569', fontStyle: 'italic' }}>Nicio intrare încă.</div>}

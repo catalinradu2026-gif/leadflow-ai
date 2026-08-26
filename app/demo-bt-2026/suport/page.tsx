@@ -20,14 +20,14 @@ export default function SuportPage() {
           <h1 style={{ fontSize: '28px', fontWeight: 800, marginBottom: '8px' }}>Triaj suport — demonstrație conceptuală</h1>
 
           <div style={{ background: 'rgba(252,211,77,0.08)', border: '1px solid rgba(252,211,77,0.3)', borderRadius: '12px', padding: '14px 18px', marginBottom: '24px', fontSize: '13px', color: '#fcd34d', lineHeight: 1.7, maxWidth: '640px' }}>
-            ⚠️ Aceasta este o <strong>demonstrație conceptuală</strong> a logicii de triaj — Ana <strong>nu are acces
+            ⚠️ Aceasta este o <strong>demonstrație conceptuală</strong> a logicii de triaj — Nora <strong>nu are acces
             real</strong> la conturi sau sisteme BT și <strong>nu poate debloca sau rezolva</strong> nimic efectiv.
             Scopul e să arate CUM ar putea funcționa clasificarea automată a unei probleme, nu să ofere suport real.
           </div>
 
           <p style={{ fontSize: '14px', color: '#94a3b8', marginBottom: '24px', maxWidth: '600px', lineHeight: 1.6 }}>
             Descrieți în chat o problemă (ex. &bdquo;am uitat parola&rdquo;, &bdquo;mi s-a blocat cardul&rdquo;, &bdquo;am o
-            reclamație&rdquo;) și Ana o clasifică într-o categorie, explicând conceptual către ce canal ar fi
+            reclamație&rdquo;) și Nora o clasifică într-o categorie, explicând conceptual către ce canal ar fi
             direcționată în mod normal.
           </p>
 
@@ -47,7 +47,7 @@ export default function SuportPage() {
       </div>
       <BTChatbot
         context="suport"
-        salut="Bună ziua! Sunt Ana, asistentul AI virtual — nu sunt un consultant uman. Această pagină e o demonstrație conceptuală a logicii de triaj: descrieți-mi o problemă (ex. parolă uitată, card blocat, o reclamație) și vă arăt cum ar fi clasificată și direcționată în mod normal — nu am acces real la conturi sau sisteme BT și nu pot rezolva nimic efectiv, doar arăt logica."
+        salut="Bună ziua! Sunt Nora, asistentul AI virtual — nu sunt un consultant uman. Această pagină e o demonstrație conceptuală a logicii de triaj: descrieți-mi o problemă (ex. parolă uitată, card blocat, o reclamație) și vă arăt cum ar fi clasificată și direcționată în mod normal — nu am acces real la conturi sau sisteme BT și nu pot rezolva nimic efectiv, doar arăt logica."
       />
     </BTGate>
   )

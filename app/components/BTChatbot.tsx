@@ -11,7 +11,7 @@ type Props = {
   context: string
   /** Mesajul de bun venit — apare ca prim mesaj în chat ȘI ca text al bulei de preview */
   salut: string
-  /** Titlul din antetul ferestrei de chat (implicit "Ana") */
+  /** Titlul din antetul ferestrei de chat (implicit "Nora") */
   titlu?: string
   /** Subtitlul din antet — aici stă dezvăluirea AI Act, mereu vizibilă */
   subtitlu?: string
@@ -29,7 +29,7 @@ type Props = {
  * Transilvania. Cunoștințele despre produse stau în system prompt-ul rutei
  * /api/bt-chat, nu aici.
  */
-export default function BTChatbot({ context, salut, titlu = 'Ana', subtitlu = 'Asistent AI · nu e o persoană reală' }: Props) {
+export default function BTChatbot({ context, salut, titlu = 'Nora', subtitlu = 'Asistent AI · nu e o persoană reală' }: Props) {
   const [open, setOpen] = useState(false)
   const [bubble, setBubble] = useState(false)
   const [messages, setMessages] = useState<Message[]>([{ role: 'assistant', content: salut }])
@@ -231,7 +231,7 @@ export default function BTChatbot({ context, salut, titlu = 'Ana', subtitlu = 'A
             role="log"
             aria-live="polite"
             aria-relevant="additions"
-            aria-label="Conversație cu Ana"
+            aria-label="Conversație cu Nora"
             className="flex-1 space-y-3 overflow-y-auto px-4 py-4"
           >
             {messages.map((m, i) => (
@@ -244,14 +244,14 @@ export default function BTChatbot({ context, salut, titlu = 'Ana', subtitlu = 'A
                       : 'bg-[#0f2942] text-[#e2e8f0] border border-white/10',
                   ].join(' ')}
                 >
-                  <span className="sr-only">{m.role === 'user' ? 'Dvs.: ' : 'Ana: '}</span>
+                  <span className="sr-only">{m.role === 'user' ? 'Dvs.: ' : 'Nora: '}</span>
                   {m.content}
                 </div>
               </div>
             ))}
             {loading && (
               <div className="flex justify-start" aria-live="polite">
-                <span className="sr-only">Ana scrie…</span>
+                <span className="sr-only">Nora scrie…</span>
                 <div className="flex gap-1.5 rounded-lg border border-white/10 bg-[#0f2942] px-4 py-3" aria-hidden="true">
                   {[0, 150, 300].map(delay => (
                     <span
@@ -268,7 +268,7 @@ export default function BTChatbot({ context, salut, titlu = 'Ana', subtitlu = 'A
 
           <div className="border-t border-white/10 p-3">
             <div className="flex gap-2">
-              <label htmlFor="bt-chat-input" className="sr-only">Scrieți un mesaj pentru Ana</label>
+              <label htmlFor="bt-chat-input" className="sr-only">Scrieți un mesaj pentru Nora</label>
               <input
                 id="bt-chat-input"
                 ref={inputRef}
@@ -277,14 +277,14 @@ export default function BTChatbot({ context, salut, titlu = 'Ana', subtitlu = 'A
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && send()}
                 placeholder={listening ? '🎙️ Ascult…' : 'Scrieți mesajul, apoi Enter sau ➤…'}
-                aria-label="Scrieți un mesaj pentru Ana"
+                aria-label="Scrieți un mesaj pentru Nora"
                 className={`flex-1 rounded-md border px-3 py-2.5 text-sm text-[#e2e8f0] transition-colors focus:border-[#2ea89d] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#2ea89d] ${listening ? 'border-red-500 bg-red-500/10' : 'border-white/10 bg-[#0f2942]'}`}
                 style={{ fontSize: '16px' }}
               />
               <button
                 onClick={startListening}
-                title={listening ? 'Oprește microfonul' : 'Vorbește cu Ana'}
-                aria-label={listening ? 'Oprește microfonul' : 'Vorbește cu Ana'}
+                title={listening ? 'Oprește microfonul' : 'Vorbește cu Nora'}
+                aria-label={listening ? 'Oprește microfonul' : 'Vorbește cu Nora'}
                 className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-md border text-lg transition-all ${listening ? 'border-red-500 bg-red-500/25 animate-pulse' : 'border-[#2ea89d] bg-[#2ea89d]/20'}`}
               >
                 🎙️
@@ -324,7 +324,7 @@ export default function BTChatbot({ context, salut, titlu = 'Ana', subtitlu = 'A
           <button
             onClick={toggleOpen}
             className="block w-full cursor-pointer bg-transparent p-0 text-left"
-            aria-label={`Deschide chat cu Ana: ${salut}`}
+            aria-label={`Deschide chat cu Nora: ${salut}`}
           >
             <p className="text-sm leading-relaxed text-[#e2e8f0]">{salut}</p>
           </button>
@@ -334,7 +334,7 @@ export default function BTChatbot({ context, salut, titlu = 'Ana', subtitlu = 'A
       <button
         onClick={toggleOpen}
         className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-[#2ea89d] text-[#04141a] shadow-lg transition-transform hover:scale-105"
-        aria-label="Vorbește cu Ana, asistentul AI"
+        aria-label="Vorbește cu Nora, asistentul AI"
       >
         {open ? (
           <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

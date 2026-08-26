@@ -106,14 +106,14 @@ NEOcont etc.) și disclaimerele legale rămân neschimbate ca formă, dar propoz
 ${lang}, natural, ca un vorbitor nativ. Dacă utilizatorul scrie totuși în altă limbă, continui oricum în
 ${lang} (limba selectată are prioritate față de limba mesajului).\n`
     : ''
-  return `Te numești Ana, consultant bancar senior pe un DEMO PRIVAT (prototip neoficial) inspirat din produsele
-publice ale Băncii Transilvania. Dacă ești întrebată cum te numești, spui "Ana". NU ești angajată reală BT, iar
+  return `Te numești Nora, consultant bancar senior pe un DEMO PRIVAT (prototip neoficial) inspirat din produsele
+publice ale Băncii Transilvania. Dacă ești întrebată cum te numești, spui "Nora". NU ești angajată reală BT, iar
 acest demo NU e un produs oficial al băncii — dacă ești întrebată direct, spui asta clar și natural.
 ${langBlock}
 ═══ DEZVĂLUIRE AI (EU AI Act, obligatoriu din 2 aug 2026) ═══
 Ești AI, NU o persoană reală. Prima replică din conversație include deja mențiunea asta (afișată separat) — nu
 o repeți la fiecare mesaj, dar dacă ești întrebată oricând ("ești om?", "ești robot?", "ești AI?") confirmi
-imediat, fără ambiguitate: ești Ana, un asistent AI.
+imediat, fără ambiguitate: ești Nora, un asistent AI.
 
 ═══ CONTEXT PAGINĂ ═══
 ${intro}
@@ -328,7 +328,7 @@ function buildInstallmentHint(messages: { role: string; content: string }[]): st
 // verificat pentru domeniul aicraiova.ro — folosit deja de ARACIP). Detectat
 // determinist server-side (regex pe mesajul userului), NU lăsat doar pe seama a
 // ce "zice" LLM-ul — dacă userul dă o adresă de email validă în același mesaj în
-// care Ana tocmai a scris un rezumat/simulare, trimitem EFECTIV acel conținut.
+// care Nora tocmai a scris un rezumat/simulare, trimitem EFECTIV acel conținut.
 // Grațios: dacă RESEND_API_KEY lipsește, nu trimite nimic și nu pică răspunsul.
 // ============================================================================
 async function maybeSendFollowUpEmail(userMessage: string, replyText: string): Promise<void> {
@@ -344,20 +344,20 @@ async function maybeSendFollowUpEmail(userMessage: string, replyText: string): P
       .join('')
     const html = `<div style="font-family:Segoe UI,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1e293b">
       <div style="background:#0f2942;color:#fff;padding:20px 24px;border-radius:12px 12px 0 0">
-        <div style="font-size:18px;font-weight:800">Ana — Demo BT</div>
+        <div style="font-size:18px;font-weight:800">Nora — Demo BT</div>
         <div style="font-size:12px;color:#7dd3c0">Consultant bancar AI · aicraiova.ro/demo-bt-2026</div>
       </div>
       <div style="border:1px solid #e2e8f0;border-top:none;border-radius:0 0 12px 12px;padding:24px">
         ${bodyHtml}
         <hr style="border:none;border-top:1px solid #e2e8f0;margin:20px 0"/>
-        <div style="font-size:11px;color:#94a3b8">Demo conceptual — prototip neoficial, nu reprezintă un produs sau serviciu oficial Banca Transilvania. Trimis automat de Ana, un asistent AI, nu o persoană reală.</div>
+        <div style="font-size:11px;color:#94a3b8">Demo conceptual — prototip neoficial, nu reprezintă un produs sau serviciu oficial Banca Transilvania. Trimis automat de Nora, un asistent AI, nu o persoană reală.</div>
       </div>
     </div>`
     const ok = await sendEmail({
       to,
-      subject: 'Rezumatul discuției cu Ana — Demo BT',
+      subject: 'Rezumatul discuției cu Nora — Demo BT',
       html,
-      from: 'Ana — Demo BT <noreply@aicraiova.ro>',
+      from: 'Nora — Demo BT <noreply@aicraiova.ro>',
     })
     if (!ok) console.error('[bt-chat] trimitere email follow-up eșuată pentru', to)
   } catch (e) {
