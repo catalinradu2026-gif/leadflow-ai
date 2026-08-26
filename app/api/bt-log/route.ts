@@ -106,11 +106,22 @@ const GAP_PHRASES = [
   'nu am această informație', 'nu cunosc', 'nu știu exact', 'necunoscut public', 'nu am acces la',
   'nu am detaliul exact', 'nu am acele adrese', 'nu am acele informații',
 ]
+// Reguli pe bază de tipar (nu doar substring exact) — Ana formulează liber golurile de
+// cunoștințe, testarea live a arătat că fraze exacte din GAP_PHRASES ratează des formulări
+// echivalente ca sens ("nu este publicată în sursele oficiale disponibile" nu conține nicio
+// frază din lista de mai sus). Acoperim familiile tipice de "nu am informația" în română.
+const GAP_PATTERNS: RegExp[] = [
+  /nu (este|e|sunt)\s+(o\s+)?(informați\w*|cifr\w*|dat\w*)?\s*.{0,15}(public\w*|oficial\w*|disponibil\w*)/i,
+  /nu (dispun|avem|am)\s+.{0,25}(cifr\w*|informați\w*|dat\w*|detali\w*)/i,
+  /nu (cunosc|știu)\b/i,
+  /necunoscut\s+public/i,
+]
 export function detectGap(replyText: string): boolean {
   const low = replyText.toLowerCase()
   // Exclus: hedge-ul standard de simulare (nu e un gol real de cunoștințe, e disclaimer de rutină).
   if (low.includes('simulare orientativă') || low.includes('rată lunară estimată')) return false
-  return GAP_PHRASES.some(p => low.includes(p))
+  if (GAP_PHRASES.some(p => low.includes(p))) return true
+  return GAP_PATTERNS.some(re => re.test(replyText))
 }
 
 // Fraze-indicator de obiecție (pentru raportul de piață) — normalizate, comparate ca
