@@ -19,13 +19,15 @@ export type BtLogEntry = {
   context: string // pagina/contextul (general/carduri/credite/...)
   userMessage: string
   leadPhone?: string
+  possibleGap?: boolean // răspunsul Anei a semnalat că nu are informația exactă (vezi detectGap)
 }
 
 let cached: BtLogEntry[] | null = null
 let cacheTime = 0
 const CACHE_TTL = 20 * 1000
 
-async function loadLog(opts?: { fresh?: boolean }): Promise<BtLogEntry[]> {
+/** Exportat pentru /api/bt-market-report — reutilizează același log, fără duplicare de citire. */
+export async function loadLog(opts?: { fresh?: boolean }): Promise<BtLogEntry[]> {
   if (!opts?.fresh && cached && Date.now() - cacheTime < CACHE_TTL) return cached
   try {
     const token = process.env.BLOB_READ_WRITE_TOKEN
@@ -90,6 +92,69 @@ const EMAIL_RE = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/
 export function extractEmail(text: string): string | undefined {
   const m = text.match(EMAIL_RE)
   return m ? m[0] : undefined
+}
+
+// Semnalează dacă răspunsul Anei sugerează un gol de cunoștințe (a spus explicit că nu
+// are o informație exactă) — folosit pentru raportul de piață agregat (secțiunea
+// "întrebări la care Ana nu a putut răspunde clar"), NU pentru a bloca vreun răspuns.
+const GAP_PHRASES = [
+  'nu am informația exactă', 'nu am acea informație', 'nu am cifra exactă', 'nu am cifra publică',
+  'nu cunosc', 'nu știu exact', 'necunoscut public', 'nu am acces la', 'nu am detaliul exact',
+  'nu am această informație',
+]
+export function detectGap(replyText: string): boolean {
+  const low = replyText.toLowerCase()
+  return GAP_PHRASES.some(p => low.includes(p))
+}
+
+// Fraze-indicator de obiecție (pentru raportul de piață) — normalizate, comparate ca
+// substring pe mesajul userului, fără diacritice, ca să prindă și scris fără diacritice.
+const OBJECTION_PATTERNS: { label: string; test: RegExp }[] = [
+  { label: 'Dobânda pare prea mare', test: /doband\w*\s*(mare|mari|ridicat)/i },
+  { label: 'Neîncredere / suspiciune', test: /nu am incredere|neincredere|suspicio/i },
+  { label: 'Prea complicat / greu de înțeles', test: /prea complicat|nu inteleg|greu de inteles|complicat/i },
+  { label: 'Comisioane percepute ca mari', test: /comisi\w*\s*(mare|mari|ridicat)/i },
+  { label: 'Nesiguranță privind eligibilitatea', test: /nu stiu daca (ma califi|sunt eligibil)|nu sunt sigur ca (ma califi|sunt eligibil)/i },
+  { label: 'Timp/proces prea lung', test: /dureaza mult|prea mult timp|proces lung/i },
+]
+function normalizeNoDiacritics(s: string): string {
+  return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+}
+export function detectObjections(text: string): string[] {
+  const norm = normalizeNoDiacritics(text)
+  return OBJECTION_PATTERNS.filter(o => o.test.test(norm)).map(o => o.label)
+}
+
+// Sumă + perioadă menționate într-un mesaj — pentru distribuția pe intervale din raportul
+// de piață (agregat, NU legat de o persoană — doar bucket-uri de tip "10.000–25.000 lei").
+const AMOUNT_RE = /(\d{4,7}|\d{1,3}(?:[.,\s]\d{3})+)\s*(?:lei|RON)\b/i
+const MONTHS_RE = /(\d{1,3})\s*(?:de\s+)?luni\b/i
+const YEARS_RE = /(\d{1,2})\s*(?:de\s+)?ani\b/i
+export function extractAmount(text: string): number | undefined {
+  const m = text.match(AMOUNT_RE)
+  if (!m) return undefined
+  const n = parseInt(m[1].replace(/[.,\s]/g, ''), 10)
+  return Number.isFinite(n) && n >= 1000 && n <= 5_000_000 ? n : undefined
+}
+export function extractMonths(text: string): number | undefined {
+  const mm = text.match(MONTHS_RE)
+  if (mm) { const n = parseInt(mm[1], 10); return n >= 1 && n <= 360 ? n : undefined }
+  const my = text.match(YEARS_RE)
+  if (my) { const n = parseInt(my[1], 10) * 12; return n >= 1 && n <= 360 ? n : undefined }
+  return undefined
+}
+export function amountBucket(n: number): string {
+  if (n < 10_000) return '< 10.000 lei'
+  if (n < 25_000) return '10.000–25.000 lei'
+  if (n < 50_000) return '25.000–50.000 lei'
+  if (n < 100_000) return '50.000–100.000 lei'
+  return '100.000+ lei'
+}
+export function monthsBucket(n: number): string {
+  if (n <= 12) return '≤ 12 luni'
+  if (n <= 36) return '13–36 luni'
+  if (n <= 60) return '37–60 luni'
+  return '60+ luni'
 }
 
 const STOPWORDS = new Set([

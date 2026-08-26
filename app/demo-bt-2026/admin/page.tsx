@@ -12,6 +12,15 @@ type DashboardData = {
   leadsCount: number
   daily: { date: string; count: number }[]
 }
+type MarketReport = {
+  totalMesaje: number
+  topTopics: { context: string; label: string; count: number }[]
+  topObjections: { label: string; count: number }[]
+  amountDistribution: { bucket: string; count: number }[]
+  periodDistribution: { bucket: string; count: number }[]
+  gapQuestions: { intrebare: string; context: string; data: string }[]
+  gapCount: number
+}
 
 const TEAL = '#2ea89d'
 const NAVY = '#0f2942'
@@ -31,9 +40,11 @@ export default function BtAdmin() {
   const [code, setCode] = useState('')
   const [codeErr, setCodeErr] = useState('')
   const [data, setData] = useState<Knowledge | null>(null)
-  const [tab, setTab] = useState<'cunostinte' | 'comportament' | 'dashboard'>('cunostinte')
+  const [tab, setTab] = useState<'cunostinte' | 'comportament' | 'dashboard' | 'piata'>('cunostinte')
   const [dash, setDash] = useState<DashboardData | null>(null)
   const [dashLoading, setDashLoading] = useState(false)
+  const [market, setMarket] = useState<MarketReport | null>(null)
+  const [marketLoading, setMarketLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [savedMsg, setSavedMsg] = useState('')
   const [ruleInput, setRuleInput] = useState('')
@@ -47,6 +58,7 @@ export default function BtAdmin() {
     setData(kJson)
     setAuth(true)
     loadDashboard()
+    loadMarketReport()
   }
 
   async function loadDashboard() {
@@ -59,6 +71,52 @@ export default function BtAdmin() {
       // dashboard-ul rămâne gol dacă log-ul nu poate fi citit — nu blochează restul panoului
     }
     setDashLoading(false)
+  }
+
+  async function loadMarketReport() {
+    setMarketLoading(true)
+    try {
+      const r = await fetch('/api/bt-market-report')
+      const j = await r.json()
+      setMarket(j)
+    } catch {
+      // raportul rămâne gol dacă nu poate fi citit — nu blochează restul panoului
+    }
+    setMarketLoading(false)
+  }
+
+  function downloadMarketCsv() {
+    if (!market) return
+    const lines: string[] = []
+    lines.push('Raport de piata agregat (anonimizat) — Demo BT')
+    lines.push('')
+    lines.push('Subiect,Numar mesaje')
+    market.topTopics.forEach(t => lines.push(`"${t.label}",${t.count}`))
+    lines.push('')
+    lines.push('Obiectie,Frecventa')
+    market.topObjections.forEach(o => lines.push(`"${o.label}",${o.count}`))
+    lines.push('')
+    lines.push('Interval suma,Numar cereri')
+    market.amountDistribution.forEach(a => lines.push(`"${a.bucket}",${a.count}`))
+    lines.push('')
+    lines.push('Interval perioada,Numar cereri')
+    market.periodDistribution.forEach(p => lines.push(`"${p.bucket}",${p.count}`))
+    lines.push('')
+    lines.push('Intrebari fara raspuns clar (gap-uri),Context,Data')
+    market.gapQuestions.forEach(g => {
+      const esc = (s: string) => `"${(s || '').replace(/"/g, '""')}"`
+      lines.push(`${esc(g.intrebare)},${esc(g.context)},${esc(g.data)}`)
+    })
+    const csv = '﻿' + lines.join('\r\n') // BOM pentru diacritice corecte în Excel
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `bt-demo-raport-piata-${new Date().toISOString().slice(0, 10)}.csv`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
   }
 
   function downloadCsv() {
@@ -279,9 +337,105 @@ export default function BtAdmin() {
 
         <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
           <button style={tabStyle('dashboard')} onClick={() => setTab('dashboard')}>📊 Dashboard</button>
+          <button style={tabStyle('piata')} onClick={() => setTab('piata')}>📈 Raport de piață</button>
           <button style={tabStyle('cunostinte')} onClick={() => setTab('cunostinte')}>Cunoștințe ({data.entries.length})</button>
           <button style={tabStyle('comportament')} onClick={() => setTab('comportament')}>Personalizare comportament Ana ({data.behaviorRules.length})</button>
         </div>
+
+        {tab === 'piata' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div style={{ background: 'rgba(46,168,157,0.08)', border: '1px solid rgba(46,168,157,0.25)', borderRadius: '10px', padding: '10px 16px', fontSize: '12px', color: '#7dd3c0', lineHeight: 1.6 }}>
+              📊 Statistici AGREGATE și ANONIMIZATE, utile pentru bancă — fără nume, telefon sau email individual.
+              Separat de tab-ul de leaduri (acolo rămân datele individuale de contact).
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+              <button onClick={loadMarketReport} disabled={marketLoading} style={{ ...btn('rgba(255,255,255,0.06)', false), border: '1px solid rgba(255,255,255,0.15)', fontSize: '12px', padding: '6px 12px' }}>
+                {marketLoading ? 'Se actualizează...' : '↻ Actualizează'}
+              </button>
+              <button onClick={downloadMarketCsv} disabled={!market || market.totalMesaje === 0} style={{ ...btn(!market || market.totalMesaje === 0 ? '#334155' : TEAL), fontSize: '12px', padding: '6px 14px' }}>⬇ Descarcă CSV/Excel</button>
+            </div>
+
+            {!market && <div style={{ fontSize: '12px', color: '#475569', fontStyle: 'italic' }}>Se încarcă raportul...</div>}
+
+            {market && (
+              <>
+                <div>
+                  <div style={{ fontSize: '12px', fontWeight: 700, color: '#94a3b8', marginBottom: '10px' }}>Top subiecte/produse căutate</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    {market.topTopics.length === 0 && <span style={{ fontSize: '12px', color: '#475569', fontStyle: 'italic' }}>Încă nu sunt suficiente date.</span>}
+                    {market.topTopics.map(t => {
+                      const max = Math.max(1, ...market.topTopics.map(x => x.count))
+                      return (
+                        <div key={t.context} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <span style={{ fontSize: '12px', color: '#e2e8f0', width: '180px', flexShrink: 0 }}>{t.label}</span>
+                          <div style={{ flex: 1, background: 'rgba(255,255,255,0.06)', borderRadius: '4px', height: '16px', position: 'relative' }}>
+                            <div style={{ width: `${(t.count / max) * 100}%`, height: '100%', background: TEAL, borderRadius: '4px' }} />
+                          </div>
+                          <span style={{ fontSize: '12px', color: '#64748b', width: '24px', textAlign: 'right' }}>{t.count}</span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                <div>
+                  <div style={{ fontSize: '12px', fontWeight: 700, color: '#94a3b8', marginBottom: '10px' }}>Top obiecții/îngrijorări exprimate frecvent</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                    {market.topObjections.length === 0 && <span style={{ fontSize: '12px', color: '#475569', fontStyle: 'italic' }}>Nicio obiecție detectată încă.</span>}
+                    {market.topObjections.map(o => (
+                      <span key={o.label} style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '20px', padding: '5px 12px', fontSize: '12px', color: '#fca5a5', fontWeight: 600 }}>
+                        {o.label} <span style={{ color: '#64748b' }}>×{o.count}</span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+                  <div>
+                    <div style={{ fontSize: '12px', fontWeight: 700, color: '#94a3b8', marginBottom: '10px' }}>Distribuția sumelor cerute</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      {market.amountDistribution.length === 0 && <span style={{ fontSize: '12px', color: '#475569', fontStyle: 'italic' }}>Fără date încă.</span>}
+                      {market.amountDistribution.map(a => (
+                        <div key={a.bucket} style={{ display: 'flex', justifyContent: 'space-between', background: NAVY, border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', padding: '8px 12px', fontSize: '12px' }}>
+                          <span style={{ color: '#e2e8f0' }}>{a.bucket}</span>
+                          <span style={{ color: TEAL, fontWeight: 700 }}>{a.count}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '12px', fontWeight: 700, color: '#94a3b8', marginBottom: '10px' }}>Distribuția perioadelor cerute</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      {market.periodDistribution.length === 0 && <span style={{ fontSize: '12px', color: '#475569', fontStyle: 'italic' }}>Fără date încă.</span>}
+                      {market.periodDistribution.map(p => (
+                        <div key={p.bucket} style={{ display: 'flex', justifyContent: 'space-between', background: NAVY, border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', padding: '8px 12px', fontSize: '12px' }}>
+                          <span style={{ color: '#e2e8f0' }}>{p.bucket}</span>
+                          <span style={{ color: TEAL, fontWeight: 700 }}>{p.count}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <div style={{ fontSize: '12px', fontWeight: 700, color: '#94a3b8', marginBottom: '10px' }}>Întrebări la care Ana nu a putut răspunde clar ({market.gapCount})</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {market.gapQuestions.length === 0 && <span style={{ fontSize: '12px', color: '#475569', fontStyle: 'italic' }}>Niciun gol de informație detectat încă.</span>}
+                    {market.gapQuestions.slice().reverse().slice(0, 20).map((g, i) => (
+                      <div key={i} style={{ background: NAVY, border: '1px solid rgba(252,211,77,0.2)', borderRadius: '10px', padding: '10px 14px', fontSize: '12px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                          <span style={{ color: '#fcd34d', fontWeight: 700 }}>{g.context}</span>
+                          <span style={{ color: '#64748b' }}>{g.data.slice(0, 16).replace('T', ' ')}</span>
+                        </div>
+                        <div style={{ color: '#94a3b8', lineHeight: 1.5 }}>{g.intrebare}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        )}
 
         {tab === 'dashboard' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>

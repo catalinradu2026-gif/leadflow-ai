@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import Groq from 'groq-sdk'
 import { rateLimit } from '@/lib/rateLimit'
 import { getBtKnowledge } from '@/app/api/bt-knowledge/route'
-import { logConversation, extractPhone, extractEmail } from '@/app/api/bt-log/route'
+import { logConversation, extractPhone, extractEmail, detectGap } from '@/app/api/bt-log/route'
 import { sendEmail, emailConfigured } from '@/lib/email'
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
@@ -379,15 +379,9 @@ export async function POST(req: NextRequest) {
 
     const safeContext = typeof context === 'string' ? context : 'general'
     const lastUserMsg = [...(messages as { role: string; content: string }[])].reverse().find(m => m.role === 'user')?.content || ''
-    // Așteptat (dar non-fatal — try/catch intern în logConversation) ca intrarea să chiar
-    // ajungă în Blob înainte ca funcția serverless să se închidă; scrierile sunt rapide
-    // (~100-200ms) față de apelul Groq care oricum durează câteva secunde.
-    await logConversation({
-      ts: new Date().toISOString(),
-      context: safeContext,
-      userMessage: lastUserMsg.slice(0, 500),
-      leadPhone: extractPhone(lastUserMsg),
-    })
+    // Logarea se face O SINGURĂ DATĂ, DUPĂ ce avem răspunsul Anei (nu înainte de apelul
+    // Groq ca înainte) — ca să putem include și possibleGap (dedus din răspuns), într-o
+    // singură intrare, fără să dublăm contorul de mesaje din dashboard.
 
     let systemPrompt = buildSystemPrompt(safeContext, typeof lang === 'string' ? lang : undefined)
 
@@ -443,6 +437,13 @@ export async function POST(req: NextRequest) {
         // următorul model din listă în loc să livrăm un text tăiat la mijlocul cuvântului.
         if (text && choice?.finish_reason !== 'length') {
           const fixed = fixDiacritics(text)
+          await logConversation({
+            ts: new Date().toISOString(),
+            context: safeContext,
+            userMessage: lastUserMsg.slice(0, 500),
+            leadPhone: extractPhone(lastUserMsg),
+            possibleGap: detectGap(fixed),
+          })
           await maybeSendFollowUpEmail(lastUserMsg, fixed)
           return NextResponse.json({ text: fixed })
         }
