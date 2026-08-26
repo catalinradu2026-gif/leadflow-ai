@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import Groq from 'groq-sdk'
 import { rateLimit } from '@/lib/rateLimit'
 import { getBtKnowledge } from '@/app/api/bt-knowledge/route'
-import { logConversation, extractPhone } from '@/app/api/bt-log/route'
+import { logConversation, extractPhone, extractEmail } from '@/app/api/bt-log/route'
+import { sendEmail, emailConfigured } from '@/lib/email'
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
 
@@ -167,9 +168,12 @@ explicit dacă vrea să fie contactat de un consultant și cere numărul de tele
 scenariu de producție." Nu forța acest flow — doar când interesul e real.
 
 ═══ FUNCȚII SUPLIMENTARE (concis) ═══
-- FOLLOW-UP EMAIL: la final de simulare/pre-calificare, întrebi O DATĂ "vreți rezultatele pe email?"; dacă da,
-  ceri adresa și arăți un preview clar marcat "📧 PREVIEW EMAIL (demo, nu se trimite efectiv)" cu 2-3 rânduri
-  rezumat. Nu repeți oferta.
+- FOLLOW-UP EMAIL (TRIMITERE REALĂ, nu simulare): la final de simulare/pre-calificare, întrebi O DATĂ "vreți
+  rezultatele pe email?"; dacă da, ceri adresa, apoi în ACELAȘI răspuns unde confirmi adresa, scrii mesajul
+  EXACT ca și cum ar fi conținutul emailului (2-4 rânduri: sumă, perioadă, dobândă, rată, disclaimerul
+  ⚠️ ESTIMARE standard) — acest text chiar se trimite pe email, cuvânt cu cuvânt, printr-un mecanism separat de
+  trimitere, deci scrie-l complet și corect, nu ca un placeholder vag. Încheie cu o confirmare naturală de tipul
+  "V-am trimis rezumatul la [adresă]." Nu repeți oferta odată acceptată.
 - PROGRAMARE CONSULTANT: după pre-calificare cu interes real, oferi 3 sloturi simulate (ex. "Mâine 10:00, Mâine
   14:00, Joi 11:00"), ceri confirmare, apoi marchezi clar ca simulare, nu programare reală în sistemul BT.
 - SUMAR PENTRU CONSULTANT: la cerere/final de discuție de credit, generezi text structurat: Nevoie / Sumă /
@@ -241,6 +245,48 @@ function fixDiacritics(text: string): string {
     .replace(/Ş/g, 'Ș')
     .replace(/ţ/g, 'ț')
     .replace(/Ţ/g, 'Ț')
+}
+
+// ============================================================================
+// Follow-up REAL pe email prin Resend (lib/email.ts, contul deja configurat și
+// verificat pentru domeniul aicraiova.ro — folosit deja de ARACIP). Detectat
+// determinist server-side (regex pe mesajul userului), NU lăsat doar pe seama a
+// ce "zice" LLM-ul — dacă userul dă o adresă de email validă în același mesaj în
+// care Ana tocmai a scris un rezumat/simulare, trimitem EFECTIV acel conținut.
+// Grațios: dacă RESEND_API_KEY lipsește, nu trimite nimic și nu pică răspunsul.
+// ============================================================================
+async function maybeSendFollowUpEmail(userMessage: string, replyText: string): Promise<void> {
+  try {
+    if (!emailConfigured()) return
+    const to = extractEmail(userMessage)
+    if (!to) return
+    const bodyHtml = fixDiacritics(replyText)
+      .split('\n')
+      .map(line => line.trim())
+      .filter(Boolean)
+      .map(line => `<p style="margin:0 0 10px;font-size:14px;line-height:1.6;color:#1e293b">${line}</p>`)
+      .join('')
+    const html = `<div style="font-family:Segoe UI,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1e293b">
+      <div style="background:#0f2942;color:#fff;padding:20px 24px;border-radius:12px 12px 0 0">
+        <div style="font-size:18px;font-weight:800">Ana — Demo BT</div>
+        <div style="font-size:12px;color:#7dd3c0">Consultant bancar AI · aicraiova.ro/demo-bt-2026</div>
+      </div>
+      <div style="border:1px solid #e2e8f0;border-top:none;border-radius:0 0 12px 12px;padding:24px">
+        ${bodyHtml}
+        <hr style="border:none;border-top:1px solid #e2e8f0;margin:20px 0"/>
+        <div style="font-size:11px;color:#94a3b8">Demo conceptual — prototip neoficial, nu reprezintă un produs sau serviciu oficial Banca Transilvania. Trimis automat de Ana, un asistent AI, nu o persoană reală.</div>
+      </div>
+    </div>`
+    const ok = await sendEmail({
+      to,
+      subject: 'Rezumatul discuției cu Ana — Demo BT',
+      html,
+      from: 'Ana — Demo BT <noreply@aicraiova.ro>',
+    })
+    if (!ok) console.error('[bt-chat] trimitere email follow-up eșuată pentru', to)
+  } catch (e) {
+    console.error('[bt-chat] maybeSendFollowUpEmail', e)
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -322,7 +368,11 @@ export async function POST(req: NextRequest) {
         const text = choice?.message?.content
         // Dacă răspunsul s-a oprit din lipsă de tokeni (finish_reason 'length'), încercăm
         // următorul model din listă în loc să livrăm un text tăiat la mijlocul cuvântului.
-        if (text && choice?.finish_reason !== 'length') return NextResponse.json({ text: fixDiacritics(text) })
+        if (text && choice?.finish_reason !== 'length') {
+          const fixed = fixDiacritics(text)
+          await maybeSendFollowUpEmail(lastUserMsg, fixed)
+          return NextResponse.json({ text: fixed })
+        }
         if (text) { lastTruncated = text; lastErr = new Error('response truncated (finish_reason=length)') }
       } catch (e) {
         lastErr = e

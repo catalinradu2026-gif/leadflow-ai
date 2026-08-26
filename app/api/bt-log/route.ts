@@ -83,6 +83,15 @@ export function extractPhone(text: string): string | undefined {
   return m ? m[0].replace(/[\s.-]/g, '') : undefined
 }
 
+// Extrage o adresă de email dintr-un text — folosit pentru follow-up-ul real pe email din
+// /api/bt-chat (Ana îl cere conversațional, serverul îl detectează determinist ca să declanșeze
+// trimiterea reală, nu doar să se bazeze pe ce "spune" LLM-ul).
+const EMAIL_RE = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/
+export function extractEmail(text: string): string | undefined {
+  const m = text.match(EMAIL_RE)
+  return m ? m[0] : undefined
+}
+
 const STOPWORDS = new Set([
   'si', 'sa', 'pe', 'cu', 'de', 'la', 'un', 'o', 'in', 'este', 'sunt', 'ce', 'care', 'pentru', 'din', 'mai',
   'ma', 'va', 'as', 'dori', 'vreau', 'buna', 'ziua', 'multumesc', 'pot', 'am', 'ai', 'are', 'avea', 'fi', 'nu',
