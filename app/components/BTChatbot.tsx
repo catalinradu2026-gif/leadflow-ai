@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { speak, stopSpeaking } from '../edu/tts'
+import { LIMBI_DISPONIBILE, citesteLimbaManuala, scrieLimbaManuala, determinaLimba, peLimbaManualaSchimbata } from '../../lib/btLimba'
 
 type Message = { role: 'user' | 'assistant'; content: string }
 
@@ -36,12 +37,19 @@ export default function BTChatbot({ context, salut, titlu = 'Ana', subtitlu = 'A
   const [loading, setLoading] = useState(false)
   const [voiceOn, setVoiceOn] = useState(true)
   const [listening, setListening] = useState(false)
+  const [lang, setLang] = useState('română')
+  const [langMenuOpen, setLangMenuOpen] = useState(false)
   const recognitionRef = useRef<any>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const t = setTimeout(() => setBubble(true), 4000)
     return () => clearTimeout(t)
+  }, [])
+
+  useEffect(() => {
+    determinaLimba().then(setLang)
+    return peLimbaManualaSchimbata(() => determinaLimba().then(setLang))
   }, [])
 
   useEffect(() => {
@@ -59,7 +67,7 @@ export default function BTChatbot({ context, salut, titlu = 'Ana', subtitlu = 'A
       const res = await fetch('/api/bt-chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: next, context }),
+        body: JSON.stringify({ messages: next, context, lang }),
       })
       if (!res.ok) throw new Error('chat request failed')
       const data = await res.json()
@@ -138,6 +146,39 @@ export default function BTChatbot({ context, salut, titlu = 'Ana', subtitlu = 'A
                 {titlu}
               </p>
               <p className="truncate text-xs text-[#fcd34d]">{subtitlu}</p>
+            </div>
+            <div className="relative shrink-0">
+              <button
+                onClick={() => setLangMenuOpen(v => !v)}
+                className="rounded-md px-2 py-1 text-xs font-semibold text-[#94a3b8] transition-colors hover:text-[#f1f5f9]"
+                title="Schimbă limba"
+                aria-label="Schimbă limba"
+              >
+                {LIMBI_DISPONIBILE.find(o => o.nume === lang)?.eticheta.split(' ')[0] || '🌍'} ▾
+              </button>
+              {langMenuOpen && (
+                <>
+                  <div className="fixed inset-0 z-[60]" onClick={() => setLangMenuOpen(false)} />
+                  <div className="absolute right-0 top-full z-[70] mt-1.5 max-h-72 w-48 overflow-y-auto rounded-xl border border-white/15 bg-[#0a1a2a] p-1.5 shadow-2xl">
+                    <button
+                      onClick={() => { scrieLimbaManuala(null); setLangMenuOpen(false) }}
+                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-[#94a3b8] hover:bg-white/10"
+                    >
+                      🌍 Automat (după locație)
+                    </button>
+                    {LIMBI_DISPONIBILE.map(o => (
+                      <button
+                        key={o.nume}
+                        onClick={() => { scrieLimbaManuala(o.nume); setLangMenuOpen(false) }}
+                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-[#e2e8f0] hover:bg-white/10"
+                        style={o.nume === lang && citesteLimbaManuala() ? { color: '#2ea89d' } : undefined}
+                      >
+                        {o.eticheta}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
             <button
               onClick={toggleVoice}
