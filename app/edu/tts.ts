@@ -75,8 +75,19 @@ export function prepareForSpeech(text: string): string {
 
 export function getVoice(): SpeechSynthesisVoice | null {
   const voices = window.speechSynthesis.getVoices()
-  return voices.find(v => v.lang === 'ro-RO' && /ioana|carmen|maria|andrei/i.test(v.name))
-    || voices.find(v => v.lang === 'ro-RO')
+  const isRo = (v: SpeechSynthesisVoice) => v.lang === 'ro-RO'
+  const isNamedRo = (v: SpeechSynthesisVoice) => /ioana|carmen|maria|andrei/i.test(v.name)
+  // iOS/Safari: dacă utilizatorul a descărcat varianta "Enhanced"/"Premium" a vocii române
+  // din Settings > Accessibility > Spoken Content > Voices, ea apare ca o INTRARE SEPARATĂ
+  // în getVoices() (nume gen "Ioana (Enhanced)", identifier com.apple.voice.enhanced.ro-RO.*),
+  // pe lângă varianta compactă/robotizată care rămâne mereu în listă. Fără prioritizare
+  // explicită, .find() ia prima potrivire din array — care poate fi tot cea compactă.
+  // Dacă Enhanced/Premium NU a fost descărcată, această intrare pur și simplu nu există în
+  // listă și fallback-ul de mai jos alege compact ca înainte — nu există altă opțiune prin
+  // Web Speech API în acest caz, e o limitare reală de platformă, nu de cod.
+  return voices.find(v => isRo(v) && isNamedRo(v) && /enhanced|premium/i.test(v.name))
+    || voices.find(v => isRo(v) && isNamedRo(v))
+    || voices.find(v => isRo(v))
     || voices.find(v => v.lang.startsWith('ro'))
     || voices.find(v => v.lang === 'en-GB' && /female|woman/i.test(v.name))
     || voices.find(v => v.lang.startsWith('en-GB'))
