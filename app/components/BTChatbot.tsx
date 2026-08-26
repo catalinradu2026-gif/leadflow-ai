@@ -266,38 +266,45 @@ export default function BTChatbot({ context, salut, titlu = 'Ana', subtitlu = 'A
             <div ref={bottomRef} />
           </div>
 
-          <div className="flex gap-2 border-t border-white/10 p-3">
-            <label htmlFor="bt-chat-input" className="sr-only">Scrieți un mesaj pentru Ana</label>
-            <input
-              id="bt-chat-input"
-              ref={inputRef}
-              type="text"
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && send()}
-              placeholder={listening ? '🎙️ Ascult…' : 'Scrieți sau apăsați 🎙️…'}
-              aria-label="Scrieți un mesaj pentru Ana"
-              className={`flex-1 rounded-md border px-3 py-2.5 text-sm text-[#e2e8f0] transition-colors focus:border-[#2ea89d] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#2ea89d] ${listening ? 'border-red-500 bg-red-500/10' : 'border-white/10 bg-[#0f2942]'}`}
-              style={{ fontSize: '16px' }}
-            />
-            <button
-              onClick={startListening}
-              title={listening ? 'Oprește microfonul' : 'Vorbește cu Ana'}
-              aria-label={listening ? 'Oprește microfonul' : 'Vorbește cu Ana'}
-              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-md border text-lg transition-all ${listening ? 'border-red-500 bg-red-500/25 animate-pulse' : 'border-[#2ea89d] bg-[#2ea89d]/20'}`}
-            >
-              🎙️
-            </button>
-            <button
-              onClick={() => send()}
-              disabled={!input.trim() || loading}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-[#2ea89d] text-[#04141a] transition-all hover:bg-[#26958c] disabled:cursor-not-allowed disabled:opacity-40"
-              aria-label="Trimite"
-            >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19V5M5 12l7-7 7 7" />
-              </svg>
-            </button>
+          <div className="border-t border-white/10 p-3">
+            <div className="flex gap-2">
+              <label htmlFor="bt-chat-input" className="sr-only">Scrieți un mesaj pentru Ana</label>
+              <input
+                id="bt-chat-input"
+                ref={inputRef}
+                type="text"
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && send()}
+                placeholder={listening ? '🎙️ Ascult…' : 'Scrieți mesajul, apoi Enter sau ➤…'}
+                aria-label="Scrieți un mesaj pentru Ana"
+                className={`flex-1 rounded-md border px-3 py-2.5 text-sm text-[#e2e8f0] transition-colors focus:border-[#2ea89d] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#2ea89d] ${listening ? 'border-red-500 bg-red-500/10' : 'border-white/10 bg-[#0f2942]'}`}
+                style={{ fontSize: '16px' }}
+              />
+              <button
+                onClick={startListening}
+                title={listening ? 'Oprește microfonul' : 'Vorbește cu Ana'}
+                aria-label={listening ? 'Oprește microfonul' : 'Vorbește cu Ana'}
+                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-md border text-lg transition-all ${listening ? 'border-red-500 bg-red-500/25 animate-pulse' : 'border-[#2ea89d] bg-[#2ea89d]/20'}`}
+              >
+                🎙️
+              </button>
+              <button
+                onClick={() => send()}
+                disabled={!input.trim() || loading}
+                title="Trimite mesajul (Enter)"
+                aria-label="Trimite mesajul"
+                className={`flex h-11 min-w-[44px] shrink-0 items-center justify-center gap-1.5 rounded-md bg-[#2ea89d] px-3 text-[#04141a] transition-all hover:scale-105 hover:bg-[#26958c] active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100 ${input.trim() && !loading ? 'shadow-[0_0_0_3px_rgba(46,168,157,0.25)]' : ''}`}
+              >
+                <span className="hidden text-sm font-bold sm:inline">Trimite</span>
+                <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 19V5M5 12l7-7 7 7" />
+                </svg>
+              </button>
+            </div>
+            <p className="mt-1.5 px-0.5 text-[11px] text-[#64748b]">
+              Apăsați <kbd className="rounded border border-white/15 bg-white/5 px-1 py-0.5 font-mono text-[10px] text-[#94a3b8]">Enter</kbd> sau butonul <span className="font-semibold text-[#2ea89d]">Trimite</span> pentru a trimite mesajul.
+            </p>
           </div>
         </div>
       )}
