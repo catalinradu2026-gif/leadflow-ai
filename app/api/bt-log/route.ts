@@ -25,8 +25,8 @@ let cached: BtLogEntry[] | null = null
 let cacheTime = 0
 const CACHE_TTL = 20 * 1000
 
-async function loadLog(): Promise<BtLogEntry[]> {
-  if (cached && Date.now() - cacheTime < CACHE_TTL) return cached
+async function loadLog(opts?: { fresh?: boolean }): Promise<BtLogEntry[]> {
+  if (!opts?.fresh && cached && Date.now() - cacheTime < CACHE_TTL) return cached
   try {
     const token = process.env.BLOB_READ_WRITE_TOKEN
     if (!token) return []
@@ -34,33 +34,46 @@ async function loadLog(): Promise<BtLogEntry[]> {
     if (!blobs.length) return []
     const res = await fetch(blobs[0].url, { cache: 'no-store', headers: { Authorization: `Bearer ${token}` } })
     if (!res.ok) return []
-    cached = await res.json()
+    const fresh = await res.json()
+    cached = fresh
     cacheTime = Date.now()
-    return cached!
+    return fresh
   } catch (e) {
     console.error('[bt-log loadLog]', e)
-    return []
+    return opts?.fresh ? [] : (cached || [])
   }
 }
 
+// Scriere read-modify-write pe un fișier JSON unic — sub concurență mare, două scrieri
+// simultane se pot suprascrie una pe alta (fiecare citește starea dinaintea celeilalte).
+// Pentru un demo cu 1-2 vizitatori simultani, o simplă coadă in-process (un singur
+// "writer" activ per instanță serverless, restul așteaptă la rând) reduce mult riscul —
+// nu-l elimină 100% cross-instanță, dar acoperă cazul real de folosire de mâine.
+let writeQueue: Promise<void> = Promise.resolve()
+
 /** Apelat din /api/bt-chat după fiecare mesaj de user — non-fatal dacă eșuează. */
-export async function logConversation(entry: BtLogEntry): Promise<void> {
-  try {
-    const token = process.env.BLOB_READ_WRITE_TOKEN
-    if (!token) return
-    const log = await loadLog()
-    const next = [...log, entry].slice(-MAX_ENTRIES)
-    await put(BLOB_KEY, JSON.stringify(next), {
-      access: 'private',
-      contentType: 'application/json',
-      token,
-      allowOverwrite: true,
-    })
-    cached = next
-    cacheTime = Date.now()
-  } catch (e) {
-    console.error('[bt-log logConversation]', e)
-  }
+export function logConversation(entry: BtLogEntry): Promise<void> {
+  writeQueue = writeQueue.then(async () => {
+    try {
+      const token = process.env.BLOB_READ_WRITE_TOKEN
+      if (!token) return
+      // Citire FĂRĂ cache, chiar înainte de scriere — minimizează fereastra de cursă
+      // față de alte instanțe serverless care ar putea scrie concurent.
+      const log = await loadLog({ fresh: true })
+      const next = [...log, entry].slice(-MAX_ENTRIES)
+      await put(BLOB_KEY, JSON.stringify(next), {
+        access: 'private',
+        contentType: 'application/json',
+        token,
+        allowOverwrite: true,
+      })
+      cached = next
+      cacheTime = Date.now()
+    } catch (e) {
+      console.error('[bt-log logConversation]', e)
+    }
+  })
+  return writeQueue
 }
 
 // Extrage un telefon românesc dintr-un text (07xxxxxxxx sau +407xxxxxxxx / 00407...).
