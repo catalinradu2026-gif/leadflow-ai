@@ -255,6 +255,67 @@ function fixDiacritics(text: string): string {
 }
 
 // ============================================================================
+// Calcul EXACT al ratei lunare, făcut în cod, NU lăsat pe seama aritmeticii
+// modelului. Testare live a arătat modelul greșind calculul la un recalcul
+// "ce s-ar schimba dacă" (a raportat 371 lei/lună în loc de 414,20 — eroare
+// reală de ~10%, inacceptabilă pentru o cifră arătată unei bănci). Extragem
+// determinist din conversație toate perechile (sumă, luni) menționate și rata
+// cea mai recentă anunțată, calculăm exact în JS, și dăm modelului cifrele
+// corecte ca "notă tehnică" pe care trebuie doar să le folosească, nu să le
+// recalculeze — modelul rămâne responsabil de formulare/comparație, nu de
+// aritmetică.
+// ============================================================================
+function annuity(amount: number, annualRatePct: number, months: number): number {
+  const m = annualRatePct / 12 / 100
+  if (m === 0) return amount / months
+  const factor = Math.pow(1 + m, months)
+  return (amount * m * factor) / (factor - 1)
+}
+
+function buildInstallmentHint(messages: { role: string; content: string }[]): string {
+  const joined = messages.map(m => m.content).join(' \n ')
+  const rateMatch = [...joined.matchAll(/(\d{1,2}[.,]\d{1,2})\s*%/g)]
+  if (!rateMatch.length) return ''
+  const rate = parseFloat(rateMatch[rateMatch.length - 1][1].replace(',', '.'))
+  if (!Number.isFinite(rate) || rate <= 0 || rate > 30) return ''
+
+  const pairs: { amount: number; months: number }[] = []
+  let lastKnownAmount: number | null = null
+  for (const m of messages) {
+    const amountMatches = [...m.content.matchAll(/(\d{4,7}|\d{1,3}(?:[.,\s]\d{3})+)\s*(?:lei|RON)\b/gi)]
+    const monthMatches = [...m.content.matchAll(/(\d{1,3})\s*(?:de\s+)?luni\b/gi)]
+    const yearMatches = [...m.content.matchAll(/(\d{1,2})\s*(?:de\s+)?ani\b/gi)]
+
+    let amount: number | null = null
+    if (amountMatches.length === 1) {
+      amount = parseInt(amountMatches[0][1].replace(/[.,\s]/g, ''), 10)
+      if (Number.isFinite(amount) && amount >= 1000 && amount <= 5_000_000) lastKnownAmount = amount
+      else amount = null
+    } else if (amountMatches.length === 0 && (monthMatches.length === 1 || yearMatches.length === 1)) {
+      // Ex. "dar dacă aleg 60 de luni?" — nu repetă suma, o preluăm din mesajul anterior.
+      amount = lastKnownAmount
+    }
+    if (!amount) continue
+
+    let months: number | null = null
+    if (monthMatches.length === 1) months = parseInt(monthMatches[0][1], 10)
+    else if (yearMatches.length === 1) months = parseInt(yearMatches[0][1], 10) * 12
+    if (!months || months < 1 || months > 360) continue
+    if (!pairs.some(p => p.amount === amount && p.months === months)) pairs.push({ amount, months })
+  }
+  if (!pairs.length) return ''
+
+  const lines = pairs.slice(-4).map(p => {
+    const rata = annuity(p.amount, rate, p.months)
+    return `- ${p.amount.toLocaleString('ro-RO')} lei, ${p.months} luni, ${rate.toString().replace('.', ',')}%/an → rată EXACTĂ: ${Math.round(rata).toLocaleString('ro-RO')} lei/lună`
+  })
+  return `\n\n═══ NOTĂ TEHNICĂ INTERNĂ — CALCULE EXACTE (nu recalcula, folosește direct aceste cifre) ═══\n` +
+    `Următoarele rate au fost calculate exact, în cod, nu de tine — sunt sigur corecte. Dacă discuți oricare\n` +
+    `dintre aceste scenarii (simulare inițială sau "ce s-ar schimba dacă"), folosești rata EXACT ca mai jos, nu\n` +
+    `o recalculezi tu — orice diferență ar fi o greșeală de-a ta:\n${lines.join('\n')}`
+}
+
+// ============================================================================
 // Follow-up REAL pe email prin Resend (lib/email.ts, contul deja configurat și
 // verificat pentru domeniul aicraiova.ro — folosit deja de ARACIP). Detectat
 // determinist server-side (regex pe mesajul userului), NU lăsat doar pe seama a
@@ -349,12 +410,16 @@ export async function POST(req: NextRequest) {
     // Contextul conversației se limitează la ultimele 6 mesaje (nu 10) — contul Groq
     // folosit are un plafon strict de 8000 tokeni/minut per model; sistemul de prompt
     // + istoricul + bugetul de răspuns trebuie să încapă confortabil sub acel plafon.
+    const recentMessages = (messages as { role: string; content: string }[]).slice(-6).map(m => ({
+      role: m.role as 'user' | 'assistant',
+      content: m.content.slice(0, 700),
+    }))
+
+    systemPrompt += buildInstallmentHint(recentMessages)
+
     const chatMessages = [
       { role: 'system' as const, content: systemPrompt },
-      ...(messages as { role: string; content: string }[]).slice(-6).map(m => ({
-        role: m.role as 'user' | 'assistant',
-        content: m.content.slice(0, 700),
-      })),
+      ...recentMessages,
     ]
 
     // openai/gpt-oss-20b întâi (mai mic, lasă mai mult buget de tokeni/minut pentru
