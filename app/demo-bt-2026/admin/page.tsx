@@ -4,6 +4,14 @@ import { useState, useRef } from 'react'
 type Entry = { id: string; titlu: string; continut: string }
 type Rule = { id: string; text: string }
 type Knowledge = { updatedAt: string; entries: Entry[]; behaviorRules: Rule[] }
+type Lead = { phone: string; context: string; mesaj: string; data: string }
+type DashboardData = {
+  total: number
+  topKeywords: { word: string; count: number }[]
+  leads: Lead[]
+  leadsCount: number
+  daily: { date: string; count: number }[]
+}
 
 const TEAL = '#2ea89d'
 const NAVY = '#0f2942'
@@ -23,7 +31,9 @@ export default function BtAdmin() {
   const [code, setCode] = useState('')
   const [codeErr, setCodeErr] = useState('')
   const [data, setData] = useState<Knowledge | null>(null)
-  const [tab, setTab] = useState<'cunostinte' | 'comportament'>('cunostinte')
+  const [tab, setTab] = useState<'cunostinte' | 'comportament' | 'dashboard'>('cunostinte')
+  const [dash, setDash] = useState<DashboardData | null>(null)
+  const [dashLoading, setDashLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [savedMsg, setSavedMsg] = useState('')
   const [ruleInput, setRuleInput] = useState('')
@@ -36,6 +46,38 @@ export default function BtAdmin() {
     const kJson = await kRes.json()
     setData(kJson)
     setAuth(true)
+    loadDashboard()
+  }
+
+  async function loadDashboard() {
+    setDashLoading(true)
+    try {
+      const r = await fetch('/api/bt-log')
+      const j = await r.json()
+      setDash(j)
+    } catch {
+      // dashboard-ul rămâne gol dacă log-ul nu poate fi citit — nu blochează restul panoului
+    }
+    setDashLoading(false)
+  }
+
+  function downloadCsv() {
+    if (!dash) return
+    const header = 'Telefon,Context,Mesaj,Data'
+    const rows = dash.leads.map(l => {
+      const esc = (s: string) => `"${(s || '').replace(/"/g, '""')}"`
+      return [esc(l.phone), esc(l.context), esc(l.mesaj), esc(l.data)].join(',')
+    })
+    const csv = '﻿' + [header, ...rows].join('\r\n') // BOM pentru diacritice corecte în Excel
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `bt-demo-leaduri-${new Date().toISOString().slice(0, 10)}.csv`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
   }
 
   async function login(e?: React.FormEvent) {
@@ -235,10 +277,85 @@ export default function BtAdmin() {
           o informație greșită, Ana o va prezenta ca fiind reală — verificați ce introduceți.
         </div>
 
-        <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
+          <button style={tabStyle('dashboard')} onClick={() => setTab('dashboard')}>📊 Dashboard</button>
           <button style={tabStyle('cunostinte')} onClick={() => setTab('cunostinte')}>Cunoștințe ({data.entries.length})</button>
           <button style={tabStyle('comportament')} onClick={() => setTab('comportament')}>Personalizare comportament Ana ({data.behaviorRules.length})</button>
         </div>
+
+        {tab === 'dashboard' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button onClick={loadDashboard} disabled={dashLoading} style={{ ...btn('rgba(255,255,255,0.06)', false), border: '1px solid rgba(255,255,255,0.15)', fontSize: '12px', padding: '6px 12px' }}>
+                {dashLoading ? 'Se actualizează...' : '↻ Actualizează'}
+              </button>
+            </div>
+
+            {!dash && <div style={{ fontSize: '12px', color: '#475569', fontStyle: 'italic' }}>Se încarcă datele...</div>}
+
+            {dash && (
+              <>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px' }}>
+                  <div style={{ background: NAVY, border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '16px' }}>
+                    <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '6px' }}>Total conversații (mesaje)</div>
+                    <div style={{ fontSize: '26px', fontWeight: 800, color: '#f1f5f9' }}>{dash.total}</div>
+                  </div>
+                  <div style={{ background: NAVY, border: '1px solid rgba(46,168,157,0.3)', borderRadius: '12px', padding: '16px' }}>
+                    <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '6px' }}>Leaduri colectate (telefon)</div>
+                    <div style={{ fontSize: '26px', fontWeight: 800, color: TEAL }}>{dash.leadsCount}</div>
+                  </div>
+                </div>
+
+                <div>
+                  <div style={{ fontSize: '12px', fontWeight: 700, color: '#94a3b8', marginBottom: '10px' }}>Activitate — ultimele 14 zile</div>
+                  <div style={{ background: NAVY, border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '16px', display: 'flex', alignItems: 'flex-end', gap: '4px', height: '110px' }}>
+                    {dash.daily.map(d => {
+                      const max = Math.max(1, ...dash.daily.map(x => x.count))
+                      const h = Math.max(3, Math.round((d.count / max) * 80))
+                      return (
+                        <div key={d.date} title={`${d.date}: ${d.count}`} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                          <div style={{ width: '100%', height: `${h}px`, background: d.count > 0 ? TEAL : 'rgba(255,255,255,0.06)', borderRadius: '3px 3px 0 0' }} />
+                          <div style={{ fontSize: '8px', color: '#475569' }}>{d.date.slice(8, 10)}</div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                <div>
+                  <div style={{ fontSize: '12px', fontWeight: 700, color: '#94a3b8', marginBottom: '10px' }}>Subiecte frecvente (top 10 cuvinte-cheie)</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                    {dash.topKeywords.length === 0 && <span style={{ fontSize: '12px', color: '#475569', fontStyle: 'italic' }}>Încă nu sunt suficiente date.</span>}
+                    {dash.topKeywords.map(k => (
+                      <span key={k.word} style={{ background: 'rgba(46,168,157,0.12)', border: '1px solid rgba(46,168,157,0.3)', borderRadius: '20px', padding: '5px 12px', fontSize: '12px', color: TEAL, fontWeight: 600 }}>
+                        {k.word} <span style={{ color: '#64748b' }}>×{k.count}</span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                    <div style={{ fontSize: '12px', fontWeight: 700, color: '#94a3b8' }}>Leaduri (telefon din pre-calificare)</div>
+                    <button onClick={downloadCsv} disabled={dash.leadsCount === 0} style={{ ...btn(dash.leadsCount === 0 ? '#334155' : TEAL), fontSize: '12px', padding: '6px 14px' }}>⬇ Descarcă CSV</button>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {dash.leads.length === 0 && <span style={{ fontSize: '12px', color: '#475569', fontStyle: 'italic' }}>Niciun lead colectat încă.</span>}
+                    {dash.leads.slice().reverse().slice(0, 30).map((l, i) => (
+                      <div key={i} style={{ background: NAVY, border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '10px 14px', fontSize: '12px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                          <span style={{ fontWeight: 700, color: TEAL }}>{l.phone}</span>
+                          <span style={{ color: '#64748b' }}>{l.data.slice(0, 16).replace('T', ' ')} · {l.context}</span>
+                        </div>
+                        <div style={{ color: '#94a3b8', lineHeight: 1.5 }}>{l.mesaj}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        )}
 
         {tab === 'cunostinte' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
