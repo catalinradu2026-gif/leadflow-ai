@@ -13,6 +13,7 @@ const LANG_TO_BCP47: Record<string, string> = {
 
 const UI_TEXT: Record<string, {
   welcome: string
+  aiLabel: string
   bubbleGreet: (h: number) => string
   bubbles: string[]
   placeholder: string
@@ -27,7 +28,8 @@ const UI_TEXT: Record<string, {
   errorMsg: string
 }> = {
   ro: {
-    welcome: 'Bună! Sunt Ava, agenta virtuală a AIcraiova. Spune-mi ce tip de afacere ai și îți arăt exact ce putem automatiza pentru tine!',
+    welcome: 'Bună! Sunt Ava, agenta virtuală AI a AIcraiova — nu sunt o persoană reală. Spune-mi ce tip de afacere ai și îți arăt exact ce putem automatiza pentru tine!',
+    aiLabel: '🤖 Asistent AI · nu e un om',
     bubbleGreet: (h) => h < 12 ? 'Bună dimineața!' : h < 18 ? 'Bună ziua!' : 'Bună seara!',
     bubbles: [
       'Sunt Ava. Un bot WhatsApp care răspunde clienților tăi 24/7 — vrei să vedem ce poate face pentru afacerea ta?',
@@ -49,7 +51,8 @@ const UI_TEXT: Record<string, {
     errorMsg: 'Eroare de conexiune. Scrie-ne pe WhatsApp la 0787 813 485!',
   },
   en: {
-    welcome: "Hi! I'm Ava, AIcraiova's virtual sales agent. Tell me what type of business you have and I'll show you exactly what we can automate for you!",
+    welcome: "Hi! I'm Ava, AIcraiova's virtual AI sales agent — I'm not a real person. Tell me what type of business you have and I'll show you exactly what we can automate for you!",
+    aiLabel: '🤖 AI Assistant · not a human',
     bubbleGreet: (h) => h < 12 ? 'Good morning!' : h < 18 ? 'Good afternoon!' : 'Good evening!',
     bubbles: [
       "I'm Ava. A WhatsApp bot that replies to your clients 24/7 — want to see what it can do for your business?",
@@ -71,7 +74,8 @@ const UI_TEXT: Record<string, {
     errorMsg: 'Connection error. Write to us on WhatsApp at 0787 813 485!',
   },
   de: {
-    welcome: 'Hallo! Ich bin Ava, der virtuelle Verkaufsagent von AIcraiova. Sagen Sie mir, welche Art von Unternehmen Sie haben, und ich zeige Ihnen genau, was wir für Sie automatisieren können!',
+    welcome: 'Hallo! Ich bin Ava, der virtuelle KI-Verkaufsagent von AIcraiova — ich bin keine echte Person. Sagen Sie mir, welche Art von Unternehmen Sie haben, und ich zeige Ihnen genau, was wir für Sie automatisieren können!',
+    aiLabel: '🤖 KI-Assistent · kein Mensch',
     bubbleGreet: (h) => h < 12 ? 'Guten Morgen!' : h < 18 ? 'Guten Tag!' : 'Guten Abend!',
     bubbles: [
       'Ich bin Ava. Ein WhatsApp-Bot, der Ihren Kunden 24/7 antwortet — möchten Sie sehen, was er für Ihr Unternehmen tun kann?',
@@ -93,7 +97,8 @@ const UI_TEXT: Record<string, {
     errorMsg: 'Verbindungsfehler. Schreiben Sie uns auf WhatsApp: 0787 813 485!',
   },
   it: {
-    welcome: "Ciao! Sono Ava, l'agente virtuale di AIcraiova. Dimmi che tipo di attività hai e ti mostrerò esattamente cosa possiamo automatizzare per te!",
+    welcome: "Ciao! Sono Ava, l'agente virtuale AI di AIcraiova — non sono una persona reale. Dimmi che tipo di attività hai e ti mostrerò esattamente cosa possiamo automatizzare per te!",
+    aiLabel: '🤖 Assistente AI · non è un umano',
     bubbleGreet: (h) => h < 12 ? 'Buongiorno!' : h < 18 ? 'Buon pomeriggio!' : 'Buonasera!',
     bubbles: [
       'Sono Ava. Un bot WhatsApp che risponde ai tuoi clienti 24/7 — vuoi vedere cosa può fare per la tua attività?',
@@ -115,7 +120,8 @@ const UI_TEXT: Record<string, {
     errorMsg: 'Errore di connessione. Scrivici su WhatsApp al 0787 813 485!',
   },
   fr: {
-    welcome: "Bonjour! Je suis Ava, l'agente virtuelle d'AIcraiova. Dites-moi quel type d'entreprise vous avez et je vous montrerai exactement ce que nous pouvons automatiser pour vous!",
+    welcome: "Bonjour! Je suis Ava, l'agente virtuelle IA d'AIcraiova — je ne suis pas une personne réelle. Dites-moi quel type d'entreprise vous avez et je vous montrerai exactement ce que nous pouvons automatiser pour vous!",
+    aiLabel: '🤖 Assistante IA · pas un humain',
     bubbleGreet: (h) => h < 12 ? 'Bonjour!' : h < 18 ? 'Bon après-midi!' : 'Bonsoir!',
     bubbles: [
       "Je suis Ava. Un bot WhatsApp qui répond à vos clients 24/7 — voulez-vous voir ce qu'il peut faire pour votre entreprise?",
@@ -137,7 +143,8 @@ const UI_TEXT: Record<string, {
     errorMsg: 'Erreur de connexion. Écrivez-nous sur WhatsApp au 0787 813 485!',
   },
   es: {
-    welcome: '¡Hola! Soy Ava, la agente virtual de AIcraiova. Cuéntame qué tipo de negocio tienes y te mostraré exactamente qué podemos automatizar para ti.',
+    welcome: '¡Hola! Soy Ava, la agente virtual de IA de AIcraiova — no soy una persona real. Cuéntame qué tipo de negocio tienes y te mostraré exactamente qué podemos automatizar para ti.',
+    aiLabel: '🤖 Asistente de IA · no es un humano',
     bubbleGreet: (h) => h < 12 ? '¡Buenos días!' : h < 18 ? '¡Buenas tardes!' : '¡Buenas noches!',
     bubbles: [
       'Soy Ava. Un bot de WhatsApp que responde a tus clientes 24/7 — ¿quieres ver qué puede hacer por tu negocio?',
@@ -159,7 +166,8 @@ const UI_TEXT: Record<string, {
     errorMsg: 'Error de conexión. Escríbenos por WhatsApp al 0787 813 485.',
   },
   zh: {
-    welcome: '您好！我是Ava，AIcraiova的虚拟销售助手。请告诉我您的业务类型，我将为您展示我们能自动化的内容！',
+    welcome: '您好！我是Ava，AIcraiova的AI虚拟销售助手——我不是真人。请告诉我您的业务类型，我将为您展示我们能自动化的内容！',
+    aiLabel: '🤖 AI助手 · 非真人',
     bubbleGreet: (h) => h < 12 ? '早上好！' : h < 18 ? '下午好！' : '晚上好！',
     bubbles: [
       '我是Ava。一个24/7回复您客户的WhatsApp机器人 — 想看看它能为您的业务做什么吗？',
@@ -497,6 +505,7 @@ export default function ChatBot() {
             <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center text-white text-sm font-bold shrink-0">AI</div>
             <div className="flex-1">
               <p className="text-white font-semibold text-sm leading-tight">Ava · AIcraiova</p>
+              <p className="text-white/70 text-[10px] font-semibold mt-0.5">{ui.aiLabel}</p>
               <div className="flex items-center gap-1.5 mt-0.5">
                 {speaking ? (
                   <>

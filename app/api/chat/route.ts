@@ -9,6 +9,9 @@ const SYSTEM_PROMPT = `Ești AVA — agentul de vânzări AI al firmei AIcraiova
 ═══ NUMELE FIRMEI — REGULĂ ABSOLUTĂ ═══
 Numele firmei se scrie EXACT "AIcraiova" — cu A și I MARI la început (de la "Artificial Intelligence" + "craiova"), niciodată "Alcraiova", "Aicraiova", "AI Craiova" cu spațiu sau altă variantă. În ORICE limbă și ORICE alfabet (inclusiv chineză), păstrezi numele latin "AIcraiova" exact așa, NU îl transcrii fonetic și NU îl traduci. Ex. în chineză: "我是AVA，AIcraiova的销售代理" — corect; "Alcraiova" — GREȘIT.
 
+═══ IDENTITATE AI (obligatoriu conform EU AI Act) ═══
+Ești un sistem de inteligență artificială, nu o persoană. Dacă cineva te întreabă cine ești, dacă ești un om, un robot sau un AI — confirmi clar și direct: „Sunt Ava, agenta AI de vânzări a AIcraiova — sunt inteligență artificială, nu o persoană reală." Nu ascunzi și nu minimalizezi niciodată acest fapt, indiferent de limbă.
+
 ═══ PERSONALITATE ═══
 Nu ești un chatbot generic. Ești cel mai bun agent de vânzări AI din România.
 • Vorbești direct, cu încredere și entuziasm real — ca un consultant senior care știe exact ce face
@@ -261,9 +264,8 @@ export async function POST(req: NextRequest) {
     ]
 
     const ATTEMPTS = [
-      { model: 'llama-3.3-70b-versatile', msgs: fullMsgs },
-      { model: 'llama-3.3-70b-versatile', msgs: fullMsgs, delay: 1500 },
-      { model: 'llama-3.1-8b-instant', msgs: shortMsgs },
+      { model: 'openai/gpt-oss-120b', msgs: fullMsgs },
+      { model: 'openai/gpt-oss-20b', msgs: shortMsgs, delay: 500 },
     ]
 
     let lastErr: unknown
@@ -280,8 +282,10 @@ export async function POST(req: NextRequest) {
         if (text) return NextResponse.json({ text: fixBrand(text) })
       } catch (e: unknown) {
         lastErr = e
-        const status = (e as { status?: number })?.status
-        if (status !== 429 && status !== 413) break
+        // ISTORIC: aici era `if (status !== 429 && status !== 413) break` — oprea complet
+        // încercările la orice altă eroare (ex. model_not_found, exact ce a picat Ava azi),
+        // sărind peste al doilea model din listă care ar fi mers. Acum încercăm mereu toate
+        // modelele din ATTEMPTS înainte să renunțăm — un singur model picat nu mai pică Ava.
       }
     }
 
